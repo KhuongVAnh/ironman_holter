@@ -44,10 +44,10 @@ const createFakeReading = async (req, res) => {
     const { device_id } = req.body
 
     // Kiểm tra thiết bị tồn tại
-    const device = await Device.findByPk(device_id)
-    if (!device) {
-      return res.status(404).json({ message: "Không tìm thấy thiết bị" })
-    }
+    // const device = await Device.findByPk(device_id)
+    // if (!device) {
+    //   return res.status(404).json({ message: "Không tìm thấy thiết bị" })
+    // }
 
     // Tạo dữ liệu giả
     const heart_rate = Math.floor(Math.random() * (120 - 60 + 1)) + 60 // 60-120 bpm
@@ -56,12 +56,19 @@ const createFakeReading = async (req, res) => {
     // Phát hiện bất thường đơn giản
     const abnormal_detected = heart_rate > 100 || heart_rate < 60
 
-    const reading = await Reading.create({
+    // const reading = await Reading.create({
+    //   device_id,
+    //   heart_rate,
+    //   ecg_signal,
+    //   abnormal_detected,
+    // })
+
+    const reading ={
       device_id,
       heart_rate,
       ecg_signal,
       abnormal_detected,
-    })
+    }
 
     // Gửi dữ liệu realtime qua Socket.IO
     const io = req.app.get("io")
@@ -148,8 +155,32 @@ const getUserReadingHistory = async (req, res) => {
   }
 }
 
+const receiveTelemetry = async (req, res) => {
+  try {
+    const { device_id, ecg, ppg, heart_rate, spo2 } = req.body;
+
+    // Tạo một bản ghi mới
+    const reading = await Reading.create({
+      device_id,
+      ecg: JSON.stringify(ecg), // lưu mảng dạng chuỗi
+      ppg: JSON.stringify(ppg),
+      heart_rate,
+      spo2,
+    });
+
+    return res.status(201).json({
+      message: "Telemetry data received",
+      data: reading,
+    });
+  } catch (error) {
+    console.error("Error receiving telemetry:", error);
+    return res.status(500).json({ error: "Failed to receive telemetry" });
+  }
+};
+
 module.exports = {
   createFakeReading,
   getDeviceReadings,
   getUserReadingHistory,
+  receiveTelemetry
 }

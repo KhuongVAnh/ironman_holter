@@ -70,9 +70,11 @@ const PatientDashboard = () => {
     try {
       // Giả sử có device_id mặc định
       const deviceId = `device_${user.user_id}`
-      await axios.post("http://localhost:4000/api/readings/fake", {
+      const res = await axios.post("http://localhost:4000/api/readings/fake", {
         device_id: deviceId,
       })
+
+      console.log(res)
       toast.success("Đã tạo dữ liệu giả lập")
     } catch (error) {
       console.error("Lỗi tạo dữ liệu giả:", error)

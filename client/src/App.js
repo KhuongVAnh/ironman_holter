@@ -199,7 +199,7 @@ const AppContent = () => {
 
       {user && <Chatbot userId={user.id} userRole={user.role} />}
 
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   )
 }
