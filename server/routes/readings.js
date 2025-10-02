@@ -1,6 +1,6 @@
 const express = require("express")
 const { createFakeReading, getDeviceReadings, getUserReadingHistory,
-    receiveTelemetry
+    receiveTelemetry, createReading 
  } = require("../controllers/readingController")
 const { authenticateToken, authorizeRoles } = require("../middleware/auth")
 

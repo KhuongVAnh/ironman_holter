@@ -14,6 +14,7 @@ const PatientDashboard = () => {
   const [recentAlerts, setRecentAlerts] = useState([])
   const [isConnected, setIsConnected] = useState(false)
   const [socket, setSocket] = useState(null)
+  const [aiResult, setAiResult] = useState(null)
 
   useEffect(() => {
     // Khởi tạo Socket.IO connection
@@ -32,9 +33,31 @@ const PatientDashboard = () => {
     })
 
     // Lắng nghe dữ liệu ECG realtime
+    newSocket.on("reading-update", (data) => {
+      setCurrentHeartRate(data.heart_rate)
+      setEcgData(data.ecg_signal)
+
+      setAiResult({
+        result: data.ai_result,
+        time: data.timestamp,
+        hr: data.heart_rate
+      })
+
+      if (data.abnormal_detected) {
+        toast.warning(`Phát hiện bất thường: ${data.heart_rate} bpm`)
+      }
+    })
+
+    // lắng nghe fake data
     newSocket.on("fake-reading", (data) => {
       setCurrentHeartRate(data.heart_rate)
       setEcgData(data.ecg_signal)
+
+      setAiResult({
+        result: data.ai_result,
+        time: data.timestamp,
+        hr: data.heart_rate
+      })
 
       if (data.abnormal_detected) {
         toast.warning(`Phát hiện bất thường: ${data.heart_rate} bpm`)
@@ -126,6 +149,27 @@ const PatientDashboard = () => {
               <span className={`badge fs-6 ${heartRateStatus.color.replace("text-", "bg-")}`}>
                 {heartRateStatus.status}
               </span>
+
+              {/* Kết quả AI */}
+              <div className="mt-4">
+                <div className="card border-0 bg-light">
+                  <div className="card-body p-2">
+                    <h6 className="text-muted mb-1">
+                      <i className="fas fa-robot me-2 text-success"></i>Kết quả AI
+                    </h6>
+                    {aiResult ? (
+                      <p className="fw-bold small mb-0">
+                        HR: {aiResult.hr} | AI: {aiResult.result} <br />
+                        <small className="text-muted">
+                          {new Date(aiResult.time).toLocaleString("vi-VN")}
+                        </small>
+                      </p>
+                    ) : (
+                      <p className="text-muted small mb-0">Đang chờ dữ liệu...</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

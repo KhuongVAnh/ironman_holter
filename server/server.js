@@ -4,6 +4,7 @@ const cors = require("cors")
 const helmet = require("helmet")
 const http = require("http")
 const socketIo = require("socket.io")
+const path = require("path");
 
 const { sequelize } = require("./models")
 const socketService = require("./services/socketService")
@@ -16,6 +17,10 @@ const io = socketIo(server, {
     methods: ["GET", "POST"],
   },
 })
+
+// view engine
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "ejs");
 
 // Middleware
 app.use(helmet())
@@ -31,6 +36,7 @@ app.use("/api/readings", require("./routes/readings"))
 app.use("/api/alerts", require("./routes/alerts"))
 app.use("/api/reports", require("./routes/reports"))
 app.use("/api/chat", require("./routes/chat"))
+app.use("/test", require('./routes/routesServer'))
 
 socketService.init(io)
 
@@ -49,7 +55,7 @@ const startServer = async () => {
 
     // Đồng bộ models (chỉ trong development)
     if (process.env.NODE_ENV === "development") {
-      await sequelize.sync({ alter: true })
+      await sequelize.sync()
       console.log("Đồng bộ database thành công")
     }
 

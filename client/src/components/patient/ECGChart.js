@@ -18,15 +18,53 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 const ECGChart = ({ data = [] }) => {
   const chartRef = useRef()
 
+  // Cấu hình
+  const sampleRate = 250
+  const windowSize = 4 * sampleRate // 1000 mẫu = 4 giây
+
+  // Lấy 1000 mẫu cuối, nếu chưa đủ thì pad 0 ở đầu
+  let visibleData =
+    data.length > windowSize ? data.slice(-windowSize) : data
+
+  if (visibleData.length < windowSize) {
+    const padding = new Array(windowSize - visibleData.length).fill(0)
+    visibleData = [...padding, ...visibleData]
+  }
+
+  // Thời gian bắt đầu của cửa sổ
+  const startTime = Math.max(0, data.length - windowSize) / sampleRate
+
+  // Dữ liệu hiển thị
+  const chartData = {
+    labels: visibleData.map((_, index) =>
+      (startTime + index / sampleRate).toFixed(2)
+    ),
+    datasets: [
+      {
+        label: "ECG Signal",
+        data: visibleData.map(v => v / 10), // giảm 1000 lần
+        borderColor: "#dc3545",
+        backgroundColor: "rgba(220, 53, 69, 0.1)",
+        fill: false,
+      },
+    ],
+  }
+
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: {
-      duration: 0, // Tắt animation để hiển thị realtime mượt mà
-    },
+    animation: { duration: 0 },
     scales: {
       x: {
-        display: false, // Ẩn trục x
+        display: true,
+        title: {
+          display: true,
+          text: "Thời gian (s)",
+        },
+        ticks: {
+          maxTicksLimit: 10,
+          color: "#666",
+        },
         grid: {
           color: "#e0e0e0",
           lineWidth: 0.5,
@@ -35,54 +73,27 @@ const ECGChart = ({ data = [] }) => {
       y: {
         min: -1.5,
         max: 1.5,
-        grid: {
-          color: "#e0e0e0",
-          lineWidth: 0.5,
+        title: {
+          display: true,
+          text: "Biên độ (mV)",
         },
-        ticks: {
-          stepSize: 0.5,
-          color: "#666",
-          font: {
-            size: 10,
-          },
-        },
+        ticks: { stepSize: 0.5, color: "#666", font: { size: 10 } },
+        grid: { color: "#e0e0e0", lineWidth: 0.5 },
       },
     },
     plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        enabled: false, // Tắt tooltip để tăng performance
-      },
+      legend: { display: false },
+      tooltip: { enabled: false },
     },
     elements: {
-      point: {
-        radius: 0, // Ẩn các điểm để đường line mượt mà hơn
-      },
-      line: {
-        borderWidth: 2,
-        tension: 0, // Đường thẳng, không cong
-      },
+      point: { radius: 0 },
+      line: { borderWidth: 2, tension: 0 },
     },
-  }
-
-  const chartData = {
-    labels: data.map((_, index) => index),
-    datasets: [
-      {
-        label: "ECG Signal",
-        data: data,
-        borderColor: "#dc3545", // Màu đỏ cho tín hiệu ECG
-        backgroundColor: "rgba(220, 53, 69, 0.1)",
-        fill: false,
-      },
-    ],
   }
 
   return (
     <div style={{ height: "300px", position: "relative" }}>
-      {data.length > 0 ? (
+      {visibleData.length > 0 ? (
         <Line ref={chartRef} data={chartData} options={options} />
       ) : (
         <div className="d-flex align-items-center justify-content-center h-100">
@@ -91,7 +102,9 @@ const ECGChart = ({ data = [] }) => {
               <span className="visually-hidden">Đang tải...</span>
             </div>
             <p className="text-muted">Đang chờ dữ liệu ECG...</p>
-            <small className="text-muted">Nhấn "Tạo dữ liệu giả" để bắt đầu</small>
+            <small className="text-muted">
+              Nhấn "Tạo dữ liệu giả" để bắt đầu
+            </small>
           </div>
         </div>
       )}

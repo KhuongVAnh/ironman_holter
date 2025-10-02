@@ -34,6 +34,10 @@ module.exports = (sequelize) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
+      ai_result: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
     },
     {
       tableName: "readings",
