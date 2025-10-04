@@ -18,6 +18,7 @@ GEMINI_API_KEY=your_gemini_api_key
 # Tạo database và migrate
 npx sequelize db:create
 npx sequelize db:migrate
+npx sequelize-cli db:seed:all
 
 npm run dev
 \`\`\`

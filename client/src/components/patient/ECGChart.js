@@ -42,7 +42,7 @@ const ECGChart = ({ data = [] }) => {
     datasets: [
       {
         label: "ECG Signal",
-        data: visibleData.map(v => v / 10), // giảm 1000 lần
+        data: visibleData.map(v => v/2),
         borderColor: "#dc3545",
         backgroundColor: "rgba(220, 53, 69, 0.1)",
         fill: false,

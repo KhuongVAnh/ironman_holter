@@ -1,3 +1,4 @@
+const { timeStamp } = require("console")
 const { Reading, Device, User } = require("../models")
 
 // Tạo dữ liệu ECG giả lập
@@ -46,6 +47,22 @@ const generateFakeECGData = (duration = 10, sampleRate = 250, heartRate = 75) =>
   return data
 }
 
+// Fake AI classifier (sau này thay bằng call API AI thật)
+function mockAIClassifier(ecgSignal) {
+  const results = ["Normal", "AFIB", "Ngoại tâm thu", "Nhịp nhanh", "Nhịp chậm"];
+  return results[Math.floor(Math.random() * results.length)];
+
+  // có AI thì lấy code dưới đây
+  // try {
+  //   const response = await axios.post("http://localhost:5001/classify", {
+  //     ecg_signal: ecgSignal,
+  //   });
+  //   return response.data.result || "Unknown";
+  // } catch (error) {
+  //   console.error("AI service error:", error.message);
+  //   return "AI_ERROR";
+  // }
+}
 
 const createFakeReading = async (req, res) => {
   try {
@@ -61,11 +78,11 @@ const createFakeReading = async (req, res) => {
     const heart_rate = Math.floor(Math.random() * (120 - 60 + 1)) + 60 // 60-120 bpm
     const ecg_signal = generateFakeECGData()
 
-    // Phát hiện bất thường đơn giản
-    const abnormal_detected = heart_rate > 100 || heart_rate < 60
-
     // 🔹 AI phân loại ngay
     const aiResult = mockAIClassifier(ecg_signal);
+
+    // Phát hiện bất thường đơn giản
+    const abnormal_detected = aiResult != "Normal"
 
     const reading = await Reading.create({
       device_id: device_id || 'device_1', // default = 1
@@ -87,11 +104,12 @@ const createFakeReading = async (req, res) => {
       timestamp: reading.timestamp,
     })
 
+
     // Tạo cảnh báo nếu phát hiện bất thường
     if (abnormal_detected) {
       const { Alert } = require("../models")
-      const alertType = heart_rate > 100 ? "nhịp nhanh" : "nhịp chậm"
-      const message = `Phát hiện ${alertType}: ${heart_rate} bpm`
+      const alertType = aiResult
+      const message = `Phát hiện dấu hiệu của ${alertType}: Nhịp tim ${heart_rate} bpm`
 
       await Alert.create({
         user_id: device.user_id,
@@ -173,23 +191,6 @@ function fakeECGSignal(length = 100) {
   return arr;
 }
 
-// Fake AI classifier (sau này thay bằng call API AI thật)
-function mockAIClassifier(ecgSignal) {
-  const results = ["Normal", "AFIB", "Ngoại tâm thu", "Nhịp nhanh"];
-  return results[Math.floor(Math.random() * results.length)];
-
-  // có AI thì lấy code dưới đây
-  // try {
-  //   const response = await axios.post("http://localhost:5001/classify", {
-  //     ecg_signal: ecgSignal,
-  //   });
-  //   return response.data.result || "Unknown";
-  // } catch (error) {
-  //   console.error("AI service error:", error.message);
-  //   return "AI_ERROR";
-  // }
-}
-
 const receiveTelemetry = async (req, res) => {
   try {
     const { device_id, heart_rate, ecg_signal } = req.body;
@@ -201,14 +202,17 @@ const receiveTelemetry = async (req, res) => {
     // 🔹 AI phân loại ngay
     const aiResult = mockAIClassifier(ecg);
 
+    // Phát hiện bất thường đơn giản
+    const abnormal_detected = aiResult != "Normal"
+
     const reading = await Reading.create({
       device_id: device_id || 'device_1',
       heart_rate: heart_rate || Math.floor(Math.random() * 60) + 60,
       ecg_signal: JSON.stringify(ecg),
       abnormal_detected: false,
       ai_result: aiResult,
+      timestamp: new Date(),
     });
-
 
     // 🔹 phát realtime tới frontend
     io.emit("reading-update", {
@@ -219,6 +223,27 @@ const receiveTelemetry = async (req, res) => {
       ai_result: reading.ai_result,
       timestamp: reading.timestamp,
     });
+
+    // Tạo cảnh báo nếu phát hiện bất thường
+    if (abnormal_detected) {
+      const { Alert } = require("../models")
+      const alertType = aiResult
+      const message = `Phát hiện dấu hiệu của ${alertType}: Nhịp tim ${heart_rate} bpm`
+
+      await Alert.create({
+        user_id: device.user_id,
+        alert_type: alertType,
+        message,
+      })
+
+      // Gửi cảnh báo realtime
+      io.emit("alert", {
+        user_id: device.user_id,
+        alert_type: alertType,
+        message,
+        timestamp: new Date(),
+      })
+    }
 
     return res.status(201).json({
       message: "Telemetry data received",

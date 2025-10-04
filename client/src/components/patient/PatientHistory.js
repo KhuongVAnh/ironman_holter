@@ -44,11 +44,12 @@ const PatientHistory = () => {
     return "text-success"
   }
 
-  const getStatusBadge = (abnormal) => {
-    return abnormal ? (
-      <span className="badge bg-danger">Bất thường</span>
-    ) : (
-      <span className="badge bg-success">Bình thường</span>
+  const getStatusBadge = (ai_result) => {
+    return (
+      ai_result == "Normal" ?
+        <span className="badge bg-success">{`${ai_result}`}</span>
+        :
+        <span className="badge bg-danger">{`${ai_result}`}</span>
     )
   }
 
@@ -109,7 +110,7 @@ const PatientHistory = () => {
                                 {reading.heart_rate}
                               </span>
                             </td>
-                            <td>{getStatusBadge(reading.abnormal_detected)}</td>
+                            <td>{getStatusBadge(reading.ai_result)}</td>
                             <td>
                               <small className="text-muted">{reading.Device?.serial_number || "N/A"}</small>
                             </td>
@@ -189,7 +190,7 @@ const PatientHistory = () => {
                     <span className={getHeartRateClass(reading.heart_rate)}>{reading.heart_rate} BPM</span>
                   </div>
                   <div className="col-md-6">
-                    <strong>Trạng thái:</strong> {getStatusBadge(reading.abnormal_detected)}
+                    <strong>Trạng thái:</strong> {getStatusBadge(reading.ai_result)}
                   </div>
                 </div>
                 <div className="mb-3">

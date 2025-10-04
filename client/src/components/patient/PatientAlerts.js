@@ -50,29 +50,38 @@ const PatientAlerts = () => {
   const getAlertIcon = (alertType) => {
     switch (alertType.toLowerCase()) {
       case "nhịp nhanh":
-        return "fas fa-arrow-up text-danger"
+        return "fas fa-arrow-up text-primary"; // Màu đỏ cảnh báo tim đập nhanh
       case "nhịp chậm":
-        return "fas fa-arrow-down text-warning"
+        return "fas fa-arrow-down text-primary"; // Màu xanh dương, ít nguy hiểm hơn
       case "rung nhĩ":
-        return "fas fa-exclamation-triangle text-danger"
+        return "fas fa-heart-crack text-danger"; // Rõ ràng hơn 'exclamation-triangle'
       case "ngoại tâm thu":
-        return "fas fa-heartbeat text-warning"
+        return "fas fa-bolt text-warning"; // Biểu tượng sét - biểu hiện xung bất thường
+      case "normal":
+      case "bình thường":
+        return "fas fa-check-circle text-success"; // Màu xanh lá cho bình thường
       default:
-        return "fas fa-exclamation-circle text-info"
+        return "fas fa-heartbeat text-danger"; // Mặc định xám - không xác định
     }
   }
 
   const getAlertColor = (alertType) => {
     switch (alertType.toLowerCase()) {
       case "nhịp nhanh":
+        return "border-secondary";
       case "rung nhĩ":
-        return "border-danger"
-      case "nhịp chậm":
+        return "border-danger"; // 🔴 Mức nguy hiểm cao
       case "ngoại tâm thu":
-        return "border-warning"
+        return "border-warning"; // 🟡 Cảnh báo mức trung bình
+      case "nhịp chậm":
+        return "border-secondary"; // 🔵 Ít nguy hiểm, chỉ nhịp chậm
+      case "normal":
+      case "bình thường":
+        return "border-success"; // 🟢 Ổn định, bình thường
       default:
-        return "border-info"
+        return "border-danger"; // ⚪ Không xác định / mặc định
     }
+
   }
 
   if (loading) {

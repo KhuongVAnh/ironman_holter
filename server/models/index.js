@@ -17,6 +17,7 @@ const Reading = require("./Reading")(sequelize)
 const Alert = require("./Alert")(sequelize)
 const Report = require("./Report")(sequelize)
 const ChatLog = require("./ChatLog")(sequelize)
+const AccessPermission = require("./AccessPermission")(sequelize);
 
 // Define associations
 User.hasMany(Device, { foreignKey: "user_id" })
@@ -36,6 +37,12 @@ Report.belongsTo(User, { foreignKey: "doctor_id", as: "Doctor" })
 User.hasMany(ChatLog, { foreignKey: "user_id" })
 ChatLog.belongsTo(User, { foreignKey: "user_id" })
 
+// 🔹 Liên kết AccessPermission với User
+User.hasMany(AccessPermission, { foreignKey: "patient_id", as: "SharedPatients" });
+User.hasMany(AccessPermission, { foreignKey: "viewer_id", as: "SharedViewers" });
+AccessPermission.belongsTo(User, { foreignKey: "patient_id", as: "patient" });
+AccessPermission.belongsTo(User, { foreignKey: "viewer_id", as: "viewer" });
+
 module.exports = {
   sequelize,
   User,
@@ -44,4 +51,5 @@ module.exports = {
   Alert,
   Report,
   ChatLog,
+  AccessPermission,
 }

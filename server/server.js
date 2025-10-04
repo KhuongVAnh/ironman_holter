@@ -37,6 +37,7 @@ app.use("/api/alerts", require("./routes/alerts"))
 app.use("/api/reports", require("./routes/reports"))
 app.use("/api/chat", require("./routes/chat"))
 app.use("/test", require('./routes/routesServer'))
+app.use("/api/access", require("./routes/access"));
 
 socketService.init(io)
 

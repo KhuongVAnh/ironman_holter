@@ -65,7 +65,7 @@ const PatientChat = () => {
       ])
     } catch (error) {
       console.error("Lỗi tải danh bạ:", error)
-      toast.error("Không thể tải danh sách liên hệ")
+      // toast.error("Không thể tải danh sách liên hệ")
     }
   }
 
@@ -74,28 +74,20 @@ const PatientChat = () => {
       const response = await axios.get(`http://localhost:4000/api/chat/history/${user.id}`)
       const history = response.data.history || []
 
-      // Convert history to messages format
-      const formattedMessages = []
-      history.forEach((chat) => {
-        formattedMessages.push({
-          id: `user-${chat.id}`,
-          text: chat.user_message,
-          sender: "user",
-          timestamp: new Date(chat.created_at),
-        })
-        formattedMessages.push({
-          id: `bot-${chat.id}`,
-          text: chat.bot_response,
-          sender: "bot",
-          timestamp: new Date(chat.created_at),
-        })
-      })
+      // Convert từ chat_logs trong DB -> messages format
+      const formattedMessages = history.map((chat) => ({
+        id: `${chat.role}-${chat.chat_id}`,
+        text: chat.message,
+        sender: chat.role, // "user" hoặc "bot"
+        timestamp: new Date(chat.timestamp),
+      }))
 
       setMessages(formattedMessages)
     } catch (error) {
       console.error("Lỗi tải lịch sử chat:", error)
     }
   }
+
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return
@@ -110,10 +102,10 @@ const PatientChat = () => {
     setMessages((prev) => [...prev, userMessage])
 
     if (selectedRecipient) {
-      // Gửi tin nhắn đến người dùng khác qua Socket.IO
+      // Gửi qua socket nếu có người nhận cụ thể
       sendChatMessage(selectedRecipient.id, inputMessage, user.role)
     } else {
-      // Gửi tin nhắn đến AI chatbot
+      // Gửi cho AI bot
       setIsLoading(true)
       try {
         const response = await axios.post("http://localhost:4000/api/chat", {
@@ -124,7 +116,7 @@ const PatientChat = () => {
 
         const botMessage = {
           id: `bot-${Date.now()}`,
-          text: response.data.response,
+          text: response.data.response,   // ✅ backend đã trả về { response: ... }
           sender: "bot",
           timestamp: new Date(),
         }
@@ -317,13 +309,12 @@ const PatientChat = () => {
                   className={`mb-3 d-flex ${message.sender === "user" ? "justify-content-end" : "justify-content-start"}`}
                 >
                   <div
-                    className={`rounded-3 p-3 shadow-sm ${
-                      message.sender === "user"
-                        ? "bg-primary text-white ms-5"
-                        : message.sender === "bot"
-                          ? "bg-light me-5"
-                          : "bg-info text-white me-5"
-                    }`}
+                    className={`rounded-3 p-3 shadow-sm ${message.sender === "user"
+                      ? "bg-primary text-white ms-5"
+                      : message.sender === "bot"
+                        ? "bg-light me-5"
+                        : "bg-info text-white me-5"
+                      }`}
                     style={{ maxWidth: "70%" }}
                   >
                     <div className="d-flex align-items-center mb-1">
