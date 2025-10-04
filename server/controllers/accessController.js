@@ -5,6 +5,7 @@ const { AccessPermission, User } = require("../models");
 // 1️⃣ Bệnh nhân gửi yêu cầu cấp quyền
 exports.shareAccess = async (req, res) => {
     try {
+        console.log(req)
         const { viewer_email, role } = req.body;
         const { user_id } = req.user; // JWT decode → id của người gửi (bệnh nhân)
         const io = req.app.get("io");
@@ -31,11 +32,13 @@ exports.shareAccess = async (req, res) => {
         });
 
         // 🔔 Gửi socket event cho người được mời
+        // Sau khi tạo newPermission xong:
         io.emit("access-request", {
             viewer_id: viewer.user_id,
             patient_id: user_id,
             role,
-        });
+            permission_id: newPermission.permission_id, // thêm id
+        })
 
         return res.status(201).json({
             message: "Đã gửi yêu cầu chia sẻ quyền truy cập",
@@ -65,7 +68,8 @@ exports.respondAccess = async (req, res) => {
             patient_id: permission.patient_id,
             viewer_id: permission.viewer_id,
             status: permission.status,
-        });
+            permission_id: permission.permission_id, // thêm id
+        })
 
         return res.json({
             message: `Đã ${action === "accept" ? "chấp nhận" : "từ chối"} quyền truy cập`,
@@ -118,3 +122,27 @@ exports.revokeAccess = async (req, res) => {
         return res.status(500).json({ error: "Lỗi khi thu hồi quyền" });
     }
 };
+
+// 5️⃣ Lấy danh sách yêu cầu đang chờ xử lý (pending)
+exports.getPendingRequests = async (req, res) => {
+    try {
+        const { user_id } = req.user // lấy id người đang đăng nhập
+
+        const requests = await AccessPermission.findAll({
+            where: { viewer_id: user_id, status: "pending" },
+            include: [
+                {
+                    model: User,
+                    as: "patient",
+                    attributes: ["user_id", "name", "email", "role"],
+                },
+            ],
+        })
+
+        return res.json(requests)
+    } catch (error) {
+        console.error("Error fetching pending access:", error)
+        return res.status(500).json({ error: "Lỗi khi lấy danh sách pending" })
+    }
+}
+

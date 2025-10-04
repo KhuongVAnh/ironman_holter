@@ -18,4 +18,7 @@ router.get("/list/:patient_id", authenticateToken, accessController.listAccess);
 // Thu hồi quyền
 router.delete("/:id", authenticateToken, accessController.revokeAccess);
 
+// Lấy danh sách yêu cầu đang chờ xử lý
+router.get("/pending", authenticateToken, accessController.getPendingRequests)
+
 module.exports = router;

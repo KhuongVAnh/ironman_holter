@@ -38,6 +38,9 @@ app.use("/api/reports", require("./routes/reports"))
 app.use("/api/chat", require("./routes/chat"))
 app.use("/test", require('./routes/routesServer'))
 app.use("/api/access", require("./routes/access"));
+app.use("/api/history", require("./routes/medicalHistory"));
+app.use("/api/doctor", require("./routes/doctorRoutes"))
+app.use("/api/family", require("./routes/familyRoutes"))
 
 socketService.init(io)
 

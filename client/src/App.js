@@ -12,12 +12,18 @@ import PatientHistory from "./components/patient/PatientHistory"
 import PatientAlerts from "./components/patient/PatientAlerts"
 import PatientProfile from "./components/patient/PatientProfile"
 import PatientChat from "./components/patient/PatientChat"
+import PatientAccess from "./components/patient/PatientAccess"
+import PatientHistorySecond from "./components/patient/PatientHistorySecond";
 import DoctorDashboard from "./components/doctor/DoctorDashboard"
 import DoctorPatients from "./components/doctor/DoctorPatients"
 import DoctorReports from "./components/doctor/DoctorReports"
+import DoctorHistoryPanel from "./components/doctor/DoctorHistoryPanel";
+import DoctorAccessRequests from "./components/doctor/DoctorAccessRequests"
 import PatientDetail from "./components/doctor/PatientDetail"
 import FamilyDashboard from "./components/family/FamilyDashboard"
 import FamilyMonitoring from "./components/family/FamilyMonitoring"
+import FamilyAccessRequests from "./components/family/FamilyAccessRequests"
+import FamilyHistoryPanel from "./components/family/FamilyHistoryPanel"
 import ProtectedRoute from "./components/ProtectedRoute"
 import Navbar from "./components/Navbar"
 import Unauthorized from "./components/Unauthorized"
@@ -77,6 +83,14 @@ const AppContent = () => {
           }
         />
         <Route
+          path="/patient/access"
+          element={
+            <ProtectedRoute allowedRoles={["bệnh nhân"]}>
+              <PatientAccess />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <ProtectedRoute allowedRoles={["bệnh nhân"]}>
@@ -89,6 +103,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={["bệnh nhân"]}>
               <PatientChat />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patient/history"
+          element={
+            <ProtectedRoute allowedRoles={["bệnh nhân"]}>
+              <PatientHistorySecond />
             </ProtectedRoute>
           }
         />
@@ -107,6 +129,22 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={["bác sĩ"]}>
               <DoctorPatients />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/doctor/access-requests"
+          element={
+            <ProtectedRoute allowedRoles={["bác sĩ"]}>
+              <DoctorAccessRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/doctor/history/:patientId"
+          element={
+            <ProtectedRoute allowedRoles={["bác sĩ"]}>
+              <DoctorHistoryPanel />
             </ProtectedRoute>
           }
         />
@@ -141,6 +179,22 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={["gia đình"]}>
               <FamilyMonitoring />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/family/access-requests"
+          element={
+            <ProtectedRoute allowedRoles={["gia đình"]}>
+              <FamilyAccessRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/family/history/:patientId"
+          element={
+            <ProtectedRoute allowedRoles={["gia đình"]}>
+              <FamilyHistoryPanel />
             </ProtectedRoute>
           }
         />
