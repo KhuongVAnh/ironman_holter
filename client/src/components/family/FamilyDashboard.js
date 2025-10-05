@@ -14,22 +14,33 @@ const FamilyDashboard = () => {
   const [loading, setLoading] = useState(true)
   const [socket, setSocket] = useState(null)
 
+  // 🧠 Lấy 5 cảnh báo gần nhất của các người thân
   const fetchRecentAlerts = async () => {
     try {
-      const alertPromises = familyMembers.map((patient) =>
-        axios.get(`http://localhost:4000/api/alerts/${patient.user_id}?resolved=false`),
+      if (familyMembers.length === 0) return
+
+      const alertPromises = familyMembers.map((p) =>
+        axios.get(`http://localhost:4000/api/alerts/${p.user_id}?resolved=false`)
       )
+
       const alertResponses = await Promise.all(alertPromises)
-      const allAlerts = alertResponses.flatMap((response) => response.data.alerts)
-      setRecentAlerts(allAlerts.slice(0, 5))
+      const allAlerts = alertResponses.flatMap((res) => res.data.alerts || [])
+
+      const sortedAlerts = allAlerts
+        .filter((a) => a && a.alert_type)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 5)
+
+      console.log("📢 Cảnh báo gần nhất:", sortedAlerts)
+      setRecentAlerts(sortedAlerts)
     } catch (error) {
-      console.error("Lỗi tải cảnh báo gần nhất:", error)
+      console.error("❌ Lỗi tải cảnh báo gần nhất:", error)
       toast.error("Không thể tải cảnh báo gần nhất")
     }
   }
 
+  // ⚡ Kết nối socket + tải dashboard
   useEffect(() => {
-    // Initialize Socket.IO connection
     const newSocket = io("http://localhost:4000")
     setSocket(newSocket)
 
@@ -37,9 +48,7 @@ const FamilyDashboard = () => {
       newSocket.emit("join-user-room", user.user_id)
     })
 
-    // Listen for alerts from family members
     newSocket.on("alert", (alertData) => {
-      // Check if this alert is for a family member we're monitoring
       const isFamilyMemberAlert = familyMembers.some((member) => member.user_id === alertData.user_id)
       if (isFamilyMemberAlert) {
         toast.warning(`Cảnh báo từ người thân: ${alertData.message}`)
@@ -54,18 +63,29 @@ const FamilyDashboard = () => {
     }
   }, [user.user_id])
 
+  // ✅ Khi familyMembers thay đổi và có dữ liệu → load cảnh báo
+  useEffect(() => {
+    if (familyMembers.length > 0) {
+      fetchRecentAlerts()
+    }
+  }, [familyMembers])
+
+  // 📊 Tải danh sách người thân
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
+      const usersResponse = await axios.get(`http://localhost:4000/api/family/patients/${user.user_id}`)
 
-      // For demo purposes, we'll get all patients as potential family members
-      // In a real app, there would be a family relationship table
-      const usersResponse = await axios.get("http://localhost:4000/api/users")
-      const patients = usersResponse.data.users.filter((u) => u.role === "bệnh nhân").slice(0, 3) // Limit to 3 for demo
+      // Chuẩn hóa dữ liệu
+      const patients = usersResponse.data.map((item) => ({
+        user_id: item.patient.user_id,
+        name: item.patient.name,
+        email: item.patient.email,
+        is_active: item.status === "accepted",
+      }))
+
       setFamilyMembers(patients)
 
-      // Get alerts for family members
-      await fetchRecentAlerts()
     } catch (error) {
       console.error("Lỗi tải dashboard:", error)
       toast.error("Không thể tải dữ liệu dashboard")
@@ -74,16 +94,30 @@ const FamilyDashboard = () => {
     }
   }
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("vi-VN")
+  const formatDate = (dateString) => new Date(dateString).toLocaleString("vi-VN")
+
+  const getAlertPriority = (alertType = "") => {
+    const type = alertType.toLowerCase().trim()
+
+    if (type.includes("ngưng tim") || type.includes("tim ngừng"))
+      return { class: "bg-danger", priority: "Khẩn cấp" }
+
+    if (type.includes("rung nhĩ") || type.includes("rung tim"))
+      return { class: "bg-danger", priority: "Cao" }
+
+    if (type.includes("nhịp nhanh") || type.includes("tăng nhịp"))
+      return { class: "bg-warning", priority: "Trung bình" }
+
+    if (type.includes("nhịp chậm") || type.includes("giảm nhịp"))
+      return { class: "bg-info", priority: "Thấp" }
+
+    if (type.includes("ngoại tâm thu"))
+      return { class: "bg-secondary", priority: "Theo dõi" }
+
+    // Mặc định
+    return { class: "bg-danger", priority: "Chú ý" }
   }
 
-  const getAlertPriority = (alertType) => {
-    if (alertType.includes("ngưng tim")) return { class: "bg-danger", priority: "Khẩn cấp" }
-    if (alertType.includes("rung nhĩ")) return { class: "bg-danger", priority: "Cao" }
-    if (alertType.includes("nhịp nhanh")) return { class: "bg-warning", priority: "Trung bình" }
-    return { class: "bg-info", priority: "Thấp" }
-  }
 
   if (loading) {
     return (
@@ -97,35 +131,27 @@ const FamilyDashboard = () => {
     )
   }
 
+  // ✅ JSX hiển thị người thân và cảnh báo
   return (
     <div className="container-fluid py-4">
-      <div className="row">
-        <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1 className="h3 mb-0">
-              <i className="fas fa-users me-2 text-info"></i>
-              Dashboard Gia đình
-            </h1>
-            <div className="text-muted">
-              <i className="fas fa-clock me-1"></i>
-              Cập nhật: {new Date().toLocaleString("vi-VN")}
-            </div>
-          </div>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h3 mb-0">
+          <i className="fas fa-users me-2 text-info"></i>
+          Dashboard Gia đình
+        </h1>
+        <div className="text-muted">
+          <i className="fas fa-clock me-1"></i>
+          Cập nhật: {new Date().toLocaleString("vi-VN")}
         </div>
       </div>
 
-      {/* Statistics Cards */}
+      {/* Thống kê tổng quan */}
       <div className="row g-4 mb-4">
         <div className="col-md-3">
           <div className="card border-0 shadow-sm bg-info text-white">
             <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h2 className="h3 mb-1">{familyMembers.length}</h2>
-                  <p className="mb-0">Người thân theo dõi</p>
-                </div>
-                <i className="fas fa-heart fa-2x opacity-75"></i>
-              </div>
+              <h2 className="h3 mb-1">{familyMembers.length}</h2>
+              <p className="mb-0">Người thân theo dõi</p>
             </div>
           </div>
         </div>
@@ -133,13 +159,8 @@ const FamilyDashboard = () => {
         <div className="col-md-3">
           <div className="card border-0 shadow-sm bg-warning text-white">
             <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h2 className="h3 mb-1">{recentAlerts.length}</h2>
-                  <p className="mb-0">Cảnh báo chưa xử lý</p>
-                </div>
-                <i className="fas fa-exclamation-triangle fa-2x opacity-75"></i>
-              </div>
+              <h2 className="h3 mb-1">{recentAlerts.length}</h2>
+              <p className="mb-0">Cảnh báo chưa xử lý</p>
             </div>
           </div>
         </div>
@@ -147,13 +168,8 @@ const FamilyDashboard = () => {
         <div className="col-md-3">
           <div className="card border-0 shadow-sm bg-success text-white">
             <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h2 className="h3 mb-1">{familyMembers.filter((member) => member.is_active).length}</h2>
-                  <p className="mb-0">Đang hoạt động</p>
-                </div>
-                <i className="fas fa-check-circle fa-2x opacity-75"></i>
-              </div>
+              <h2 className="h3 mb-1">{familyMembers.filter((m) => m.is_active).length}</h2>
+              <p className="mb-0">Đang hoạt động</p>
             </div>
           </div>
         </div>
@@ -161,32 +177,22 @@ const FamilyDashboard = () => {
         <div className="col-md-3">
           <div className="card border-0 shadow-sm bg-primary text-white">
             <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h2 className="h3 mb-1">24/7</h2>
-                  <p className="mb-0">Theo dõi liên tục</p>
-                </div>
-                <i className="fas fa-shield-alt fa-2x opacity-75"></i>
-              </div>
+              <h2 className="h3 mb-1">24/7</h2>
+              <p className="mb-0">Theo dõi liên tục</p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Người thân */}
       <div className="row g-4">
-        {/* Family Members */}
         <div className="col-md-8">
           <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-0">
-              <div className="d-flex justify-content-between align-items-center">
-                <h5 className="card-title mb-0">
-                  <i className="fas fa-users me-2 text-primary"></i>
-                  Người thân đang theo dõi
-                </h5>
-                <Link to="/family/monitoring" className="btn btn-outline-primary btn-sm">
-                  Xem chi tiết
-                </Link>
-              </div>
+            <div className="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+              <h5 className="card-title mb-0">
+                <i className="fas fa-users me-2 text-primary"></i>Người thân đang theo dõi
+              </h5>
+              <Link to="/family/monitoring" className="btn btn-outline-primary btn-sm">Xem chi tiết</Link>
             </div>
             <div className="card-body">
               {familyMembers.length > 0 ? (
@@ -194,29 +200,27 @@ const FamilyDashboard = () => {
                   {familyMembers.map((member) => (
                     <div key={member.user_id} className="col-md-6">
                       <div className="card border-0 bg-light">
-                        <div className="card-body">
-                          <div className="d-flex align-items-center">
-                            <div className="avatar-circle bg-primary text-white me-3">
-                              {member.name.charAt(0).toUpperCase()}
+                        <div className="card-body d-flex align-items-center">
+                          <div className="avatar-circle bg-primary text-white me-3">
+                            {member.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-grow-1">
+                            <h6 className="mb-1">{member.name}</h6>
+                            <small className="text-muted">{member.email}</small>
+                            <div className="mt-1">
+                              {member.is_active ? (
+                                <span className="badge bg-success">Hoạt động</span>
+                              ) : (
+                                <span className="badge bg-secondary">Ngưng</span>
+                              )}
                             </div>
-                            <div className="flex-grow-1">
-                              <h6 className="mb-1">{member.name}</h6>
-                              <small className="text-muted">{member.email}</small>
-                              <div className="mt-1">
-                                {member.is_active ? (
-                                  <span className="badge bg-success">Hoạt động</span>
-                                ) : (
-                                  <span className="badge bg-secondary">Ngưng</span>
-                                )}
-                              </div>
+                          </div>
+                          <div className="text-end">
+                            <div className="text-success">
+                              <i className="fas fa-heartbeat"></i>
+                              <small className="ms-1">75 BPM</small>
                             </div>
-                            <div className="text-end">
-                              <div className="text-success">
-                                <i className="fas fa-heartbeat"></i>
-                                <small className="ms-1">75 BPM</small>
-                              </div>
-                              <small className="text-muted">5 phút trước</small>
-                            </div>
+                            <small className="text-muted">5 phút trước</small>
                           </div>
                         </div>
                       </div>
@@ -233,13 +237,12 @@ const FamilyDashboard = () => {
           </div>
         </div>
 
-        {/* Recent Alerts */}
+        {/* Cảnh báo gần nhất */}
         <div className="col-md-4">
           <div className="card border-0 shadow-sm">
             <div className="card-header bg-white border-0">
               <h5 className="card-title mb-0">
-                <i className="fas fa-bell me-2 text-danger"></i>
-                Cảnh báo gần nhất
+                <i className="fas fa-bell me-2 text-danger"></i>Cảnh báo gần nhất
               </h5>
             </div>
             <div className="card-body">
@@ -250,15 +253,13 @@ const FamilyDashboard = () => {
                     const member = familyMembers.find((m) => m.user_id === alert.user_id)
                     return (
                       <div key={alert.alert_id} className="list-group-item px-0 border-0">
-                        <div className="d-flex justify-content-between align-items-start">
-                          <div className="flex-grow-1">
-                            <div className="d-flex align-items-center mb-1">
-                              <h6 className="mb-0 me-2">{member?.name || "Không xác định"}</h6>
-                              <span className={`badge ${priority.class}`}>{priority.priority}</span>
-                            </div>
-                            <p className="mb-1 text-muted small">{alert.message}</p>
-                            <small className="text-muted">{formatDate(alert.timestamp)}</small>
+                        <div className="flex-grow-1">
+                          <div className="d-flex align-items-center mb-1">
+                            <h6 className="mb-0 me-2">{member?.name || "Không xác định"}</h6>
+                            <span className={`badge ${priority.class}`}>{priority.priority}</span>
                           </div>
+                          <p className="mb-1 text-muted small">{alert.message}</p>
+                          <small className="text-muted">{formatDate(alert.timestamp)}</small>
                         </div>
                       </div>
                     )
@@ -273,6 +274,7 @@ const FamilyDashboard = () => {
             </div>
           </div>
         </div>
+
       </div>
 
       {/* Quick Actions */}

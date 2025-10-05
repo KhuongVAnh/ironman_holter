@@ -14,70 +14,79 @@ const DoctorDashboard = () => {
     reportsToday: 0,
     criticalPatients: 0,
   })
-  const [recentAlerts, setRecentAlerts] = useState([])
   const [recentPatients, setRecentPatients] = useState([])
+  const [recentAlerts, setRecentAlerts] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // Gọi API khi đăng nhập xong
   useEffect(() => {
-    fetchDashboardData()
-  }, [])
+    if (user?.user_id) fetchDashboardData()
+  }, [user?.user_id])
 
+  // 📊 Lấy dữ liệu dashboard bác sĩ
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
 
-      // Fetch alerts
-      const alertsResponse = await axios.get("http://localhost:4000/api/alerts?resolved=false")
-      const alerts = alertsResponse.data.alerts
+      // 🩺 1️⃣ Lấy danh sách bệnh nhân được phép xem
+      const patientsRes = await axios.get(`http://localhost:4000/api/doctor/patients/${user.user_id}`)
+      const accessList = patientsRes.data || []
+      const patients = accessList.map((p) => ({
+        user_id: p.patient.user_id,
+        name: p.patient.name,
+        email: p.patient.email,
+      }))
 
-      // Fetch patients (assuming we get all users with role "bệnh nhân")
-      const usersResponse = await axios.get("http://localhost:4000/api/users")
-      const patients = usersResponse.data.users.filter((u) => u.role === "bệnh nhân")
+      // 🔔 2️⃣ Lấy cảnh báo của từng bệnh nhân song song
+      const alertPromises = patients.map((p) =>
+        axios.get(`http://localhost:4000/api/alerts/${p.user_id}?resolved=false`).catch(() => ({ data: { alerts: [] } }))
+      )
+      const alertResponses = await Promise.all(alertPromises)
+      const allAlerts = alertResponses.flatMap((res) => res.data.alerts || [])
 
-      // Fetch doctor's reports
-      const reportsResponse = await axios.get("http://localhost:4000/api/reports/doctor/my-reports")
-      const reports = reportsResponse.data.reports
+      // 🧮 3️⃣ Sắp xếp & lấy 5 cảnh báo mới nhất
+      const sortedAlerts = allAlerts
+        .filter((a) => a && a.alert_type)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 5)
 
-      // Calculate stats
+      // 📈 4️⃣ Tính thống kê
+      const criticalCount = allAlerts.filter(
+        (a) => a.alert_type.toLowerCase().includes("ngưng tim") || a.alert_type.toLowerCase().includes("rung nhĩ")
+      ).length
+
       setStats({
         totalPatients: patients.length,
-        activeAlerts: alerts.length,
-        reportsToday: reports.filter((r) => {
-          const today = new Date().toDateString()
-          return new Date(r.created_at).toDateString() === today
-        }).length,
-        criticalPatients: alerts.filter((a) => a.alert_type.includes("ngưng tim") || a.alert_type.includes("rung nhĩ"))
-          .length,
+        activeAlerts: allAlerts.length,
+        reportsToday: 0,
+        criticalPatients: criticalCount,
       })
 
-      setRecentAlerts(alerts.slice(0, 5))
       setRecentPatients(patients.slice(0, 5))
+      setRecentAlerts(sortedAlerts)
     } catch (error) {
-      console.error("Lỗi tải dashboard:", error)
+      console.error("❌ Lỗi tải dashboard:", error)
       toast.error("Không thể tải dữ liệu dashboard")
     } finally {
       setLoading(false)
     }
   }
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("vi-VN")
-  }
+  const formatDate = (dateString) => new Date(dateString).toLocaleString("vi-VN")
 
-  const getAlertPriority = (alertType) => {
-    if (alertType.includes("ngưng tim")) return { class: "text-danger", priority: "Khẩn cấp" }
-    if (alertType.includes("rung nhĩ")) return { class: "text-danger", priority: "Cao" }
-    if (alertType.includes("nhịp nhanh")) return { class: "text-warning", priority: "Trung bình" }
-    return { class: "text-info", priority: "Thấp" }
+  const getAlertPriority = (alertType = "") => {
+    const t = alertType.toLowerCase()
+    if (t.includes("ngưng tim")) return { class: "bg-danger", text: "Khẩn cấp" }
+    if (t.includes("rung nhĩ")) return { class: "bg-danger", text: "Cao" }
+    if (t.includes("nhịp nhanh")) return { class: "bg-warning", text: "Trung bình" }
+    return { class: "bg-info", text: "Thấp" }
   }
 
   if (loading) {
     return (
-      <div className="container py-4">
-        <div className="d-flex justify-content-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
+      <div className="container py-5 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Đang tải...</span>
         </div>
       </div>
     )
@@ -85,94 +94,36 @@ const DoctorDashboard = () => {
 
   return (
     <div className="container-fluid py-4">
-      <div className="row">
-        <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1 className="h3 mb-0">
-              <i className="fas fa-user-md me-2 text-success"></i>
-              Dashboard Bác sĩ
-            </h1>
-            <div className="text-muted">
-              <i className="fas fa-clock me-1"></i>
-              Cập nhật: {new Date().toLocaleString("vi-VN")}
-            </div>
-          </div>
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h3 mb-0">
+          <i className="fas fa-user-md me-2 text-success"></i>Dashboard Bác sĩ
+        </h1>
+        <div className="text-muted">
+          <i className="fas fa-clock me-1"></i>
+          Cập nhật: {new Date().toLocaleString("vi-VN")}
         </div>
       </div>
 
-      {/* Statistics Cards */}
+      {/* Cards thống kê */}
       <div className="row g-4 mb-4">
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-primary text-white">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h2 className="h3 mb-1">{stats.totalPatients}</h2>
-                  <p className="mb-0">Tổng bệnh nhân</p>
-                </div>
-                <i className="fas fa-users fa-2x opacity-75"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-danger text-white">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h2 className="h3 mb-1">{stats.activeAlerts}</h2>
-                  <p className="mb-0">Cảnh báo chưa xử lý</p>
-                </div>
-                <i className="fas fa-exclamation-triangle fa-2x opacity-75"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-info text-white">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h2 className="h3 mb-1">{stats.reportsToday}</h2>
-                  <p className="mb-0">Báo cáo hôm nay</p>
-                </div>
-                <i className="fas fa-file-medical fa-2x opacity-75"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-warning text-white">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h2 className="h3 mb-1">{stats.criticalPatients}</h2>
-                  <p className="mb-0">Bệnh nhân nguy hiểm</p>
-                </div>
-                <i className="fas fa-heartbeat fa-2x opacity-75"></i>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StatCard color="primary" icon="users" value={stats.totalPatients} label="Tổng bệnh nhân" />
+        <StatCard color="danger" icon="exclamation-triangle" value={stats.activeAlerts} label="Cảnh báo chưa xử lý" />
+        <StatCard color="info" icon="file-medical" value={stats.reportsToday} label="Báo cáo hôm nay" />
+        <StatCard color="warning" icon="heartbeat" value={stats.criticalPatients} label="Bệnh nhân nguy hiểm" />
       </div>
 
       <div className="row g-4">
-        {/* Recent Alerts */}
+        {/* 🔔 Cảnh báo gần nhất */}
         <div className="col-md-8">
           <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-0">
-              <div className="d-flex justify-content-between align-items-center">
-                <h5 className="card-title mb-0">
-                  <i className="fas fa-bell me-2 text-danger"></i>
-                  Cảnh báo gần nhất
-                </h5>
-                <Link to="/doctor/patients" className="btn btn-outline-primary btn-sm">
-                  Xem tất cả
-                </Link>
-              </div>
+            <div className="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+              <h5 className="card-title mb-0">
+                <i className="fas fa-bell me-2 text-danger"></i>Cảnh báo gần nhất
+              </h5>
+              <Link to="/doctor/patients" className="btn btn-outline-primary btn-sm">
+                Xem tất cả
+              </Link>
             </div>
             <div className="card-body">
               {recentAlerts.length > 0 ? (
@@ -184,17 +135,12 @@ const DoctorDashboard = () => {
                         <div className="d-flex justify-content-between align-items-start">
                           <div className="flex-grow-1">
                             <div className="d-flex align-items-center mb-1">
-                              <h6 className="mb-0 me-2">{alert.User?.name}</h6>
-                              <span className={`badge bg-${priority.class.replace("text-", "")}`}>
-                                {priority.priority}
-                              </span>
+                              <h6 className="mb-0 me-2">{alert.alert_type || "Không xác định"}</h6>
+                              <span className={`badge ${priority.class}`}>{priority.text}</span>
                             </div>
-                            <p className="mb-1 text-muted">{alert.message}</p>
-                            <small className="text-muted">{formatDate(alert.timestamp)}</small>
+                            <p className="mb-1 text-muted small">{alert.message}</p>
+                            <small className="text-muted">{formatDate(alert.timestamp || alert.created_at)}</small>
                           </div>
-                          <Link to={`/doctor/patient/${alert.user_id}`} className="btn btn-outline-primary btn-sm ms-2">
-                            Xem chi tiết
-                          </Link>
                         </div>
                       </div>
                     )
@@ -210,58 +156,29 @@ const DoctorDashboard = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* ⚡ Thao tác nhanh + Bệnh nhân gần đây */}
         <div className="col-md-4">
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-0">
-              <h5 className="card-title mb-0">
-                <i className="fas fa-bolt me-2 text-warning"></i>
-                Thao tác nhanh
-              </h5>
-            </div>
-            <div className="card-body">
-              <div className="d-grid gap-2">
-                <Link to="/doctor/patients" className="btn btn-outline-primary">
-                  <i className="fas fa-users me-2"></i>
-                  Quản lý bệnh nhân
-                </Link>
-                <Link to="/doctor/reports" className="btn btn-outline-success">
-                  <i className="fas fa-file-medical me-2"></i>
-                  Tạo báo cáo mới
-                </Link>
-                <button className="btn btn-outline-info" onClick={fetchDashboardData}>
-                  <i className="fas fa-sync-alt me-2"></i>
-                  Làm mới dữ liệu
-                </button>
-              </div>
-            </div>
-          </div>
+          <QuickActions refresh={fetchDashboardData} />
 
-          {/* Recent Patients */}
           <div className="card border-0 shadow-sm mt-4">
             <div className="card-header bg-white border-0">
               <h5 className="card-title mb-0">
-                <i className="fas fa-user-friends me-2 text-info"></i>
-                Bệnh nhân gần đây
+                <i className="fas fa-user-friends me-2 text-info"></i>Bệnh nhân gần đây
               </h5>
             </div>
             <div className="card-body">
               {recentPatients.length > 0 ? (
-                <div className="list-group list-group-flush">
-                  {recentPatients.map((patient) => (
-                    <div key={patient.user_id} className="list-group-item px-0 border-0">
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <h6 className="mb-1">{patient.name}</h6>
-                          <small className="text-muted">{patient.email}</small>
-                        </div>
-                        <Link to={`/doctor/patient/${patient.user_id}`} className="btn btn-outline-primary btn-sm">
-                          <i className="fas fa-eye"></i>
-                        </Link>
-                      </div>
+                recentPatients.map((p) => (
+                  <div key={p.user_id} className="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <h6 className="mb-0">{p.name}</h6>
+                      <small className="text-muted">{p.email}</small>
                     </div>
-                  ))}
-                </div>
+                    <Link to={`/doctor/history/${p.user_id}`} className="btn btn-outline-primary btn-sm">
+                      <i className="fas fa-eye"></i>
+                    </Link>
+                  </div>
+                ))
               ) : (
                 <p className="text-muted text-center">Chưa có bệnh nhân nào</p>
               )}
@@ -272,5 +189,44 @@ const DoctorDashboard = () => {
     </div>
   )
 }
+
+// 🔢 Component thống kê
+const StatCard = ({ color, icon, value, label }) => (
+  <div className="col-md-3">
+    <div className={`card border-0 shadow-sm bg-${color} text-white`}>
+      <div className="card-body">
+        <div className="d-flex justify-content-between align-items-center">
+          <div>
+            <h2 className="h3 mb-1">{value}</h2>
+            <p className="mb-0">{label}</p>
+          </div>
+          <i className={`fas fa-${icon} fa-2x opacity-75`}></i>
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
+// ⚡ Component thao tác nhanh
+const QuickActions = ({ refresh }) => (
+  <div className="card border-0 shadow-sm">
+    <div className="card-header bg-white border-0">
+      <h5 className="card-title mb-0">
+        <i className="fas fa-bolt me-2 text-warning"></i>Thao tác nhanh
+      </h5>
+    </div>
+    <div className="card-body d-grid gap-2">
+      <Link to="/doctor/patients" className="btn btn-outline-primary">
+        <i className="fas fa-users me-2"></i>Quản lý bệnh nhân
+      </Link>
+      <Link to="/doctor/reports" className="btn btn-outline-success">
+        <i className="fas fa-file-medical me-2"></i>Tạo báo cáo mới
+      </Link>
+      <button onClick={refresh} className="btn btn-outline-info">
+        <i className="fas fa-sync-alt me-2"></i>Làm mới dữ liệu
+      </button>
+    </div>
+  </div>
+)
 
 export default DoctorDashboard

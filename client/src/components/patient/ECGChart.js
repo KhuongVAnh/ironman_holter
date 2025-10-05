@@ -20,7 +20,7 @@ const ECGChart = ({ data = [] }) => {
 
   // Cấu hình
   const sampleRate = 250
-  const windowSize = 4 * sampleRate // 1000 mẫu = 4 giây
+  const windowSize = 5 * sampleRate // 1250 mẫu = 5 giây
 
   // Lấy 1000 mẫu cuối, nếu chưa đủ thì pad 0 ở đầu
   let visibleData =

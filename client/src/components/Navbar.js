@@ -62,150 +62,164 @@ const Navbar = () => {
 
   // --- Nav link theo role ---
   // --- Nav link theo role ---
-const getNavLinks = () => {
-  switch (user?.role) {
-    case "bệnh nhân":
-      return (
-        <>
-          <li className="nav-item">
-            <NavLink
-              to="/dashboard"
-              className={({ isActive }) =>
-                "nav-link custom-link" + (isActive ? " active" : "")
-              }
-            >
-              <i className="fas fa-tachometer-alt me-2"></i>Dashboard
-            </NavLink>
-          </li>
+  const getNavLinks = () => {
+    switch (user?.role) {
+      case "bệnh nhân":
+        return (
+          <>
+            <li className="nav-item">
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) =>
+                  "nav-link custom-link" + (isActive ? " active" : "")
+                }
+              >
+                <i className="fas fa-tachometer-alt me-2"></i>Dashboard
+              </NavLink>
+            </li>
 
-          <li className="nav-item">
-            <NavLink
-              to="/history"
-              className={({ isActive }) =>
-                "nav-link custom-link" + (isActive ? " active" : "")
-              }
-            >
-              <i className="fas fa-history me-2"></i>Lịch sử
-            </NavLink>
-          </li>
+            <li className="nav-item">
+              <NavLink
+                to="/history"
+                className={({ isActive }) =>
+                  "nav-link custom-link" + (isActive ? " active" : "")
+                }
+              >
+                <i className="fas fa-history me-2"></i>Lịch sử
+              </NavLink>
+            </li>
 
-          <li className="nav-item">
-            <NavLink
-              to="/alerts"
-              className={({ isActive }) =>
-                "nav-link custom-link" + (isActive ? " active" : "")
-              }
-            >
-              <i className="fas fa-exclamation-triangle me-2"></i>Cảnh báo
-            </NavLink>
-          </li>
+            <li className="nav-item">
+              <NavLink
+                to="/alerts"
+                className={({ isActive }) =>
+                  "nav-link custom-link" + (isActive ? " active" : "")
+                }
+              >
+                <i className="fas fa-exclamation-triangle me-2"></i>Cảnh báo
+              </NavLink>
+            </li>
 
-          <li className="nav-item">
-            <NavLink
-              to="/patient/access"
-              className={({ isActive }) =>
-                "nav-link custom-link" + (isActive ? " active" : "")
-              }
-            >
-              <i className="fas fa-user-shield me-1"></i> Quyền truy cập
-            </NavLink>
-          </li>
+            <li className="nav-item">
+              <NavLink
+                to="/patient/access"
+                className={({ isActive }) =>
+                  "nav-link custom-link" + (isActive ? " active" : "")
+                }
+              >
+                <i className="fas fa-user-shield me-1"></i> Quyền truy cập
+              </NavLink>
+            </li>
 
-          <li className="nav-item">
-            <NavLink
-              to="/patient/history"
-              className={({ isActive }) =>
-                "nav-link custom-link" + (isActive ? " active" : "")
-              }
-            >
-              <i className="fas fa-notes-medical me-2"></i> Bệnh sử
-            </NavLink>
-          </li>
+            <li className="nav-item">
+              <NavLink
+                to="/patient/history"
+                className={({ isActive }) =>
+                  "nav-link custom-link" + (isActive ? " active" : "")
+                }
+              >
+                <i className="fas fa-notes-medical me-2"></i> Bệnh sử
+              </NavLink>
+            </li>
 
-          <li className="nav-item">
-            <NavLink
-              to="/chat"
-              className={({ isActive }) =>
-                "nav-link custom-link" + (isActive ? " active" : "")
-              }
-            >
-              <i className="fas fa-comments me-2"></i>Tư vấn AI
-            </NavLink>
-          </li>
-        </>
-      )
+            <li className="nav-item">
+              <NavLink
+                to="/chat"
+                className={({ isActive }) =>
+                  "nav-link custom-link" + (isActive ? " active" : "")
+                }
+              >
+                <i className="fas fa-comments me-2"></i>Tư vấn AI
+              </NavLink>
+            </li>
+          </>
+        )
 
-    case "bác sĩ":
-      return (
-        <>
-          <li className="nav-item position-relative">
-            <NavLink
-              to="/doctor/access-requests"
-              className={({ isActive }) =>
-                "nav-link custom-link" + (isActive ? " active" : "")
-              }
-            >
-              <i className="fas fa-envelope-open me-1"></i> Yêu cầu truy cập
-              {pendingCount > 0 && (
-                <span className="badge bg-danger ms-2">{pendingCount}</span>
-              )}
-            </NavLink>
-          </li>
+      case "bác sĩ":
+        return (
+          <>
+            <li className="nav-item position-relative">
+              <NavLink
+                to="/doctor/access-requests"
+                className={({ isActive }) =>
+                  "nav-link custom-link" + (isActive ? " active" : "")
+                }
+              >
+                <i className="fas fa-envelope-open me-1"></i> Danh sách bệnh nhân
+                {pendingCount > 0 && (
+                  <span className="badge bg-danger ms-2">{pendingCount}</span>
+                )}
+              </NavLink>
+            </li>
 
-          <li className="nav-item">
-            <NavLink
-              to="/doctor/history"
-              className={({ isActive }) =>
-                "nav-link custom-link" + (isActive ? " active" : "")
-              }
-            >
-              <i className="fas fa-folder-medical me-2"></i> Hồ sơ bệnh nhân
-            </NavLink>
-          </li>
-        </>
-      )
+            <li className="nav-item">
+              <NavLink
+                to="/doctor/history"
+                className={({ isActive }) =>
+                  "nav-link custom-link" + (isActive ? " active" : "")
+                }
+              >
+                <i className="fas fa-folder-medical me-2"></i> Hồ sơ bệnh nhân
+              </NavLink>
+            </li>
+          </>
+        )
 
-    case "gia đình":
-      return (
-        <>
-          <li className="nav-item position-relative">
-            <NavLink
-              to="/family/access-requests"
-              className={({ isActive }) =>
-                "nav-link custom-link" + (isActive ? " active" : "")
-              }
-            >
-              <i className="fas fa-envelope me-1"></i> Yêu cầu truy cập
-              {pendingCount > 0 && (
-                <span className="badge bg-danger ms-2">{pendingCount}</span>
-              )}
-            </NavLink>
-          </li>
+      case "gia đình":
+        return (
+          <>
+            <li className="nav-item position-relative">
+              <NavLink
+                to="/family/access-requests"
+                className={({ isActive }) =>
+                  "nav-link custom-link" + (isActive ? " active" : "")
+                }
+              >
+                <i className="fas fa-envelope me-1"></i> Danh sách người thân
+                {pendingCount > 0 && (
+                  <span className="badge bg-danger ms-2">{pendingCount}</span>
+                )}
+              </NavLink>
+            </li>
 
-          <li className="nav-item">
-            <NavLink
-              to="/family/history"
-              className={({ isActive }) =>
-                "nav-link custom-link" + (isActive ? " active" : "")
-              }
-            >
-              <i className="fas fa-heartbeat me-2"></i> Bệnh sử người thân
-            </NavLink>
-          </li>
-        </>
-      )
+            <li className="nav-item">
+              <NavLink
+                to="/family/history"
+                className={({ isActive }) =>
+                  "nav-link custom-link" + (isActive ? " active" : "")
+                }
+              >
+                <i className="fas fa-heartbeat me-2"></i> Bệnh sử người thân
+              </NavLink>
+            </li>
+          </>
+        )
 
-    default:
-      return null
+      default:
+        return null
+    }
   }
-}
 
+  const getDashboardRoute = (role ="bệnh nhân") => {
+    switch (role) {
+      case "bác sĩ":
+        return "/doctor/dashboard"
+      case "bệnh nhân":
+        return "/dashboard"
+      case "gia đình":
+        return "/family/dashboard"
+      default:
+        return "/dashboard"
+    }
+  }
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark shadow-sm custom-navbar">
       <div className="container-fluid px-4">
         {/* Logo */}
-        <NavLink to="/dashboard" className="navbar-brand d-flex align-items-center fw-bold">
+        <NavLink to={
+          getDashboardRoute(user?.role)
+        } className="navbar-brand d-flex align-items-center fw-bold">
           <i className="fas fa-heartbeat me-2 text-light"></i>
           <span>Ironman Holter</span>
         </NavLink>

@@ -53,8 +53,44 @@ const AppContent = () => {
     <div className="App">
       {user && <Navbar />}
       <Routes>
-        <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
-        <Route path="/register" element={!user ? <Register /> : <Navigate to="/dashboard" />} />
+        <Route
+          path="/"
+          element={
+            user ? (
+              <Navigate
+                to={
+                  user.role === "bác sĩ"
+                    ? "/doctor/dashboard"
+                    : user.role === "bệnh nhân"
+                      ? "/dashboard"
+                      : user.role === "gia đình"
+                        ? "/family/dashboard"
+                        : "/dashboard"
+                }
+              />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route path="/login" element={!user ? <Login /> : <Navigate to={
+          user.role === "bác sĩ"
+            ? "/doctor/dashboard"
+            : user.role === "bệnh nhân"
+              ? "dashboard"
+              : user.role === "gia đình"
+                ? "/family/dashboard"
+                : ""
+        } />} />
+        <Route path="/register" element={!user ? <Register /> : <Navigate to={
+          user.role === "bác sĩ"
+            ? "/doctor/dashboard"
+            : user.role === "bệnh nhân"
+              ? "dashboard"
+              : user.role === "gia đình"
+                ? "/family/dashboard"
+                : ""
+        } />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* Patient Routes */}

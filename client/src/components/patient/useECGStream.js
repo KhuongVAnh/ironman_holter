@@ -14,7 +14,7 @@ export default function useECGStream(fullSignal, sampleRate = 250, chunkDuration
         currentIndex.current = 0
 
         const chunkSize = sampleRate * chunkDuration // 25 mẫu
-        const windowSize = sampleRate * 4 // 1000 mẫu / 4s
+        const windowSize = sampleRate * 5 // 1250 mẫu / 4s
 
         intervalRef.current = setInterval(() => {
             const nextChunk = fullSignal.slice(

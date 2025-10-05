@@ -17,6 +17,7 @@ const PatientDashboard = () => {
   const [isConnected, setIsConnected] = useState(false)
   const [socket, setSocket] = useState(null)
   const [aiResult, setAiResult] = useState(null)
+  const [supervisingDoctors, setSupervisingDoctors] = useState([])
 
   useEffect(() => {
     // 🔹 Khởi tạo Socket.IO
@@ -63,6 +64,7 @@ const PatientDashboard = () => {
 
     // 🔹 Lấy cảnh báo ban đầu
     fetchRecentAlerts()
+    fetchSupervisingDoctors()
 
     return () => {
       newSocket.close()
@@ -77,6 +79,7 @@ const PatientDashboard = () => {
     try {
       const response = await axios.get(`http://localhost:4000/api/alerts/${user.user_id}?resolved=false`)
       setAlerts(response.data.alerts)
+      console.log(response.data.alerts)
       setRecentAlerts(response.data.alerts.slice(0, 5))
     } catch (error) {
       console.error("Lỗi lấy cảnh báo:", error)
@@ -94,6 +97,27 @@ const PatientDashboard = () => {
       toast.error("Không thể tạo dữ liệu giả lập")
     }
   }
+
+  // 🔹 Danh sách bác sĩ giám sát
+  const fetchSupervisingDoctors = async () => {
+    try {
+      const res = await axios.get(`http://localhost:4000/api/access/list/${user.user_id}`)
+      const doctors = res.data
+        .filter(acc => acc.role === "bác sĩ" && acc.status === "accepted")
+        .map((acc) => ({
+          id: acc.viewer_id,
+          name: acc.viewer?.name || "Không rõ",
+          email: acc.viewer?.email || "—",
+          phone: acc.viewer?.phone || "0123456789", // giả định chưa có cột phone
+          status: acc.status,
+        }))
+      setSupervisingDoctors(doctors)
+    } catch (error) {
+      console.error("❌ Lỗi tải danh sách bác sĩ:", error)
+      toast.error("Không thể tải danh sách bác sĩ giám sát")
+    }
+  }
+
 
   // Trạng thái nhịp tim
   const getHeartRateStatus = () => {
@@ -263,9 +287,10 @@ const PatientDashboard = () => {
           </div>
         </div>
 
-        {/* Thống kê nhanh */}
+        {/* Thống kê + Bác sĩ giám sát cùng khối */}
         <div className="col-md-6">
-          <div className="card border-0 shadow-sm">
+          {/* Thống kê hôm nay */}
+          <div className="card border-0 shadow-sm mb-4">
             <div className="card-header bg-white border-0">
               <h5 className="card-title mb-0">
                 <i className="fas fa-chart-bar me-2 text-info"></i>
@@ -274,23 +299,59 @@ const PatientDashboard = () => {
             </div>
             <div className="card-body">
               <div className="row text-center">
-                <div className="col-4">
-                  <div className="border-end">
-                    <h4 className="text-primary mb-1">24h</h4>
-                    <small className="text-muted">Theo dõi</small>
-                  </div>
+                <div className="col-4 border-end">
+                  <h4 className="text-primary mb-1">24h</h4>
+                  <small className="text-muted">Theo dõi</small>
                 </div>
-                <div className="col-4">
-                  <div className="border-end">
-                    <h4 className="text-success mb-1">98%</h4>
-                    <small className="text-muted">Bình thường</small>
-                  </div>
+                <div className="col-4 border-end">
+                  <h4 className="text-success mb-1">98%</h4>
+                  <small className="text-muted">Bình thường</small>
                 </div>
                 <div className="col-4">
                   <h4 className="text-warning mb-1">{alerts.length}</h4>
                   <small className="text-muted">Cảnh báo</small>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Bác sĩ giám sát */}
+          <div className="card border-0 shadow-sm">
+            <div className="card-header bg-white border-0">
+              <h5 className="card-title mb-0">
+                <i className="fas fa-user-md me-2 text-primary"></i>
+                Bác sĩ giám sát
+              </h5>
+            </div>
+            <div className="card-body">
+              {supervisingDoctors.length > 0 ? (
+                <div className="table-responsive">
+                  <table className="table table-striped align-middle">
+                    <thead>
+                      <tr>
+                        <th>Tên bác sĩ</th>
+                        <th>Email</th>
+                        <th>Số điện thoại</th>
+                        <th>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {supervisingDoctors.map((doc) => (
+                        <tr key={doc.id}>
+                          <td>{doc.name}</td>
+                          <td>{doc.email}</td>
+                          <td>{doc.phone}</td>
+                          <td>
+                            <span className="badge bg-success">{doc.status}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-muted text-center mb-0">Chưa có bác sĩ nào đang giám sát bạn.</p>
+              )}
             </div>
           </div>
         </div>
