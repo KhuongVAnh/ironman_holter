@@ -14,7 +14,7 @@ const PatientHistorySecond = () => {
 
     const fetchHistories = async () => {
         try {
-            const res = await axios.get(`http://localhost:4000/api/history/${user.user_id}`);
+            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/history/${user.user_id}`);
             setHistories(res.data);
         } catch {
             toast.error("Không thể tải bệnh sử");

@@ -18,7 +18,7 @@ const PatientAlerts = () => {
   const fetchAlerts = async () => {
     try {
       setLoading(true)
-      let url = `http://localhost:4000/api/alerts/${user.user_id}`
+      let url = `${process.env.REACT_APP_API_BASE_URL}/api/alerts/${user.user_id}`
       if (filter !== "all") {
         url += `?resolved=${filter === "resolved"}`
       }

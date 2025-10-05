@@ -30,7 +30,7 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const response = await axios.get("http://localhost:4000/api/users")
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
       setUsers(response.data.users)
     } catch (error) {
       console.error("Lỗi lấy danh sách người dùng:", error)
@@ -82,7 +82,7 @@ const AdminUsers = () => {
   const handleUpdate = async (e) => {
     e.preventDefault()
     try {
-      await axios.put(`http://localhost:4000/api/users/${editingUser.user_id}`, editForm)
+      await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/users/${editingUser.user_id}`, editForm)
       toast.success("Cập nhật người dùng thành công")
       setEditingUser(null)
       fetchUsers()
@@ -95,7 +95,7 @@ const AdminUsers = () => {
   const handleDelete = async (userId, userName) => {
     if (window.confirm(`Bạn có chắc chắn muốn xóa người dùng "${userName}"?`)) {
       try {
-        await axios.delete(`http://localhost:4000/api/users/${userId}`)
+        await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/users/${userId}`)
         toast.success("Xóa người dùng thành công")
         fetchUsers()
       } catch (error) {

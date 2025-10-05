@@ -23,7 +23,7 @@ const PatientHistory = () => {
       setLoading(true)
       const offset = (currentPage - 1) * itemsPerPage
       const response = await axios.get(
-        `http://localhost:4000/api/readings/history/${user.user_id}?limit=${itemsPerPage}&offset=${offset}`,
+        `${process.env.REACT_APP_API_BASE_URL}/api/readings/history/${user.user_id}?limit=${itemsPerPage}&offset=${offset}`,
       )
       setReadings(response.data.readings)
       setTotalPages(Math.ceil(response.data.total / itemsPerPage) || 1)

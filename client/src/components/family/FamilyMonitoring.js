@@ -26,7 +26,7 @@ const FamilyMonitoring = () => {
     try {
       setLoading(true)
       // For demo purposes, get all patients as potential family members
-      const response = await axios.get("http://localhost:4000/api/users")
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
       const patients = response.data.users.filter((u) => u.role === "bệnh nhân")
       setFamilyMembers(patients)
       if (patients.length > 0) {
@@ -43,11 +43,11 @@ const FamilyMonitoring = () => {
   const fetchMemberData = async (memberId) => {
     try {
       // Fetch readings
-      const readingsResponse = await axios.get(`http://localhost:4000/api/readings/history/${memberId}?limit=10`)
+      const readingsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/readings/history/${memberId}?limit=10`)
       setMemberReadings(readingsResponse.data.readings)
 
       // Fetch alerts
-      const alertsResponse = await axios.get(`http://localhost:4000/api/alerts/${memberId}`)
+      const alertsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${memberId}`)
       setMemberAlerts(alertsResponse.data.alerts.slice(0, 5))
     } catch (error) {
       console.error("Lỗi lấy dữ liệu người thân:", error)
@@ -104,9 +104,8 @@ const FamilyMonitoring = () => {
                   {familyMembers.map((member) => (
                     <button
                       key={member.user_id}
-                      className={`list-group-item list-group-item-action ${
-                        selectedMember?.user_id === member.user_id ? "active" : ""
-                      }`}
+                      className={`list-group-item list-group-item-action ${selectedMember?.user_id === member.user_id ? "active" : ""
+                        }`}
                       onClick={() => setSelectedMember(member)}
                     >
                       <div className="d-flex align-items-center">
@@ -264,13 +263,12 @@ const FamilyMonitoring = () => {
                                   <td>{formatDate(reading.timestamp)}</td>
                                   <td>
                                     <span
-                                      className={`fw-bold ${
-                                        reading.heart_rate < 60
-                                          ? "text-warning"
-                                          : reading.heart_rate > 100
-                                            ? "text-danger"
-                                            : "text-success"
-                                      }`}
+                                      className={`fw-bold ${reading.heart_rate < 60
+                                        ? "text-warning"
+                                        : reading.heart_rate > 100
+                                          ? "text-danger"
+                                          : "text-success"
+                                        }`}
                                     >
                                       {reading.heart_rate} BPM
                                     </span>

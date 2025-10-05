@@ -21,7 +21,7 @@ const DoctorAccessRequests = () => {
     // --- API: lấy yêu cầu đang chờ ---
     const fetchPendingRequests = async () => {
         try {
-            const res = await axios.get("http://localhost:4000/api/access/pending")
+            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/access/pending`)
             setRequests(res.data)
         } catch (err) {
             console.error(err)
@@ -31,7 +31,7 @@ const DoctorAccessRequests = () => {
     // --- API: lấy danh sách bệnh nhân được cấp quyền ---
     const fetchAcceptedPatients = async () => {
         try {
-            const res = await axios.get(`http://localhost:4000/api/doctor/patients/${user.user_id}`)
+            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/patients/${user.user_id}`)
             setPatients(res.data)
         } catch (err) {
             console.error("❌ Lỗi tải danh sách bệnh nhân:", err)

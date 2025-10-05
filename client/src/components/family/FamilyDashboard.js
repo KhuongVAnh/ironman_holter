@@ -20,7 +20,7 @@ const FamilyDashboard = () => {
       if (familyMembers.length === 0) return
 
       const alertPromises = familyMembers.map((p) =>
-        axios.get(`http://localhost:4000/api/alerts/${p.user_id}?resolved=false`)
+        axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${p.user_id}?resolved=false`)
       )
 
       const alertResponses = await Promise.all(alertPromises)
@@ -74,7 +74,7 @@ const FamilyDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      const usersResponse = await axios.get(`http://localhost:4000/api/family/patients/${user.user_id}`)
+      const usersResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/family/patients/${user.user_id}`)
 
       // Chuẩn hóa dữ liệu
       const patients = usersResponse.data.map((item) => ({

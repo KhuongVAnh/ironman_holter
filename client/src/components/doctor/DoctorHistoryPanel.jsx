@@ -20,7 +20,7 @@ const DoctorHistoryPanel = () => {
     // --- Lấy dữ liệu bệnh sử ---
     const fetchHistory = async () => {
         try {
-            const res = await axios.get(`http://localhost:4000/api/doctor/history/${patientId}`)
+            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/history/${patientId}`)
             setHistories(res.data)
         } catch (err) {
             console.error(err)
@@ -32,7 +32,7 @@ const DoctorHistoryPanel = () => {
     const fetchAlerts = async () => {
         try {
             setLoadingAlerts(true)
-            const res = await axios.get(`http://localhost:4000/api/alerts/${patientId}`)
+            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${patientId}`)
             setAlerts(res.data.alerts || [])
         } catch (err) {
             console.error("Lỗi tải cảnh báo:", err)
@@ -53,7 +53,7 @@ const DoctorHistoryPanel = () => {
     const handleCreate = async (data) => {
         try {
             const payload = { ...data, patient_id: patientId, doctor_id: user.user_id }
-            const res = await axios.post("http://localhost:4000/api/doctor/history", payload)
+            const res = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/history`, payload)
             toast.success(res.data.message)
             setShowForm(false)
             fetchHistory()
@@ -67,7 +67,7 @@ const DoctorHistoryPanel = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Bạn có chắc muốn xoá bản ghi này?")) return
         try {
-            await axios.delete(`http://localhost:4000/api/doctor/history/${id}`)
+            await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/history/${id}`)
             toast.warning("Đã xoá bản ghi")
             fetchHistory()
         } catch (err) {
@@ -80,7 +80,7 @@ const DoctorHistoryPanel = () => {
     const handleResolve = async (alertId) => {
         if (!window.confirm("Xác nhận xử lý cảnh báo này?")) return
         try {
-            await axios.put(`http://localhost:4000/api/alerts/${alertId}/resolve`)
+            await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${alertId}/resolve`)
             toast.success("Đã đánh dấu cảnh báo đã xử lý")
             fetchAlerts()
         } catch (err) {

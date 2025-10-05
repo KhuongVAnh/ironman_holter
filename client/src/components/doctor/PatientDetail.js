@@ -25,20 +25,20 @@ const PatientDetail = () => {
       setLoading(true)
 
       // Fetch patient info
-      const usersResponse = await axios.get("http://localhost:4000/api/users")
+      const usersResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
       const patientData = usersResponse.data.users.find((u) => u.user_id === Number.parseInt(patientId))
       setPatient(patientData)
 
       // Fetch readings
-      const readingsResponse = await axios.get(`http://localhost:4000/api/readings/history/${patientId}?limit=20`)
+      const readingsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/readings/history/${patientId}?limit=20`)
       setReadings(readingsResponse.data.readings)
 
       // Fetch alerts
-      const alertsResponse = await axios.get(`http://localhost:4000/api/alerts/${patientId}`)
+      const alertsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${patientId}`)
       setAlerts(alertsResponse.data.alerts)
 
       // Fetch reports
-      const reportsResponse = await axios.get(`http://localhost:4000/api/reports/${patientId}`)
+      const reportsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/reports/${patientId}`)
       setReports(reportsResponse.data.reports)
     } catch (error) {
       console.error("Lỗi tải thông tin bệnh nhân:", error)
@@ -56,7 +56,7 @@ const PatientDetail = () => {
     }
 
     try {
-      await axios.post(`http://localhost:4000/api/reports/${patientId}`, reportForm)
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/reports/${patientId}`, reportForm)
       toast.success("Tạo báo cáo thành công")
       setReportForm({ summary: "" })
       fetchPatientData() // Refresh data
@@ -266,13 +266,12 @@ const PatientDetail = () => {
                             <td>{formatDate(reading.timestamp)}</td>
                             <td>
                               <span
-                                className={`fw-bold ${
-                                  reading.heart_rate < 60
-                                    ? "text-warning"
-                                    : reading.heart_rate > 100
-                                      ? "text-danger"
-                                      : "text-success"
-                                }`}
+                                className={`fw-bold ${reading.heart_rate < 60
+                                  ? "text-warning"
+                                  : reading.heart_rate > 100
+                                    ? "text-danger"
+                                    : "text-success"
+                                  }`}
                               >
                                 {reading.heart_rate} BPM
                               </span>

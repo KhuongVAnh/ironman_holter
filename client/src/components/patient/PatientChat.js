@@ -53,7 +53,7 @@ const PatientChat = () => {
   const loadContacts = async () => {
     try {
       // Load doctors
-      const doctorsResponse = await axios.get("http://localhost:4000/api/users", {
+      const doctorsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`, {
         params: { role: "bác sĩ" },
       })
       setDoctors(doctorsResponse.data.users || [])
@@ -71,7 +71,7 @@ const PatientChat = () => {
 
   const loadChatHistory = async () => {
     try {
-      const response = await axios.get(`http://localhost:4000/api/chat/history/${user.id}`)
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/chat/history/${user.id}`)
       const history = response.data.history || []
 
       // Convert từ chat_logs trong DB -> messages format
@@ -108,7 +108,7 @@ const PatientChat = () => {
       // Gửi cho AI bot
       setIsLoading(true)
       try {
-        const response = await axios.post("http://localhost:4000/api/chat", {
+        const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/chat`, {
           message: inputMessage,
           userId: user.id,
           userRole: user.role,

@@ -38,7 +38,7 @@ const PatientProfile = () => {
     setLoading(true)
 
     try {
-      await axios.put(`http://localhost:4000/api/users/${user.user_id}`, formData)
+      await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/users/${user.user_id}`, formData)
       toast.success("Cập nhật thông tin thành công")
       setIsEditing(false)
     } catch (error) {
@@ -65,7 +65,7 @@ const PatientProfile = () => {
     setLoading(true)
 
     try {
-      await axios.put("http://localhost:4000/api/users/change-password", {
+      await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/users/change-password`, {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
       })

@@ -77,7 +77,7 @@ const PatientDashboard = () => {
   // Lấy cảnh báo mới nhất
   const fetchRecentAlerts = async () => {
     try {
-      const response = await axios.get(`http://localhost:4000/api/alerts/${user.user_id}?resolved=false`)
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${user.user_id}?resolved=false`)
       setAlerts(response.data.alerts)
       console.log(response.data.alerts)
       setRecentAlerts(response.data.alerts.slice(0, 5))
@@ -90,7 +90,7 @@ const PatientDashboard = () => {
   const generateFakeData = async () => {
     try {
       const deviceId = `device_${user.user_id}`
-      await axios.post("http://localhost:4000/api/readings/fake", { device_id: deviceId })
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/readings/fake`, { device_id: deviceId })
       toast.success("Đã tạo dữ liệu giả lập")
     } catch (error) {
       console.error("Lỗi tạo dữ liệu giả:", error)
@@ -101,7 +101,7 @@ const PatientDashboard = () => {
   // 🔹 Danh sách bác sĩ giám sát
   const fetchSupervisingDoctors = async () => {
     try {
-      const res = await axios.get(`http://localhost:4000/api/access/list/${user.user_id}`)
+      const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/access/list/${user.user_id}`)
       const doctors = res.data
         .filter(acc => acc.role === "bác sĩ" && acc.status === "accepted")
         .map((acc) => ({

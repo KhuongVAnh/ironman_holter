@@ -15,7 +15,7 @@ const DoctorReports = () => {
   const fetchReports = async () => {
     try {
       setLoading(true)
-      const response = await axios.get("http://localhost:4000/api/reports/doctor/my-reports")
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/reports/doctor/my-reports`)
       setReports(response.data.reports)
     } catch (error) {
       console.error("Lỗi lấy báo cáo:", error)

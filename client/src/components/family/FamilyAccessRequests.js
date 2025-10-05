@@ -18,7 +18,7 @@ const FamilyAccessRequests = () => {
 
     const fetchAcceptedPatients = async () => {
         try {
-            const res = await axios.get(`http://localhost:4000/api/family/patients/${user.user_id}`)
+            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/family/patients/${user.user_id}`)
             setPatients(res.data)
         } catch (err) {
             console.error("❌ Lỗi tải danh sách bệnh nhân:", err)

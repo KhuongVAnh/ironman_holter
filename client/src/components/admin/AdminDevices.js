@@ -23,8 +23,8 @@ const AdminDevices = () => {
     try {
       setLoading(true)
       const [devicesResponse, usersResponse] = await Promise.all([
-        axios.get("http://localhost:4000/api/devices"),
-        axios.get("http://localhost:4000/api/users"),
+        axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/devices`),
+        axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`),
       ])
 
       setDevices(devicesResponse.data.devices)
@@ -40,7 +40,7 @@ const AdminDevices = () => {
   const handleAddDevice = async (e) => {
     e.preventDefault()
     try {
-      await axios.post("http://localhost:4000/api/devices/register", addForm)
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/devices/register`, addForm)
       toast.success("Đăng ký thiết bị thành công")
       setShowAddModal(false)
       setAddForm({ device_id: "", serial_number: "", user_id: "" })
@@ -53,7 +53,7 @@ const AdminDevices = () => {
 
   const updateDeviceStatus = async (deviceId, newStatus) => {
     try {
-      await axios.put(`http://localhost:4000/api/devices/${deviceId}/status`, { status: newStatus })
+      await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/devices/${deviceId}/status`, { status: newStatus })
       toast.success("Cập nhật trạng thái thiết bị thành công")
       fetchData()
     } catch (error) {

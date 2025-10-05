@@ -32,7 +32,7 @@ const Navbar = () => {
 
     const fetchPending = async () => {
       try {
-        const res = await axios.get("http://localhost:4000/api/access/pending")
+        const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/access/pending`)
         setPendingCount(res.data.length)
       } catch (err) {
         console.error("Lỗi khi lấy pending requests:", err.message)
@@ -200,7 +200,7 @@ const Navbar = () => {
     }
   }
 
-  const getDashboardRoute = (role ="bệnh nhân") => {
+  const getDashboardRoute = (role = "bệnh nhân") => {
     switch (role) {
       case "bác sĩ":
         return "/doctor/dashboard"

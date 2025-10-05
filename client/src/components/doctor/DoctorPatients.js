@@ -23,7 +23,7 @@ const DoctorPatients = () => {
   const fetchPatients = async () => {
     try {
       setLoading(true)
-      const response = await axios.get("http://localhost:4000/api/users")
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
       const allPatients = response.data.users.filter((user) => user.role === "bệnh nhân")
       setPatients(allPatients)
     } catch (error) {

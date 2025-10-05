@@ -31,19 +31,19 @@ const AdminDashboard = () => {
       setLoading(true)
 
       // Fetch users
-      const usersResponse = await axios.get("http://localhost:4000/api/users")
+      const usersResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
       const users = usersResponse.data.users
 
       // Fetch devices
-      const devicesResponse = await axios.get("http://localhost:4000/api/devices")
+      const devicesResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/devices`)
       const devices = devicesResponse.data.devices
 
       // Fetch alerts
-      const alertsResponse = await axios.get("http://localhost:4000/api/alerts")
+      const alertsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts`)
       const alerts = alertsResponse.data.alerts
 
       // Fetch reports
-      const reportsResponse = await axios.get("http://localhost:4000/api/reports/doctor/my-reports")
+      const reportsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/reports/doctor/my-reports`)
       const reports = reportsResponse.data.reports
 
       // Calculate stats

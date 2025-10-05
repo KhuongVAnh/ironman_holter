@@ -45,7 +45,7 @@ const PatientAccess = () => {
     // --- API: Lấy danh sách quyền ---
     const fetchAccessList = async () => {
         try {
-            const res = await axios.get(`http://localhost:4000/api/access/list/${user.user_id}`)
+            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/access/list/${user.user_id}`)
             setAccessList(res.data)
         } catch (error) {
             console.error("❌ Lỗi tải danh sách:", error)
@@ -62,7 +62,7 @@ const PatientAccess = () => {
         }
 
         try {
-            const res = await axios.post("http://localhost:4000/api/access/share", {
+            const res = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/access/share`, {
                 viewer_email: viewerEmail,
                 role,
             })
@@ -80,7 +80,7 @@ const PatientAccess = () => {
     const handleRevoke = async (id) => {
         if (!window.confirm("Bạn có chắc muốn thu hồi quyền này?")) return
         try {
-            await axios.delete(`http://localhost:4000/api/access/${id}`)
+            await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/access/${id}`)
             toast.warning("❌ Đã thu hồi quyền truy cập")
             fetchAccessList()
         } catch (err) {

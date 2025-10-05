@@ -29,7 +29,7 @@ const DoctorDashboard = () => {
       setLoading(true)
 
       // 🩺 1️⃣ Lấy danh sách bệnh nhân được phép xem
-      const patientsRes = await axios.get(`http://localhost:4000/api/doctor/patients/${user.user_id}`)
+      const patientsRes = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/patients/${user.user_id}`)
       const accessList = patientsRes.data || []
       const patients = accessList.map((p) => ({
         user_id: p.patient.user_id,
@@ -39,7 +39,7 @@ const DoctorDashboard = () => {
 
       // 🔔 2️⃣ Lấy cảnh báo của từng bệnh nhân song song
       const alertPromises = patients.map((p) =>
-        axios.get(`http://localhost:4000/api/alerts/${p.user_id}?resolved=false`).catch(() => ({ data: { alerts: [] } }))
+        axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${p.user_id}?resolved=false`).catch(() => ({ data: { alerts: [] } }))
       )
       const alertResponses = await Promise.all(alertPromises)
       const allAlerts = alertResponses.flatMap((res) => res.data.alerts || [])

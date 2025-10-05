@@ -24,11 +24,11 @@ const AdminLogs = () => {
       setLoading(true)
 
       // Fetch alerts for statistics
-      const alertsResponse = await axios.get("http://localhost:4000/api/alerts")
+      const alertsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts`)
       const alerts = alertsResponse.data.alerts
 
       // Fetch users for statistics
-      const usersResponse = await axios.get("http://localhost:4000/api/users")
+      const usersResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
       const users = usersResponse.data.users
 
       // Mock system logs (in a real app, these would come from a logging service)

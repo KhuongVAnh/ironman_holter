@@ -28,7 +28,7 @@ const Chatbot = ({ userId, userRole }) => {
 
   const loadChatHistory = async () => {
     try {
-      const response = await axios.get(`http://localhost:4000/api/chat/history/${userId}`)
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/chat/history/${userId}`)
       const history = response.data.history || []
 
       // Convert history to messages format
@@ -70,7 +70,7 @@ const Chatbot = ({ userId, userRole }) => {
     setIsLoading(true)
 
     try {
-      const response = await axios.post("http://localhost:4000/api/chat", {
+      const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/chat`, {
         message: inputMessage,
         userId: userId,
         userRole: userRole,
@@ -205,9 +205,8 @@ const Chatbot = ({ userId, userRole }) => {
                 className={`mb-3 d-flex ${message.sender === "user" ? "justify-content-end" : "justify-content-start"}`}
               >
                 <div
-                  className={`rounded-3 p-2 shadow-sm ${
-                    message.sender === "user" ? "bg-primary text-white ms-5" : "bg-light me-5"
-                  }`}
+                  className={`rounded-3 p-2 shadow-sm ${message.sender === "user" ? "bg-primary text-white ms-5" : "bg-light me-5"
+                    }`}
                   style={{ maxWidth: "80%" }}
                 >
                   {message.sender === "bot" && (
