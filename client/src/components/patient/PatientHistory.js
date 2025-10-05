@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "../../contexts/AuthContext"
 import axios from "axios"
 import { toast } from "react-toastify"
+import ECGChart from "./ECGChart"
 
 const PatientHistory = () => {
   const { user } = useAuth()
@@ -175,33 +176,64 @@ const PatientHistory = () => {
       </div>
 
       {/* Modals for ECG details */}
+      {/* Modals for ECG details */}
       {readings.map((reading) => (
         <div key={reading.reading_id} className="modal fade" id={`modal-${reading.reading_id}`} tabIndex="-1">
-          <div className="modal-dialog modal-lg">
+          <div className="modal-dialog modal-xl"> {/* mở rộng hơn để hiển thị biểu đồ đẹp */}
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Chi tiết ECG - {formatDate(reading.timestamp)}</h5>
+                <h5 className="modal-title">
+                  <i className="fas fa-wave-square text-primary me-2"></i>
+                  Chi tiết ECG - {formatDate(reading.timestamp)}
+                </h5>
                 <button type="button" className="btn-close" data-bs-dismiss="modal"></button>
               </div>
+
               <div className="modal-body">
+                {/* Thông tin tóm tắt */}
                 <div className="row mb-3">
                   <div className="col-md-6">
                     <strong>Nhịp tim:</strong>{" "}
-                    <span className={getHeartRateClass(reading.heart_rate)}>{reading.heart_rate} BPM</span>
+                    <span className={getHeartRateClass(reading.heart_rate)}>
+                      {reading.heart_rate} BPM
+                    </span>
                   </div>
                   <div className="col-md-6">
-                    <strong>Trạng thái:</strong> {getStatusBadge(reading.ai_result)}
+                    <strong>Dự đoán của AI:</strong> {getStatusBadge(reading.ai_result)}
                   </div>
                 </div>
-                <div className="mb-3">
-                  <strong>Dữ liệu ECG:</strong>
-                  <div className="mt-2 p-3 bg-light rounded">
-                    <small className="text-muted">
-                      Tín hiệu ECG gồm {reading.ecg_signal?.length || 0} điểm dữ liệu
-                    </small>
-                  </div>
+
+                {/* Đồ thị ECG */}
+                <div className="border rounded p-3 bg-light">
+                  <h6 className="text-muted mb-3">
+                    <i className="fas fa-chart-line me-2 text-danger"></i>
+                    Đồ thị tín hiệu ECG
+                  </h6>
+
+                  {reading.ecg_signal ? (
+                    <ECGChart
+                      data={(() => {
+                        try {
+                          const parsed =
+                            typeof reading.ecg_signal === "string"
+                              ? JSON.parse(reading.ecg_signal)
+                              : reading.ecg_signal
+                          return Array.isArray(parsed) ? parsed : []
+                        } catch (err) {
+                          console.error("❌ Lỗi parse ECG:", err)
+                          return []
+                        }
+                      })()}
+                    />
+                  ) : (
+                    <div className="text-center py-4">
+                      <i className="fas fa-exclamation-circle text-warning fa-2x mb-2"></i>
+                      <p className="text-muted mb-0">Không có dữ liệu ECG để hiển thị</p>
+                    </div>
+                  )}
                 </div>
               </div>
+
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
                   Đóng
@@ -211,6 +243,7 @@ const PatientHistory = () => {
           </div>
         </div>
       ))}
+
     </div>
   )
 }
