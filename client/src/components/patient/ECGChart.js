@@ -22,16 +22,10 @@ const ECGChart = ({ data = [] }) => {
   const sampleRate = 250
   const windowSize = 5 * sampleRate // 1250 mẫu = 5 giây
 
-  // Lấy 1000 mẫu cuối, nếu chưa đủ thì pad 0 ở đầu
-  let visibleData =
-    data.length > windowSize ? data.slice(-windowSize) : data
+  // Lấy tối đa 1250 mẫu gần nhất
+  let visibleData = data.slice(-windowSize)
 
-  if (visibleData.length < windowSize) {
-    const padding = new Array(windowSize - visibleData.length).fill(0)
-    visibleData = [...padding, ...visibleData]
-  }
-
-  // Thời gian bắt đầu của cửa sổ
+  // Nếu chưa đủ dữ liệu thì không pad 0 nữa (hiển thị phần có sẵn)
   const startTime = Math.max(0, data.length - windowSize) / sampleRate
 
   // Dữ liệu hiển thị
@@ -42,7 +36,7 @@ const ECGChart = ({ data = [] }) => {
     datasets: [
       {
         label: "ECG Signal",
-        data: visibleData.map(v => v/2),
+        data: visibleData.map(v => v / 2),
         borderColor: "#dc3545",
         backgroundColor: "rgba(220, 53, 69, 0.1)",
         fill: false,

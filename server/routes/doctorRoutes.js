@@ -15,4 +15,8 @@ router.post("/history", doctorController.addDiagnosis)
 // Xóa bản ghi bệnh sử
 router.delete("/history/:id", doctorController.deleteDiagnosis)
 
+// Cập nhật bản ghi bệnh sử
+router.put("/history/:id", doctorController.updateDiagnosis)
+
+
 module.exports = router

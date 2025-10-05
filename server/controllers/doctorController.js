@@ -69,10 +69,38 @@ exports.addDiagnosis = async (req, res) => {
 exports.deleteDiagnosis = async (req, res) => {
     try {
         const { id } = req.params
-        await MedicalHistory.destroy({ where: { id } })
+        await MedicalHistory.destroy({ where: { history_id: id } })
         res.json({ message: "Đã xóa bệnh sử" })
     } catch (err) {
         console.error("Lỗi deleteDiagnosis:", err)
         res.status(500).json({ error: "Không thể xóa" })
+    }
+}
+
+// 📌 Cập nhật bản ghi bệnh sử
+exports.updateDiagnosis = async (req, res) => {
+    try {
+        const { id } = req.params
+        const { doctor_diagnosis, medication, condition, notes } = req.body
+
+        const record = await MedicalHistory.findByPk(id)
+        if (!record) {
+            return res.status(404).json({ error: "Không tìm thấy bệnh sử cần sửa" })
+        }
+
+        await record.update({
+            doctor_diagnosis,
+            medication,
+            condition,
+            notes,
+        })
+
+        return res.status(200).json({
+            message: "Đã cập nhật bệnh sử thành công",
+            data: record,
+        })
+    } catch (err) {
+        console.error("Lỗi updateDiagnosis:", err)
+        res.status(500).json({ error: "Không thể cập nhật bệnh sử" })
     }
 }

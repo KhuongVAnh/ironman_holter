@@ -16,6 +16,8 @@ const DoctorHistoryPanel = () => {
     const [alerts, setAlerts] = useState([])
     const [showForm, setShowForm] = useState(false)
     const [loadingAlerts, setLoadingAlerts] = useState(true)
+    const [editData, setEditData] = useState(null) // ⚡ lưu bản ghi đang được sửa
+    const [historyId, setHistoryId] = useState(1)
 
     // --- Lấy dữ liệu bệnh sử ---
     const fetchHistory = async () => {
@@ -56,6 +58,7 @@ const DoctorHistoryPanel = () => {
             const res = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/history`, payload)
             toast.success(res.data.message)
             setShowForm(false)
+            setEditData(null)
             fetchHistory()
         } catch (err) {
             console.error(err)
@@ -73,6 +76,21 @@ const DoctorHistoryPanel = () => {
         } catch (err) {
             console.error(err)
             toast.error("Không thể xoá")
+        }
+    }
+
+    // --- Cập nhật bản ghi ---
+    const handleUpdate = async (data) => {
+        console.log(data)
+        try {
+            const res = await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/history/${data.history_id}`, data)
+            toast.info(res.data.message)
+            setShowForm(false)
+            setEditData(null)
+            fetchHistory()
+        } catch (err) {
+            console.error(err)
+            toast.error("Không thể cập nhật bệnh sử")
         }
     }
 
@@ -107,23 +125,43 @@ const DoctorHistoryPanel = () => {
                     <h4>
                         <i className="fas fa-notes-medical me-2"></i>Bệnh sử bệnh nhân #{patientId}
                     </h4>
-                    <Button onClick={() => setShowForm(true)} variant="primary">
+                    <Button
+                        onClick={() => {
+                            setEditData(null) // reset nếu là thêm mới
+                            setShowForm(true)
+                        }}
+                        variant="primary"
+                    >
                         <i className="fas fa-plus me-1"></i>Thêm bệnh sử
                     </Button>
                 </div>
 
-                <MedicalHistoryList histories={histories} onDelete={handleDelete} role="bác sĩ" />
-
-                <MedicalHistoryForm
-                    show={showForm}
-                    handleClose={() => setShowForm(false)}
-                    onSubmit={handleCreate}
+                <MedicalHistoryList
+                    histories={histories}
+                    onEdit={(record) => {
+                        setHistoryId(record.history_id)
+                        setEditData(record) // ⚡ lưu bản ghi đang sửa
+                        setShowForm(true)
+                    }}
+                    onDelete={handleDelete}
                     role="bác sĩ"
                 />
-            </Card>
+
+                {/* --- Form thêm/sửa --- */}
+                <MedicalHistoryForm
+                    show={showForm}
+                    handleClose={() => {
+                        setShowForm(false)
+                        setEditData(null)
+                    }}
+                    onSubmit={editData ? handleUpdate : handleCreate}
+                    initialData={editData}
+                    role="bác sĩ"
+                />
+            </Card >
 
             {/* --- Bảng cảnh báo của bệnh nhân --- */}
-            <Card className="shadow-sm border-0 p-4">
+            < Card className="shadow-sm border-0 p-4" >
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <h4 className="mb-0">
                         <i className="fas fa-bell text-danger me-2"></i>Cảnh báo bệnh nhân
@@ -133,63 +171,65 @@ const DoctorHistoryPanel = () => {
                     </Button>
                 </div>
 
-                {loadingAlerts ? (
-                    <div className="text-center py-4">
-                        <Spinner animation="border" variant="primary" />
-                    </div>
-                ) : alerts.length > 0 ? (
-                    <Table hover responsive className="align-middle">
-                        <thead>
-                            <tr className="table-light">
-                                <th>Loại cảnh báo</th>
-                                <th>Nội dung</th>
-                                <th>Thời gian</th>
-                                <th>Trạng thái</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {alerts.map((a) => (
-                                <tr key={a.alert_id}>
-                                    <td>
-                                        <span className={`badge ${getAlertPriority(a.alert_type)}`}>
-                                            {a.alert_type}
-                                        </span>
-                                    </td>
-                                    <td>{a.message}</td>
-                                    <td>{formatDate(a.timestamp)}</td>
-                                    <td>
-                                        {a.resolved ? (
-                                            <span className="badge bg-success">Đã xử lý</span>
-                                        ) : (
-                                            <span className="badge bg-danger">Chưa xử lý</span>
-                                        )}
-                                    </td>
-                                    <td>
-                                        {!a.resolved ? (
-                                            <Button
-                                                size="sm"
-                                                variant="outline-success"
-                                                onClick={() => handleResolve(a.alert_id)}
-                                            >
-                                                <i className="fas fa-check me-1"></i>Xử lý
-                                            </Button>
-                                        ) : (
-                                            <i className="fas fa-check-circle text-success"></i>
-                                        )}
-                                    </td>
+                {
+                    loadingAlerts ? (
+                        <div className="text-center py-4">
+                            <Spinner animation="border" variant="primary" />
+                        </div>
+                    ) : alerts.length > 0 ? (
+                        <Table hover responsive className="align-middle">
+                            <thead>
+                                <tr className="table-light">
+                                    <th>Loại cảnh báo</th>
+                                    <th>Nội dung</th>
+                                    <th>Thời gian</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </Table>
-                ) : (
-                    <div className="text-center py-4">
-                        <i className="fas fa-check-circle fa-2x text-success mb-2"></i>
-                        <p className="text-muted mb-0">Không có cảnh báo nào.</p>
-                    </div>
-                )}
-            </Card>
-        </div>
+                            </thead>
+                            <tbody>
+                                {alerts.map((a) => (
+                                    <tr key={a.alert_id}>
+                                        <td>
+                                            <span className={`badge ${getAlertPriority(a.alert_type)}`}>
+                                                {a.alert_type}
+                                            </span>
+                                        </td>
+                                        <td>{a.message}</td>
+                                        <td>{formatDate(a.timestamp)}</td>
+                                        <td>
+                                            {a.resolved ? (
+                                                <span className="badge bg-success">Đã xử lý</span>
+                                            ) : (
+                                                <span className="badge bg-danger">Chưa xử lý</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            {!a.resolved ? (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline-success"
+                                                    onClick={() => handleResolve(a.alert_id)}
+                                                >
+                                                    <i className="fas fa-check me-1"></i>Xử lý
+                                                </Button>
+                                            ) : (
+                                                <i className="fas fa-check-circle text-success"></i>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </Table>
+                    ) : (
+                        <div className="text-center py-4">
+                            <i className="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <p className="text-muted mb-0">Không có cảnh báo nào.</p>
+                        </div>
+                    )
+                }
+            </Card >
+        </div >
     )
 }
 

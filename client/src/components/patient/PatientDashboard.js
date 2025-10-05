@@ -38,7 +38,10 @@ const PatientDashboard = () => {
     // 🔹 Xử lý dữ liệu ECG (cả thật & giả)
     const handleEcgData = (data) => {
       setCurrentHeartRate(data.heart_rate)
-      setRawEcgData(data.ecg_signal || [])
+      // ⚙️ Không reset liên tục, chỉ cập nhật nếu có tín hiệu mới thực sự
+      if (Array.isArray(data.ecg_signal) && data.ecg_signal.length > 0) {
+        setRawEcgData(data.ecg_signal)
+      }
 
       setAiResult({
         result: data.ai_result,

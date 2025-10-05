@@ -1,31 +1,56 @@
-import React, { useState } from "react";
-import { Modal, Button, Form } from "react-bootstrap";
+import React, { useState, useEffect } from "react"
+import { Modal, Button, Form } from "react-bootstrap"
 
 const MedicalHistoryForm = ({ show, handleClose, onSubmit, initialData, role }) => {
-    const [formData, setFormData] = useState(
-        initialData || {
-            doctor_diagnosis: "",
-            medication: "",
-            condition: "",
-            notes: "",
+    const [formData, setFormData] = useState({
+        history_id: null,
+        doctor_diagnosis: "",
+        medication: "",
+        condition: "",
+        notes: "",
+    })
+
+    // Khi mở form hoặc có dữ liệu sửa thì load lại
+    useEffect(() => {
+        if (initialData) {
+            setFormData({
+                history_id: initialData.history_id || null,
+                doctor_diagnosis: initialData.doctor_diagnosis || "",
+                medication: initialData.medication || "",
+                condition: initialData.condition || "",
+                notes: initialData.notes || "",
+            })
+        } else {
+            setFormData({
+                history_id: null,
+                doctor_diagnosis: "",
+                medication: "",
+                condition: "",
+                notes: "",
+            })
         }
-    );
+    }, [initialData, show])
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+        const { name, value } = e.target
+        setFormData((prev) => ({ ...prev, [name]: value }))
+    }
 
     const handleSubmit = (e) => {
-        e.preventDefault();
-        onSubmit(formData);
-        handleClose();
-    };
+        e.preventDefault()
+        console.log("Submit formData:", formData) // ✅ check tại đây
+        onSubmit(formData)
+    }
 
     return (
         <Modal show={show} onHide={handleClose} centered>
             <Modal.Header closeButton>
                 <Modal.Title>
-                    {role === "bác sĩ" ? "Thêm bệnh sử mới" : "Cập nhật triệu chứng"}
+                    {formData.history_id
+                        ? "Cập nhật bệnh sử"
+                        : role === "bác sĩ"
+                            ? "Thêm bệnh sử mới"
+                            : "Cập nhật triệu chứng"}
                 </Modal.Title>
             </Modal.Header>
 
@@ -74,13 +99,18 @@ const MedicalHistoryForm = ({ show, handleClose, onSubmit, initialData, role }) 
                         />
                     </Form.Group>
 
-                    <Button type="submit" variant="primary" className="w-100">
-                        Lưu lại
-                    </Button>
+                    <div className="d-flex justify-content-end gap-2 mt-3">
+                        <Button variant="secondary" onClick={handleClose}>
+                            Hủy
+                        </Button>
+                        <Button type="submit" variant="primary">
+                            {formData.history_id ? "Cập nhật" : "Lưu mới"}
+                        </Button>
+                    </div>
                 </Form>
             </Modal.Body>
         </Modal>
-    );
-};
+    )
+}
 
-export default MedicalHistoryForm;
+export default MedicalHistoryForm
