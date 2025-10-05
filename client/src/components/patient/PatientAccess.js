@@ -7,7 +7,7 @@ import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import io from "socket.io-client"
 
-const socket = io("http://localhost:4000")
+const socket = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
 
 const PatientAccess = () => {
     const { user } = useAuth() // ⚡ chỉ cần user, token interceptor tự thêm rồi
@@ -93,7 +93,7 @@ const PatientAccess = () => {
         <div className="container mt-4">
             <Card className="shadow-sm border-0 p-4 animate__animated animate__fadeIn">
                 <h4 className="text-primary mb-3">
-                    <i className="fas fa-user-shield me-2"></i>Quản lý quyền truy cập
+                    <i className="fas fa-user-shield me-2"></i>Quản lý quyền truy cập vào bệnh sử của bạn
                 </h4>
 
                 {/* --- Form chia sẻ quyền --- */}

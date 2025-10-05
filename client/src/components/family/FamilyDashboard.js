@@ -41,7 +41,7 @@ const FamilyDashboard = () => {
 
   // ⚡ Kết nối socket + tải dashboard
   useEffect(() => {
-    const newSocket = io("http://localhost:4000")
+    const newSocket = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
     setSocket(newSocket)
 
     newSocket.on("connect", () => {

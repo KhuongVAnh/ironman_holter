@@ -11,7 +11,7 @@ const useSocket = (userId, userRole) => {
     if (!userId) return
 
     // Kết nối Socket.IO
-    socketRef.current = io("http://localhost:4000")
+    socketRef.current = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
 
     const socket = socketRef.current
 
