@@ -210,16 +210,32 @@ const receiveTelemetry = async (req, res) => {
       heart_rate: heart_rate || Math.floor(Math.random() * 60) + 60,
       ecg_signal: JSON.stringify(ecg),
       abnormal_detected: false,
-      ai_result: aiResult,
+      ai_result: "Bình thường",
       timestamp: new Date(),
     });
+
+    // ✅ Lấy bản ghi gần nhất trước đó (nếu có)
+    const previousReading = await Reading.findOne({
+      where: { device_id: reading.device_id },
+      order: [["timestamp", "DESC"]],
+      offset: 1, // bỏ qua bản ghi vừa tạo
+    });
+
+    // ✅ Nối tín hiệu 2 đoạn → 10s
+    let mergedECG = ecg;
+    if (previousReading) {
+      const prevEcg = JSON.parse(previousReading.ecg_signal || "[]");
+      mergedECG = [...prevEcg, ...ecg];
+      // Giới hạn 10s (2500 mẫu nếu FS=250Hz)
+      if (mergedECG.length > 2500) mergedECG = mergedECG.slice(-2500);
+    }
 
     // 🔹 phát realtime tới frontend
     io.emit("reading-update", {
       reading_id: reading.reading_id,
       device_id: reading.device_id,
       heart_rate: reading.heart_rate,
-      ecg_signal: ecg,
+      ecg_signal: mergedECG,
       ai_result: reading.ai_result,
       timestamp: reading.timestamp,
     });
