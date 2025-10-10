@@ -3,11 +3,11 @@
 #include <math.h>
 
 // ====================== CẤU HÌNH WI-FI ======================
-const char *ssid = "LOFI 108 Le Thanh Nghi";         // 🔧 Thay bằng SSID thật
-const char *password = "camonquykhach"; // 🔧 Thay bằng password thật
+const char *ssid = "LOFI 108 Le Thanh Nghi"; // 🔧 Thay bằng SSID thật
+const char *password = "camonquykhach";      // 🔧 Thay bằng password thật
 
 // ====================== CẤU HÌNH SERVER ======================
-const char *serverURL = "https://ironmanholter-production.up.railway.app/api/readings/telemetry"; // 🔧 Địa chỉ backend Node.js
+const char *serverURL = "http://192.168.1.163:8888/api/readings/telemetry"; // 🔧 Địa chỉ backend Node.js
 
 // ====================== CẤU HÌNH HỆ THỐNG ======================
 #define ECG_PIN 34
