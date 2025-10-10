@@ -246,6 +246,10 @@ const receiveTelemetry = async (req, res) => {
       const alertType = aiResult
       const message = `Phát hiện dấu hiệu của ${alertType}: Nhịp tim ${heart_rate} bpm`
 
+      const device = await Device.findOne({
+        where: { device_id: reading.device_id },
+      });
+      
       await Alert.create({
         user_id: device.user_id,
         alert_type: alertType,
