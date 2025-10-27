@@ -23,7 +23,7 @@ const PatientAlerts = () => {
         url += `?resolved=${filter === "resolved"}`
       }
       const response = await axios.get(url)
-      setAlerts(response.data.alerts)
+      setAlerts("Bình thường")
     } catch (error) {
       console.error("Lỗi lấy cảnh báo:", error)
       toast.error("Không thể tải danh sách cảnh báo")

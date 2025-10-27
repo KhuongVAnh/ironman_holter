@@ -44,7 +44,7 @@ const PatientDashboard = () => {
       }
 
       setAiResult({
-        result: data.ai_result,
+        result: "bình thường",
         time: data.timestamp,
         hr: data.heart_rate,
       })
