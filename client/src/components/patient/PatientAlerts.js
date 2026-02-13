@@ -12,8 +12,13 @@ const PatientAlerts = () => {
   const [filter, setFilter] = useState("all") // all, resolved, unresolved
 
   useEffect(() => {
+    if (!user?.user_id) {
+      setAlerts([])
+      setLoading(false)
+      return
+    }
     fetchAlerts()
-  }, [filter])
+  }, [filter, user?.user_id])
 
   const fetchAlerts = async () => {
     try {
@@ -23,9 +28,10 @@ const PatientAlerts = () => {
         url += `?resolved=${filter === "resolved"}`
       }
       const response = await axios.get(url)
-      setAlerts("Bình thường")
+      setAlerts(Array.isArray(response.data?.alerts) ? response.data.alerts : [])
     } catch (error) {
       console.error("Lỗi lấy cảnh báo:", error)
+      setAlerts([])
       toast.error("Không thể tải danh sách cảnh báo")
     } finally {
       setLoading(false)
@@ -35,7 +41,7 @@ const PatientAlerts = () => {
   const formatDate = (dateString) => new Date(dateString).toLocaleString("vi-VN")
 
   const getAlertIcon = (alertType) => {
-    switch (alertType.toLowerCase()) {
+    switch ((alertType || "").toLowerCase()) {
       case "nhịp nhanh":
         return "fas fa-arrow-up text-primary"
       case "nhịp chậm":
@@ -53,7 +59,7 @@ const PatientAlerts = () => {
   }
 
   const getAlertColor = (alertType) => {
-    switch (alertType.toLowerCase()) {
+    switch ((alertType || "").toLowerCase()) {
       case "nhịp nhanh":
         return "border-secondary"
       case "rung nhĩ":
@@ -197,7 +203,7 @@ const PatientAlerts = () => {
               <small className="text-muted">Đã xử lý</small>
             </div>
             <div className="col-3">
-              <h5 className="text-warning mb-1">{alerts.filter((a) => a.alert_type.includes("nhịp")).length}</h5>
+              <h5 className="text-warning mb-1">{alerts.filter((a) => (a.alert_type || "").includes("nhịp")).length}</h5>
               <small className="text-muted">Nhịp tim</small>
             </div>
           </div>
