@@ -1,306 +1,475 @@
-// #include <WiFi.h>
-// #include <HTTPClient.h>
-// #include <math.h>
-
-// // ====================== CẤU HÌNH WI-FI ======================
-// const char *ssid = "Vankkk";     // 🔧 Thay bằng SSID thật
-// const char *password = "vanhhh"; // 🔧 Thay bằng password thật
-
-// // ====================== CẤU HÌNH SERVER ======================
-// const char *serverURL = "http://abundant-respect-production.up.railway.app/api/readings/telemetry"; // 🔧 Địa chỉ backend Node.js
-
-// // ====================== CẤU HÌNH HỆ THỐNG ======================
-// #define ECG_PIN 34
-// #define FS 250           // Tần số lấy mẫu (Hz)
-// #define BUFFER_SIZE 1250 // 5s × 250Hz
-// #define DEVICE_ID "device_1"
-
-// hw_timer_t *timer = NULL;
-// portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
-
-// volatile bool sampleFlag = false;
-// float ecgBuffer[BUFFER_SIZE];
-// int bufferIndex = 0;
-
-// // ====================== CẤU TRÚC BỘ LỌC ======================
-// struct Biquad
-// {
-//   float b0, b1, b2, a1, a2;
-//   float x1 = 0, x2 = 0, y1 = 0, y2 = 0;
-
-//   float process(float x)
-//   {
-//     float y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
-//     x2 = x1;
-//     x1 = x;
-//     y2 = y1;
-//     y1 = y;
-//     return y;
-//   }
-// };
-
-// // Khai báo bộ lọc
-// Biquad highpass;
-// Biquad notch;
-// Biquad lowpass;
-
-// // ====================== NGẮT TIMER 4 ms (250 Hz) ======================
-// void IRAM_ATTR onTimer()
-// {
-//   portENTER_CRITICAL_ISR(&timerMux);
-//   sampleFlag = true;
-//   portEXIT_CRITICAL_ISR(&timerMux);
-// }
-
-// // ====================== KẾT NỐI WI-FI ======================
-// void setupWiFi()
-// {
-//   Serial.print("🔌 Kết nối Wi-Fi tới: ");
-//   Serial.println(ssid);
-//   WiFi.begin(ssid, password);
-//   while (WiFi.status() != WL_CONNECTED)
-//   {
-//     delay(500);
-//     Serial.print(".");
-//   }
-//   Serial.println("\n✅ Wi-Fi đã kết nối!");
-//   Serial.print("IP Address: ");
-//   Serial.println(WiFi.localIP());
-// }
-
-// // ====================== GỬI DỮ LIỆU LÊN SERVER ======================
-// void sendDataToServer(float *data, int length, float hr)
-// {
-//   if (WiFi.status() != WL_CONNECTED)
-//   {
-//     Serial.println("⚠️ Mất kết nối Wi-Fi, bỏ qua gói này.");
-//     return;
-//   }
-
-//   String json = "{\"device_id\":\"" + String(DEVICE_ID) + "\",\"heart_rate\":" + String(hr) + ",\"ecg_signal\":[";
-//   for (int i = 0; i < length; i++)
-//   {
-//     json += String(data[i], 4);
-//     if (i < length - 1)
-//       json += ",";
-//   }
-//   json += "]}";
-
-//   HTTPClient http;
-//   http.begin(serverURL);
-//   http.addHeader("Content-Type", "application/json");
-//   int code = http.POST(json);
-
-//   if (code > 0)
-//     Serial.printf("📡 Gửi thành công! Mã phản hồi: %d\n", code);
-//   else
-//     Serial.printf("❌ Gửi thất bại! Lỗi: %d\n", code);
-
-//   http.end();
-// }
-
-// // ====================== SETUP ======================
-// void setup()
-// {
-//   Serial.begin(115200);
-//   setupWiFi();
-
-//   // ===== Khởi tạo bộ lọc High-pass (0.5 Hz) =====
-//   highpass.b0 = 0.995;
-//   highpass.b1 = -1.99;
-//   highpass.b2 = 0.995;
-//   highpass.a1 = -1.99;
-//   highpass.a2 = 0.99;
-
-//   // ===== Khởi tạo bộ lọc Notch (50 Hz) =====
-//   float f0 = 50.0;
-//   float r = 0.95;
-//   float w0 = 2 * PI * f0 / FS;
-//   notch.b0 = 1.0;
-//   notch.b1 = -2 * cos(w0);
-//   notch.b2 = 1.0;
-//   notch.a1 = -2 * r * cos(w0);
-//   notch.a2 = r * r;
-
-//   // ===== Khởi tạo bộ lọc Low-pass (40 Hz) =====
-//   lowpass.b0 = 0.1311;
-//   lowpass.b1 = 0.2622;
-//   lowpass.b2 = 0.1311;
-//   lowpass.a1 = -0.7478;
-//   lowpass.a2 = 0.2722;
-
-//   // ===== Bật timer lấy mẫu 250 Hz =====
-//   timer = timerBegin(0, 80, true); // Prescaler 80 → 1 tick = 1 µs
-//   timerAttachInterrupt(timer, &onTimer, true);
-//   timerAlarmWrite(timer, 4000, true); // 4000 µs = 4 ms
-//   timerAlarmEnable(timer);
-
-//   Serial.println("✅ Bắt đầu lấy tín hiệu ECG @250 Hz với 3 bộ lọc DSP...");
-// }
-
-// // ====================== LOOP ======================
-// void loop()
-// {
-//   if (sampleFlag)
-//   {
-//     portENTER_CRITICAL(&timerMux);
-//     sampleFlag = false;
-//     portEXIT_CRITICAL(&timerMux);
-
-//     // ---- 1️⃣ Đọc tín hiệu từ AD8232 ----
-//     int raw = analogRead(ECG_PIN);
-//     float voltage = (raw / 4095.0) * 3.3; // 0–3.3 V
-//     float centered = voltage - 1.65;      // Dịch baseline về 0 V
-
-//     // ---- 2️⃣ Lọc qua 3 tầng ----
-//     float y1 = highpass.process(centered);
-//     float y2 = notch.process(y1);
-//     float y3 = lowpass.process(y2);
-
-//     // ---- 3️⃣ Lưu vào buffer ----
-//     ecgBuffer[bufferIndex++] = y3;
-
-//     // ---- 4️⃣ Gửi mỗi 5 giây ----
-//     if (bufferIndex >= BUFFER_SIZE)
-//     {
-//       Serial.println("🚀 Đã thu đủ 5 s dữ liệu, gửi lên server...");
-//       float hr = 75.0; // Tạm, sẽ thay bằng HR thật sau
-//       sendDataToServer(ecgBuffer, BUFFER_SIZE, hr);
-//       bufferIndex = 0;
-//     }
-//   }
-// }
-
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Arduino.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+#include <Wire.h>
+// #include <ArduinoJson.h>
+// #include "soc/soc.h"
+// #include "soc/rtc_cntl_reg.h"
 
-const char *ssid = "Nhan Home";    // WiFi SSID
-const char *password = "nhanhome"; // WiFi password
-const char *serverUrl = "http://192.168.1.179:8888/api/readings/telemetry";
+// ---------- CẤU HÌNH ----------
+const char *ssid = "Nhan Home";
+const char *password = "nhanhome";
+const char *serverUrl = "http://192.168.1.146:3000/api/telemetry1";
 
-const int ecgPin = 34;     // OUT pin of AD8232 -> GPIO34 (ADC input)
-const int loMinusPin = 14; // LO- pin of AD8232
-const int loPlusPin = 27;  // LO+ pin of AD8232
-const int sdnPin = 25;
+#define ECG_PIN 34
+#define SDN_PIN 25
 
-const int SAMPLE_RATE = 250;                    // Hz
-const int DURATION = 5;                         // seconds mỗi batch
-const int NUM_SAMPLES = SAMPLE_RATE * DURATION; // 500 mẫu
-const int BUFFER_SIZE = NUM_SAMPLES * 2;        // giữ 4s dữ liệu
+#define SAMPLE_RATE 250
+#define DURATION 5
+#define NUM_SAMPLES (SAMPLE_RATE * DURATION)
 
-float ecgData[BUFFER_SIZE]; // buffer rolling
-int indexSample = 0;
+#define MPU_SAMPLE_RATE 50
+#define MPU_NUM_SAMPLES (MPU_SAMPLE_RATE * DURATION)
+
+Adafruit_MPU6050 mpu;
+
+// Buffer toàn cục
+float ecgBufA[NUM_SAMPLES];
+float ecgBufB[NUM_SAMPLES];
+
+// MPU buffers (gộp chung struct cho gọn nếu muốn, ở đây giữ nguyên mảng rời)
+float accelX_A[MPU_NUM_SAMPLES];
+float accelY_A[MPU_NUM_SAMPLES];
+float accelZ_A[MPU_NUM_SAMPLES];
+float gyroX_A[MPU_NUM_SAMPLES];
+float gyroY_A[MPU_NUM_SAMPLES];
+float gyroZ_A[MPU_NUM_SAMPLES];
+
+float accelX_B[MPU_NUM_SAMPLES];
+float accelY_B[MPU_NUM_SAMPLES];
+float accelZ_B[MPU_NUM_SAMPLES];
+float gyroX_B[MPU_NUM_SAMPLES];
+float gyroY_B[MPU_NUM_SAMPLES];
+float gyroZ_B[MPU_NUM_SAMPLES];
+
+char *payloadBuf; // toàn cục
+size_t bufSize;
+
+// Cờ quản lý buffer
+volatile bool useBufferA = true;
+
+// Semaphore để báo hiệu "Đã có dữ liệu đầy"
+SemaphoreHandle_t readySemaphore;
+
+// ---------- BỘ LỌC NOTCH 50Hz ----------
+float x1_ = 0, x2_ = 0;
+float y1_ = 0, y2_ = 0;
+const float b0 = 0.9723, b1 = -1.8478, b2 = 0.9723;
+const float a1 = -1.8478, a2 = 0.9446;
+
+float notchFilter(float x)
+{
+  float y = b0 * x + b1 * x1_ + b2 * x2_ - a1 * y1_ - a2 * y2_;
+  x2_ = x1_;
+  x1_ = x;
+  y2_ = y1_;
+  y1_ = y;
+  return y;
+}
+
+// hàm tính dung lương json
+size_t calcJsonCapacity(int ecgRate, int mpuRate, int durationSec)
+{
+  int ecgSamples = ecgRate * durationSec;
+  int mpuSamples = mpuRate * durationSec;
+
+  // Mỗi mẫu ~ 6 byte số + 1 byte dấu phẩy
+  size_t ecgSize = ecgSamples * 7;
+  size_t mpuSize = mpuSamples * 7 * 6; // 6 trục
+
+  size_t overhead = 3000; // key, ngoặc, meta, margin
+
+  size_t raw = ecgSize + mpuSize + overhead;
+
+  return raw + 2048; // thêm 2KB cho chắc
+}
+
+// ---------- TASK 1: Sensor reading (Core 1) ----------
+void SensorTask(void *param)
+{
+  unsigned long lastECG = micros();
+  unsigned long lastMPU = micros();
+  int ecgIdx = 0, mpuIdx = 0;
+
+  // Chu kỳ tính bằng micros
+  const unsigned long ecgInterval = 1000000 / SAMPLE_RATE;
+  const unsigned long mpuInterval = 1000000 / MPU_SAMPLE_RATE;
+
+  while (true)
+  {
+    unsigned long currentMicros = micros();
+
+    // --- Đọc ECG ---
+    if ((currentMicros - lastECG) >= ecgInterval)
+    {
+      lastECG += ecgInterval;
+
+      if (ecgIdx < NUM_SAMPLES)
+      {
+        int ecgValue = analogRead(ECG_PIN);
+        float V = ((float)ecgValue / 4095.0f) * 3.3f - 1.65f;
+        V = notchFilter(V);
+
+        // Ghi trực tiếp, không cần Mutex vì Sender đang đọc buffer kia
+        if (useBufferA)
+          ecgBufA[ecgIdx] = V;
+        else
+          ecgBufB[ecgIdx] = V;
+
+        ecgIdx++;
+      }
+    }
+
+    // --- Đọc MPU ---
+    if ((currentMicros - lastMPU) >= mpuInterval)
+    {
+      lastMPU += mpuInterval;
+
+      if (mpuIdx < MPU_NUM_SAMPLES)
+      {
+        sensors_event_t a, g, temp;
+        mpu.getEvent(&a, &g, &temp);
+        if (useBufferA)
+        {
+          accelX_A[mpuIdx] = a.acceleration.x;
+          accelY_A[mpuIdx] = a.acceleration.y;
+          accelZ_A[mpuIdx] = a.acceleration.z;
+          gyroX_A[mpuIdx] = g.gyro.x;
+          gyroY_A[mpuIdx] = g.gyro.y;
+          gyroZ_A[mpuIdx] = g.gyro.z;
+        }
+        else
+        {
+          accelX_B[mpuIdx] = a.acceleration.x;
+          accelY_B[mpuIdx] = a.acceleration.y;
+          accelZ_B[mpuIdx] = a.acceleration.z;
+          gyroX_B[mpuIdx] = g.gyro.x;
+          gyroY_B[mpuIdx] = g.gyro.y;
+          gyroZ_B[mpuIdx] = g.gyro.z;
+        }
+        mpuIdx++;
+      }
+    }
+
+    // --- Kiểm tra đầy buffer ---
+    if (ecgIdx >= NUM_SAMPLES && mpuIdx >= MPU_NUM_SAMPLES)
+    {
+      // Swap buffer
+      useBufferA = !useBufferA;
+
+      // Reset index
+      ecgIdx = 0;
+      mpuIdx = 0;
+
+      // Reset filter (SỬA LỖI SCOPE)
+      // x1_ = 0;
+      // x2_ = 0;
+      // y1_ = 0;
+      // y2_ = 0;
+
+      // Đánh thức SenderTask ngay lập tức
+      xSemaphoreGive(readySemaphore); // tăng semaphore lên 1
+    }
+
+    // Delay cực ngắn hoặc taskYIELD để tránh watchdog cắn, nhưng đảm bảo realtime
+    // vTaskDelay(1) ở đây có thể làm lỡ nhịp nếu sensor đọc chậm.
+    // Tốt nhất dùng delay(0) hoặc taskYIELD()
+  }
+}
+
+// ---------- TASK 2: SENDER HTTP (CORE 0) ----------
+// Nhiệm vụ: Đóng gói JSON và gửi HTTP (Tốn thời gian)
+
+inline void floatTo6(char *dst, float v)
+{
+  char tmp[24];
+  // width = 0 -> không padding, precision = 6 cho dư dữ liệu
+  dtostrf(v, 0, 6, tmp);
+
+  // copy tối đa 6 ký tự đầu
+  int i = 0;
+  while (i < 6 && tmp[i] != '\0')
+  {
+    dst[i] = tmp[i];
+    i++;
+  }
+  // nếu ít hơn 6 ký tự -> pad bằng '0'
+  while (i < 6)
+  {
+    dst[i] = '0';
+    i++;
+  }
+}
+
+// -------------------------------------------------------
+//  Build JSON thủ công với buffer trong PSRAM
+//  Tái tạo đúng cấu trúc:
+//
+//  {
+//    "ecg_signal": [...],
+//    "accel": { "x": [...], "y": [...], "z": [...] },
+//    "gyro":  { "x": [...], "y": [...], "z": [...] },
+//    "sampling_rate": { "ecg_hz": 250, "mpu_hz": 50, "duration": 5 }
+//  }
+// -------------------------------------------------------
+
+size_t buildPayloadToBufferFast_6byte(
+    char *buf, size_t bufSize,
+    float *ecg, int ecgCount,
+    float *ax, float *ay, float *az,
+    float *gx, float *gy, float *gz,
+    int mpuCount,
+    int ecgHz, int mpuHz, int duration)
+{
+  size_t pos = 0;
+
+  auto WRITE = [&](const char *s)
+  {
+    size_t len = strlen(s);
+    if (pos + len >= bufSize)
+      return;
+    memcpy(buf + pos, s, len);
+    pos += len;
+  };
+
+  char num[8]; // "xx.xx\0" tối đa 7 ký tự
+
+  WRITE("{");
+
+  // ---------- ECG ----------
+  WRITE("\"ecg_signal\":[");
+  for (int i = 0; i < ecgCount; i++)
+  {
+    floatTo6(num, ecg[i]); // 6 bytes
+    memcpy(buf + pos, num, 6);
+    pos += 6;
+    if (i < ecgCount - 1)
+    {
+      buf[pos++] = ',';
+    }
+  }
+  WRITE("],");
+
+  // ---------- ACCEL ----------
+  WRITE("\"accel\":{");
+
+  // ax
+  WRITE("\"x\":[");
+  for (int i = 0; i < mpuCount; i++)
+  {
+    floatTo6(num, ax[i]);
+    memcpy(buf + pos, num, 6);
+    pos += 6;
+    if (i < mpuCount - 1)
+      buf[pos++] = ',';
+  }
+  WRITE("],");
+
+  // ay
+  WRITE("\"y\":[");
+  for (int i = 0; i < mpuCount; i++)
+  {
+    floatTo6(num, ay[i]);
+    memcpy(buf + pos, num, 6);
+    pos += 6;
+    if (i < mpuCount - 1)
+      buf[pos++] = ',';
+  }
+  WRITE("],");
+
+  // az
+  WRITE("\"z\":[");
+  for (int i = 0; i < mpuCount; i++)
+  {
+    floatTo6(num, az[i]);
+    memcpy(buf + pos, num, 6);
+    pos += 6;
+    if (i < mpuCount - 1)
+      buf[pos++] = ',';
+  }
+  WRITE("]},"); // end accel
+
+  // ---------- GYRO ----------
+  WRITE("\"gyro\":{");
+
+  // gx
+  WRITE("\"x\":[");
+  for (int i = 0; i < mpuCount; i++)
+  {
+    floatTo6(num, gx[i]);
+    memcpy(buf + pos, num, 6);
+    pos += 6;
+    if (i < mpuCount - 1)
+      buf[pos++] = ',';
+  }
+  WRITE("],");
+
+  // gy
+  WRITE("\"y\":[");
+  for (int i = 0; i < mpuCount; i++)
+  {
+    floatTo6(num, gy[i]);
+    memcpy(buf + pos, num, 6);
+    pos += 6;
+    if (i < mpuCount - 1)
+      buf[pos++] = ',';
+  }
+  WRITE("],");
+
+  // gz
+  WRITE("\"z\":[");
+  for (int i = 0; i < mpuCount; i++)
+  {
+    floatTo6(num, gz[i]);
+    memcpy(buf + pos, num, 6);
+    pos += 6;
+    if (i < mpuCount - 1)
+      buf[pos++] = ',';
+  }
+  WRITE("]},");
+
+  // ---------- Metadata ----------
+  char meta[64];
+  int n = snprintf(meta, sizeof(meta),
+                   "\"sampling_rate\":{\"ecg_hz\":%d,\"mpu_hz\":%d,\"duration\":%d}",
+                   ecgHz, mpuHz, duration);
+
+  memcpy(buf + pos, meta, n);
+  pos += n;
+
+  WRITE("}");
+
+  return pos;
+}
+
+void SenderTask(void *param)
+{
+  while (true)
+  {
+    // CHỜ TÍN HIỆU TỪ SENSOR TASK
+    // Task này sẽ ngủ đông (Blocked) cho đến khi SensorTask gọi xSemaphoreGive
+    xSemaphoreTake(readySemaphore, portMAX_DELAY);
+    unsigned long startTime = millis();
+
+    // Xác định Buffer cần gửi
+    // Nếu Sensor đang dùng A -> nghĩa là vừa ghi xong B -> Gửi B
+    // Nếu Sensor đang dùng B -> nghĩa là vừa ghi xong A -> Gửi A
+    bool sendA = !useBufferA;
+
+    // Trỏ con trỏ vào vùng nhớ cần gửi
+    float *ecg = sendA ? ecgBufA : ecgBufB;
+    float *ax = sendA ? accelX_A : accelX_B;
+    float *ay = sendA ? accelY_A : accelY_B;
+    float *az = sendA ? accelZ_A : accelZ_B;
+    float *gx = sendA ? gyroX_A : gyroX_B;
+    float *gy = sendA ? gyroY_A : gyroY_B;
+    float *gz = sendA ? gyroZ_A : gyroZ_B;
+
+    // build JSON vào buffer PSRAM đã cấp phát
+    size_t len = buildPayloadToBufferFast_6byte(
+        payloadBuf, bufSize,
+        ecg, NUM_SAMPLES,
+        ax, ay, az,
+        gx, gy, gz,
+        MPU_NUM_SAMPLES,
+        SAMPLE_RATE, MPU_SAMPLE_RATE, DURATION);
+
+    // --- Gửi HTTP ---
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      HTTPClient http;
+      // Tăng timeout nếu gói tin lớn
+      http.setTimeout(5000);
+
+      http.begin(serverUrl);
+      http.addHeader("Content-Type", "application/json");
+
+      int code = http.POST((uint8_t *)payloadBuf, len);
+      http.end();
+
+      unsigned long duration = millis() - startTime;
+      Serial.printf("📡 POST [Batch %s] Size: %d bytes -> Time: %lu ms -> Code: %d\n",
+                    sendA ? "A" : "B", len, duration, code);
+    }
+    else
+    {
+      Serial.println("⚠️ WiFi Disconnected, skipping send");
+    }
+
+    // Task sẽ tự quay lại đầu vòng lặp while và chờ Semaphore tiếp theo
+    // delay để không chiếm cpu
+  }
+}
 
 void setup()
 {
-  Serial.begin(9600);
-  analogReadResolution(12); // ESP32 ADC 12-bit (0-4095)
+  // Tắt bộ phát hiện sụt áp ngay dòng đầu tiên của setup
+  // WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
 
-  pinMode(loMinusPin, INPUT);
-  pinMode(loPlusPin, INPUT);
-  pinMode(ecgPin, INPUT);
+  Serial.begin(9600); // Nên dùng 115200 cho nhanh
+  analogReadResolution(12);
 
-  pinMode(sdnPin, OUTPUT);
-  digitalWrite(sdnPin, LOW); // LOW = bật module, HIGH = shutdown
+  pinMode(SDN_PIN, OUTPUT);
+  digitalWrite(SDN_PIN, LOW);
 
-  Serial.println("ECG Monitor Started...");
-
-  // init buffer
-  for (int i = 0; i < BUFFER_SIZE; i++)
-  {
-    ecgData[i] = 0;
-  }
-
-  // WiFi connect
+  // --- Kết nối WiFi ---
   WiFi.begin(ssid, password);
-  Serial.print("Đang kết nối WiFi");
+  Wire.setClock(400000);
+
+  // Giảm công suất phát xuống mức thấp hơn (WIFI_POWER_8_5dBm hoặc WIFI_POWER_11dBm)
+  // Mặc định là 19.5dBm (rất ngốn điện)
+  // hi sinh tầm ra hoạt động của wifi
+  // WiFi.setTxPower(WIFI_POWER_8_5dBm);
+
+  Serial.print("WiFi connecting");
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("\nWiFi connected!");
+  Serial.println("\n WiFi connected");
+
+  // --- Khởi động MPU6050 ---
+  if (!mpu.begin())
+  {
+    Serial.println("MPU6050 not found!");
+    while (1)
+      delay(100);
+  }
+  Serial.println("MPU6050 Ready");
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+
+  // --- Khởi tạo Semaphore ---
+  // Tạo Binary Semaphore, ban đầu là Empty (0) -> SenderTask sẽ chờ
+  readySemaphore = xSemaphoreCreateBinary();
+
+  bufSize = calcJsonCapacity(SAMPLE_RATE, MPU_SAMPLE_RATE, DURATION);
+  payloadBuf = (char *)malloc(bufSize);
+
+  if (!payloadBuf)
+  {
+    Serial.println("Không cấp phát được PSRAM!");
+    while (1)
+      delay(100);
+  }
+
+  // --- Khởi tạo Tasks ---
+
+  // Task 1: SensorTask chạy trên Core 1 (App Core - Ít việc hệ thống hơn)
+  // Stack size: 8192 bytes (8KB) là đủ cho việc đọc sensor
+  xTaskCreatePinnedToCore(SensorTask, "SensorTask", 8192, NULL, 2, NULL, 1);
+
+  // Task 2: SenderTask chạy trên Core 0 (Pro Core - Chạy WiFi/BT)
+  // Stack size: Tăng lên 16KB (16384) vì xử lý JSON lớn rất tốn bộ nhớ Stack
+  xTaskCreatePinnedToCore(SenderTask, "SenderTask", 16384, NULL, 1, NULL, 0);
 }
 
 void loop()
 {
-  if (indexSample < NUM_SAMPLES)
-  {
-    // đọc ADC
-    int ecgValue = analogRead(ecgPin);
-    float V = ((float)ecgValue / 4095.0) * 3.3;
-    float mV = (V - 1.65); // dịch offset về 0, đổi sang mV
-
-    // check lead-off
-    int loMinus = digitalRead(loMinusPin);
-    int loPlus = digitalRead(loPlusPin);
-
-    if (false)
-    {
-      Serial.println("Lead off detected!");
-    }
-    else
-    {
-      // lưu vào nửa sau của buffer
-      ecgData[indexSample + NUM_SAMPLES] = mV;
-      indexSample++;
-    }
-
-    delay(1000 / SAMPLE_RATE); // delay để đạt ~250Hz (≈4ms)
-  }
-  else
-  {
-    // đủ 2s thì in và gửi
-    Serial.println("=== ECG Data (4s rolling) ===");
-    String result = "";
-
-    for (int i = 0; i < BUFFER_SIZE; i++)
-    {
-      result += String(ecgData[i], 3);
-      if (i < BUFFER_SIZE - 1)
-        result += ",";
-    }
-    // Serial.println(result);
-
-    // reset chỉ số để ghi tiếp batch 2s tiếp theo
-    indexSample = 0;
-
-    // dịch buffer: giữ lại 2s cuối cùng
-    for (int i = 0; i < NUM_SAMPLES; i++)
-    {
-      ecgData[i] = ecgData[i + NUM_SAMPLES];
-      ecgData[i + NUM_SAMPLES] = 0;
-    }
-
-    // gửi lên server
-    if (WiFi.status() == WL_CONNECTED)
-    {
-      HTTPClient http;
-      http.begin(serverUrl);
-      http.addHeader("Content-Type", "application/json");
-
-      // Fake heart rate
-      int hr = random(60, 120);
-
-      String ecg = "[" + result + "]";
-      String json = "{\"device_id\":\"device_1\",\"heart_rate\":" + String(hr) +
-                    ",\"ecg_signal\":" + ecg + "}";
-
-      int httpCode = http.POST(json);
-      if (httpCode > 0)
-      {
-        Serial.print("Response code: ");
-        Serial.println(httpCode);
-        // String payload = http.getString();
-        // Serial.println("Server response: " + payload);
-      }
-      else
-      {
-        Serial.print("Error sending POST: ");
-        Serial.println(httpCode);
-      }
-      http.end();
-    }
-  }
+  // Loop chính không làm gì cả, xóa đi để tiết kiệm RAM
+  vTaskDelete(NULL);
 }
