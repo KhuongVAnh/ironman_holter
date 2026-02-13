@@ -1,44 +1,38 @@
-const { AccessPermission, User, MedicalHistory } = require("../models")
+const prisma = require("../prismaClient")
 
-// 📌 Lấy danh sách bệnh nhân mà bác sĩ được phép xem
 exports.getAccessiblePatients = async (req, res) => {
-    try {
-        const viewer_id = req.params.viewer_id
+  try {
+    const viewer_id = Number.parseInt(req.params.viewer_id, 10)
 
-        const AccessPermissions = await AccessPermission.findAll({
-            where: { viewer_id, status: "accepted" },
-            include: [
-                {
-                    model: User,
-                    as: "patient",
-                    attributes: ["user_id", "name", "email"],
-                },
-            ],
-        })
+    const accessPermissions = await prisma.accessPermission.findMany({
+      where: { viewer_id, status: "accepted" },
+      include: {
+        patient: { select: { user_id: true, name: true, email: true } },
+      },
+    })
 
-        return res.status(200).json(AccessPermissions)
-    } catch (err) {
-        console.error("Lỗi getAccessiblePatients:", err)
-        res.status(500).json({ error: "Lỗi khi lấy danh sách bệnh nhân" })
-    }
+    return res.status(200).json(accessPermissions)
+  } catch (err) {
+    console.error("Lỗi getAccessiblePatients:", err)
+    res.status(500).json({ error: "Lỗi khi lấy danh sách bệnh nhân" })
+  }
 }
 
-// 📌 Lấy bệnh sử của một bệnh nhân cụ thể
 exports.getPatientHistory = async (req, res) => {
-    try {
-        const { patient_id } = req.params;
+  try {
+    const patient_id = Number.parseInt(req.params.patient_id, 10)
 
-        const histories = await MedicalHistory.findAll({
-            where: { user_id: patient_id },
-            include: [
-                { model: User, as: "doctor", attributes: ["user_id", "name", "email"] }, // ✅ alias phải trùng với model
-            ],
-            order: [["created_at", "DESC"]],
-        });
+    const histories = await prisma.medicalHistory.findMany({
+      where: { user_id: patient_id, deleted_at: null },
+      include: {
+        doctor: { select: { user_id: true, name: true, email: true } },
+      },
+      orderBy: { created_at: "desc" },
+    })
 
-        return res.status(200).json(histories);
-    } catch (err) {
-        console.error("Lỗi getPatientHistory:", err);
-        res.status(500).json({ error: "Không thể tải bệnh sử" });
-    }
-};
+    return res.status(200).json(histories)
+  } catch (err) {
+    console.error("Lỗi getPatientHistory:", err)
+    res.status(500).json({ error: "Không thể tải bệnh sử" })
+  }
+}

@@ -1,14 +1,28 @@
-const { User } = require("../models")
 const bcrypt = require("bcrypt")
+const prisma = require("../prismaClient")
+const { toPrismaUserRole, fromPrismaUserRole } = require("../utils/enumMappings")
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.findAll({
-      attributes: { exclude: ["password_hash"] },
-      order: [["created_at", "DESC"]],
+    const users = await prisma.user.findMany({
+      orderBy: { created_at: "desc" },
+      select: {
+        user_id: true,
+        name: true,
+        email: true,
+        role: true,
+        is_active: true,
+        created_at: true,
+        updated_at: true,
+      },
     })
 
-    res.json({ users })
+    const mappedUsers = users.map((user) => ({
+      ...user,
+      role: fromPrismaUserRole(user.role),
+    }))
+
+    res.json({ users: mappedUsers })
   } catch (error) {
     console.error("Lỗi lấy danh sách người dùng:", error)
     res.status(500).json({ message: "Lỗi server nội bộ" })
@@ -19,34 +33,46 @@ const updateUser = async (req, res) => {
   try {
     const { id } = req.params
     const { name, email, role, is_active } = req.body
+    const userId = Number.parseInt(id, 10)
 
-    const user = await User.findByPk(id)
+    const user = await prisma.user.findUnique({ where: { user_id: userId } })
     if (!user) {
       return res.status(404).json({ message: "Không tìm thấy người dùng" })
     }
 
-    // Kiểm tra email trùng lặp (nếu thay đổi email)
-    if (email && email !== user.email) {
-      const existingUser = await User.findOne({ where: { email } })
+    if (email && email != user.email) {
+      const existingUser = await prisma.user.findUnique({ where: { email } })
       if (existingUser) {
         return res.status(400).json({ message: "Email đã được sử dụng" })
       }
     }
 
-    await user.update({
-      name: name || user.name,
-      email: email || user.email,
-      role: role || user.role,
-      is_active: is_active !== undefined ? is_active : user.is_active,
-    })
+    const data = {}
+    if (name !== undefined) data.name = name
+    if (email !== undefined) data.email = email
+    if (role !== undefined) data.role = toPrismaUserRole(role)
+    if (is_active !== undefined) data.is_active = is_active
 
-    const updatedUser = await User.findByPk(id, {
-      attributes: { exclude: ["password_hash"] },
+    const updatedUser = await prisma.user.update({
+      where: { user_id: userId },
+      data,
+      select: {
+        user_id: true,
+        name: true,
+        email: true,
+        role: true,
+        is_active: true,
+        created_at: true,
+        updated_at: true,
+      },
     })
 
     res.json({
       message: "Cập nhật người dùng thành công",
-      user: updatedUser,
+      user: {
+        ...updatedUser,
+        role: fromPrismaUserRole(updatedUser.role),
+      },
     })
   } catch (error) {
     console.error("Lỗi cập nhật người dùng:", error)
@@ -57,18 +83,18 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params
+    const userId = Number.parseInt(id, 10)
 
-    const user = await User.findByPk(id)
+    const user = await prisma.user.findUnique({ where: { user_id: userId } })
     if (!user) {
       return res.status(404).json({ message: "Không tìm thấy người dùng" })
     }
 
-    // Không cho phép xóa chính mình
-    if (user.user_id === req.user.user_id) {
+    if (user.user_id === Number.parseInt(req.user.user_id, 10)) {
       return res.status(400).json({ message: "Không thể xóa chính mình" })
     }
 
-    await user.destroy()
+    await prisma.user.delete({ where: { user_id: userId } })
 
     res.json({ message: "Xóa người dùng thành công" })
   } catch (error) {
@@ -80,24 +106,25 @@ const deleteUser = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body
-    const userId = req.user.user_id
+    const userId = Number.parseInt(req.user.user_id, 10)
 
-    const user = await User.findByPk(userId)
+    const user = await prisma.user.findUnique({ where: { user_id: userId } })
     if (!user) {
       return res.status(404).json({ message: "Không tìm thấy người dùng" })
     }
 
-    // Kiểm tra mật khẩu hiện tại
     const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash)
     if (!isValidPassword) {
       return res.status(400).json({ message: "Mật khẩu hiện tại không đúng" })
     }
 
-    // Mã hóa mật khẩu mới
     const saltRounds = 10
     const newPasswordHash = await bcrypt.hash(newPassword, saltRounds)
 
-    await user.update({ password_hash: newPasswordHash })
+    await prisma.user.update({
+      where: { user_id: userId },
+      data: { password_hash: newPasswordHash },
+    })
 
     res.json({ message: "Đổi mật khẩu thành công" })
   } catch (error) {

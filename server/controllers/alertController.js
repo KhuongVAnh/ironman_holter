@@ -1,26 +1,28 @@
-const { Alert, User } = require("../models")
+const prisma = require("../prismaClient")
+const { fromPrismaUserRole } = require("../utils/enumMappings")
 
 const createAlert = async (req, res) => {
   try {
     const { user_id, alert_type, message } = req.body
+    const userId = Number.parseInt(user_id, 10)
 
-    // Kiểm tra người dùng tồn tại
-    const user = await User.findByPk(user_id)
+    const user = await prisma.user.findUnique({ where: { user_id: userId } })
     if (!user) {
       return res.status(404).json({ message: "Không tìm thấy người dùng" })
     }
 
-    const alert = await Alert.create({
-      user_id,
-      alert_type,
-      message,
+    const alert = await prisma.alert.create({
+      data: {
+        user_id: userId,
+        alert_type,
+        message,
+      },
     })
 
-    // Gửi cảnh báo realtime
     const io = req.app.get("io")
     io.emit("alert", {
       alert_id: alert.alert_id,
-      user_id,
+      user_id: userId,
       alert_type,
       message,
       timestamp: alert.timestamp,
@@ -40,15 +42,16 @@ const getUserAlerts = async (req, res) => {
   try {
     const { user_id } = req.params
     const { resolved } = req.query
+    const userId = Number.parseInt(user_id, 10)
 
-    const whereClause = { user_id }
+    const whereClause = { user_id: userId }
     if (resolved !== undefined) {
       whereClause.resolved = resolved === "true"
     }
 
-    const alerts = await Alert.findAll({
+    const alerts = await prisma.alert.findMany({
       where: whereClause,
-      order: [["timestamp", "DESC"]],
+      orderBy: { timestamp: "desc" },
     })
 
     res.json({ alerts })
@@ -61,17 +64,21 @@ const getUserAlerts = async (req, res) => {
 const resolveAlert = async (req, res) => {
   try {
     const { id } = req.params
+    const alertId = Number.parseInt(id, 10)
 
-    const alert = await Alert.findByPk(id)
+    const alert = await prisma.alert.findUnique({ where: { alert_id: alertId } })
     if (!alert) {
       return res.status(404).json({ message: "Không tìm thấy cảnh báo" })
     }
 
-    await alert.update({ resolved: true })
+    const updatedAlert = await prisma.alert.update({
+      where: { alert_id: alertId },
+      data: { resolved: true },
+    })
 
     res.json({
       message: "Đánh dấu cảnh báo đã xử lý thành công",
-      alert,
+      alert: updatedAlert,
     })
   } catch (error) {
     console.error("Lỗi xử lý cảnh báo:", error)
@@ -88,18 +95,27 @@ const getAllAlerts = async (req, res) => {
       whereClause.resolved = resolved === "true"
     }
 
-    const alerts = await Alert.findAll({
+    const alerts = await prisma.alert.findMany({
       where: whereClause,
-      include: [
-        {
-          model: User,
-          attributes: ["name", "email", "role"],
+      include: {
+        user: {
+          select: { name: true, email: true, role: true },
         },
-      ],
-      order: [["timestamp", "DESC"]],
+      },
+      orderBy: { timestamp: "desc" },
     })
 
-    res.json({ alerts })
+    const mappedAlerts = alerts.map((alert) => ({
+      ...alert,
+      user: alert.user
+        ? {
+            ...alert.user,
+            role: fromPrismaUserRole(alert.user.role),
+          }
+        : null,
+    }))
+
+    res.json({ alerts: mappedAlerts })
   } catch (error) {
     console.error("Lỗi lấy tất cả cảnh báo:", error)
     res.status(500).json({ message: "Lỗi server nội bộ" })

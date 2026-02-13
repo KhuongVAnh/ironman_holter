@@ -1,8 +1,40 @@
 const jwt = require("jsonwebtoken")
-const { User } = require("../models")
 
-const authenticateToken = async (req, res, next) => {
-  next();
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers.authorization
+
+  if (!authHeader || typeof authHeader !== "string") {
+    return res.status(401).json({ message: "Thieu token xac thuc" })
+  }
+
+  const [scheme, token] = authHeader.split(" ")
+  if (scheme?.toLowerCase() !== "bearer" || !token) {
+    return res.status(401).json({ message: "Token khong hop le" })
+  }
+
+  if (!process.env.JWT_SECRET) {
+    console.error("JWT_SECRET chua duoc cau hinh")
+    return res.status(500).json({ message: "Loi cau hinh he thong" })
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    if (!decoded?.user_id) {
+      return res.status(401).json({ message: "Token khong hop le" })
+    }
+
+    req.user = {
+      user_id: decoded.user_id,
+      email: decoded.email,
+      role: decoded.role,
+    }
+    return next()
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token da het han" })
+    }
+    return res.status(401).json({ message: "Token khong hop le" })
+  }
 }
 
 const authorizeRoles = (...roles) => {

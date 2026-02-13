@@ -1,13 +1,13 @@
 const express = require("express")
+const prisma = require("../prismaClient")
 const router = express.Router()
 
 router.get("/readings", async (req, res) => {
-    const { Reading } = require("../models");
-    const data = await Reading.findAll({
-        order: [["timestamp", "DESC"]],
-        limit: 20,
-    });
-    res.render("readings", { readings: data });
+    const data = await prisma.reading.findMany({
+        orderBy: { timestamp: "desc" },
+        take: 20,
+    })
+    res.render("readings", { readings: data })
 });
 
 module.exports = router

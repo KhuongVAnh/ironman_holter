@@ -1,12 +1,12 @@
-require("dotenv").config()
+const path = require("path")
+require("dotenv").config({ path: path.resolve(__dirname, "../.env") })
 const express = require("express")
 const cors = require("cors")
 const helmet = require("helmet")
 const http = require("http")
 const socketIo = require("socket.io")
-const path = require("path");
 
-const { sequelize } = require("./models")
+const prisma = require("./prismaClient")
 const socketService = require("./services/socketService")
 
 const app = express()
@@ -54,14 +54,9 @@ const PORT = process.env.PORT || 4000
 const startServer = async () => {
   try {
     // Kiểm tra kết nối database
-    await sequelize.authenticate()
+    await prisma.$connect()
     console.log("Kết nối database thành công")
 
-    // Đồng bộ models (chỉ trong development)
-    if (process.env.NODE_ENV === "development") {
-      await sequelize.sync()
-      console.log("Đồng bộ database thành công")
-    }
 
     server.listen(PORT, () => {
       console.log(`Server đang chạy trên port ${PORT}`)
