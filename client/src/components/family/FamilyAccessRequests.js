@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react"
 import { Table, Card, Button } from "react-bootstrap"
 import { useAuth } from "../../contexts/AuthContext"
-import axios from "axios"
 import { toast } from "react-toastify"
 import { useNavigate } from "react-router-dom"
+import { familyApi } from "../../services/api"
 
 const FamilyAccessRequests = () => {
     const { user } = useAuth()
@@ -18,7 +18,7 @@ const FamilyAccessRequests = () => {
 
     const fetchAcceptedPatients = async () => {
         try {
-            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/family/patients/${user.user_id}`)
+            const res = await familyApi.getPatients(user.user_id)
             setPatients(res.data)
         } catch (err) {
             console.error("❌ Lỗi tải danh sách bệnh nhân:", err)

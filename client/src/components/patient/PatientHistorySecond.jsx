@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { historyApi } from "../../services/api";
 import { Card, Button } from "react-bootstrap";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "react-toastify";
@@ -14,7 +14,7 @@ const PatientHistorySecond = () => {
 
     const fetchHistories = async () => {
         try {
-            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/history/${user.user_id}`);
+            const res = await historyApi.getByUser(user.user_id);
             setHistories(res.data);
         } catch {
             toast.error("Không thể tải bệnh sử");
@@ -22,8 +22,10 @@ const PatientHistorySecond = () => {
     };
 
     useEffect(() => {
-        fetchHistories();
-    }, []);
+        if (user?.user_id) {
+            fetchHistories();
+        }
+    }, [user?.user_id]);
 
     return (
         <div className="container mt-4">

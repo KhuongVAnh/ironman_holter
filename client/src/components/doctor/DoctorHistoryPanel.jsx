@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
-import axios from "axios"
 import { Card, Button, Table, Spinner } from "react-bootstrap"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import MedicalHistoryList from "../shared/MedicalHistoryList"
 import MedicalHistoryForm from "../shared/MedicalHistoryForm"
+import { alertsApi, historyApi } from "../../services/api"
+import { ALERT_TYPE, ROLE } from "../../services/string"
 
 const DoctorHistoryPanel = () => {
     const { patientId } = useParams()
@@ -22,7 +23,7 @@ const DoctorHistoryPanel = () => {
     // --- Lấy dữ liệu bệnh sử ---
     const fetchHistory = async () => {
         try {
-            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/history/${patientId}`)
+            const res = await historyApi.getDoctorHistory(patientId)
             setHistories(res.data)
         } catch (err) {
             console.error(err)
@@ -34,7 +35,7 @@ const DoctorHistoryPanel = () => {
     const fetchAlerts = async () => {
         try {
             setLoadingAlerts(true)
-            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${patientId}`)
+            const res = await alertsApi.getByUser(patientId)
             setAlerts(res.data.alerts || [])
         } catch (err) {
             console.error("Lỗi tải cảnh báo:", err)
@@ -55,7 +56,7 @@ const DoctorHistoryPanel = () => {
     const handleCreate = async (data) => {
         try {
             const payload = { ...data, patient_id: patientId, doctor_id: user.user_id }
-            const res = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/history`, payload)
+            const res = await historyApi.addDoctorHistory(payload)
             toast.success(res.data.message)
             setShowForm(false)
             setEditData(null)
@@ -70,7 +71,7 @@ const DoctorHistoryPanel = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Bạn có chắc muốn xoá bản ghi này?")) return
         try {
-            await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/history/${id}`)
+            await historyApi.deleteDoctorHistory(id)
             toast.warning("Đã xoá bản ghi")
             fetchHistory()
         } catch (err) {
@@ -83,7 +84,7 @@ const DoctorHistoryPanel = () => {
     const handleUpdate = async (data) => {
         console.log(data)
         try {
-            const res = await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/history/${data.history_id}`, data)
+            const res = await historyApi.updateDoctorHistory(data.history_id, data)
             toast.info(res.data.message)
             setShowForm(false)
             setEditData(null)
@@ -98,7 +99,7 @@ const DoctorHistoryPanel = () => {
     const handleResolve = async (alertId) => {
         if (!window.confirm("Xác nhận xử lý cảnh báo này?")) return
         try {
-            await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${alertId}/resolve`)
+            await alertsApi.resolve(alertId)
             toast.success("Đã đánh dấu cảnh báo đã xử lý")
             fetchAlerts()
         } catch (err) {
@@ -112,9 +113,9 @@ const DoctorHistoryPanel = () => {
     const getAlertPriority = (type) => {
         if (!type) return "bg-secondary"
         const t = type.toLowerCase()
-        if (t.includes("ngưng tim") || t.includes("rung nhĩ")) return "bg-danger"
-        if (t.includes("ngoại tâm thu")) return "bg-warning"
-        if (t.includes("nhịp nhanh")) return "bg-info"
+        if (t.includes("ngưng tim") || t.includes(ALERT_TYPE.RUNG_NHI)) return "bg-danger"
+        if (t.includes(ALERT_TYPE.NGOAI_TAM_THU)) return "bg-warning"
+        if (t.includes(ALERT_TYPE.NHIP_NHANH)) return "bg-info"
         return "bg-secondary"
     }
 
@@ -144,7 +145,7 @@ const DoctorHistoryPanel = () => {
                         setShowForm(true)
                     }}
                     onDelete={handleDelete}
-                    role="bác sĩ"
+                    role={ROLE.BAC_SI}
                 />
 
                 {/* --- Form thêm/sửa --- */}
@@ -156,7 +157,7 @@ const DoctorHistoryPanel = () => {
                     }}
                     onSubmit={editData ? handleUpdate : handleCreate}
                     initialData={editData}
-                    role="bác sĩ"
+                    role={ROLE.BAC_SI}
                 />
             </Card >
 

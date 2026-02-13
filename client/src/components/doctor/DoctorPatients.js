@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import axios from "axios"
 import { toast } from "react-toastify"
+import { usersApi } from "../../services/api"
+import { ROLE } from "../../services/string"
 
 const DoctorPatients = () => {
   const [patients, setPatients] = useState([])
@@ -23,8 +24,8 @@ const DoctorPatients = () => {
   const fetchPatients = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
-      const allPatients = response.data.users.filter((user) => user.role === "bệnh nhân")
+      const response = await usersApi.getAll()
+      const allPatients = response.data.users.filter((user) => user.role === ROLE.BENH_NHAN)
       setPatients(allPatients)
     } catch (error) {
       console.error("Lỗi lấy danh sách bệnh nhân:", error)

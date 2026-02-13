@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import axios from "axios"
 import { toast } from "react-toastify"
+import { reportsApi } from "../../services/api"
 
 const DoctorReports = () => {
   const [reports, setReports] = useState([])
@@ -15,7 +15,7 @@ const DoctorReports = () => {
   const fetchReports = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/reports/doctor/my-reports`)
+      const response = await reportsApi.getDoctorReports()
       setReports(response.data.reports)
     } catch (error) {
       console.error("Lỗi lấy báo cáo:", error)

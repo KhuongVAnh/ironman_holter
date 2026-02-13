@@ -2,9 +2,10 @@
 import { useEffect, useState } from "react"
 import { Table, Card, Button } from "react-bootstrap"
 import { useAuth } from "../../contexts/AuthContext"
-import axios from "axios"
 import { toast } from "react-toastify"
 import { useNavigate } from "react-router-dom"
+import { accessApi, doctorApi } from "../../services/api"
+import { ACCESS_STATUS } from "../../services/string"
 
 const DoctorAccessRequests = () => {
     const { user } = useAuth()
@@ -21,7 +22,7 @@ const DoctorAccessRequests = () => {
     // --- API: lấy yêu cầu đang chờ ---
     const fetchPendingRequests = async () => {
         try {
-            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/access/pending`)
+            const res = await accessApi.getPending()
             setRequests(res.data)
         } catch (err) {
             console.error(err)
@@ -31,7 +32,7 @@ const DoctorAccessRequests = () => {
     // --- API: lấy danh sách bệnh nhân được cấp quyền ---
     const fetchAcceptedPatients = async () => {
         try {
-            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/patients/${user.user_id}`)
+            const res = await doctorApi.getPatients(user.user_id)
             setPatients(res.data)
         } catch (err) {
             console.error("❌ Lỗi tải danh sách bệnh nhân:", err)
@@ -69,7 +70,7 @@ const DoctorAccessRequests = () => {
                                     <td>{r.patient?.name}</td>
                                     <td>{r.role}</td>
                                     <td>
-                                        <span className={`badge ${r.status === "pending" ? "bg-warning" : "bg-success"}`}>
+                                        <span className={`badge ${r.status === ACCESS_STATUS.PENDING ? "bg-warning" : "bg-success"}`}>
                                             {r.status}
                                         </span>
                                     </td>

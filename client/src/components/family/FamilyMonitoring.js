@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import axios from "axios"
 import { toast } from "react-toastify"
 import ECGChart from "../patient/ECGChart"
+import { alertsApi, readingsApi, usersApi } from "../../services/api"
+import { ROLE } from "../../services/string"
 
 const FamilyMonitoring = () => {
   const [familyMembers, setFamilyMembers] = useState([])
@@ -26,8 +27,8 @@ const FamilyMonitoring = () => {
     try {
       setLoading(true)
       // For demo purposes, get all patients as potential family members
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
-      const patients = response.data.users.filter((u) => u.role === "bệnh nhân")
+      const response = await usersApi.getAll()
+      const patients = response.data.users.filter((u) => u.role === ROLE.BENH_NHAN)
       setFamilyMembers(patients)
       if (patients.length > 0) {
         setSelectedMember(patients[0])
@@ -43,12 +44,12 @@ const FamilyMonitoring = () => {
   const fetchMemberData = async (memberId) => {
     try {
       // Fetch readings
-      const readingsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/readings/history/${memberId}?limit=10`)
+      const readingsResponse = await readingsApi.getHistory(memberId, { limit: 10 })
       setMemberReadings(readingsResponse.data.readings)
 
       // Fetch alerts
-      const alertsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${memberId}`)
-      setMemberAlerts(alertsResponse.data.alerts.slice(0, 5))
+      const alertsResponse = await alertsApi.getByUser(memberId)
+      setMemberAlerts((alertsResponse.data.alerts || []).slice(0, 5))
     } catch (error) {
       console.error("Lỗi lấy dữ liệu người thân:", error)
       toast.error("Không thể tải dữ liệu người thân")

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import axios from "axios"
 import { toast } from "react-toastify"
+import { usersApi, devicesApi, alertsApi, reportsApi } from "../../services/api"
+import { ROLE } from "../../services/string"
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -31,26 +32,26 @@ const AdminDashboard = () => {
       setLoading(true)
 
       // Fetch users
-      const usersResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
+      const usersResponse = await usersApi.getAll()
       const users = usersResponse.data.users
 
       // Fetch devices
-      const devicesResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/devices`)
+      const devicesResponse = await devicesApi.getAll()
       const devices = devicesResponse.data.devices
 
       // Fetch alerts
-      const alertsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts`)
+      const alertsResponse = await alertsApi.getAll()
       const alerts = alertsResponse.data.alerts
 
       // Fetch reports
-      const reportsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/reports/doctor/my-reports`)
+      const reportsResponse = await reportsApi.getDoctorReports()
       const reports = reportsResponse.data.reports
 
       // Calculate stats
       setStats({
         totalUsers: users.length,
-        totalPatients: users.filter((u) => u.role === "bệnh nhân").length,
-        totalDoctors: users.filter((u) => u.role === "bác sĩ").length,
+        totalPatients: users.filter((u) => u.role === ROLE.BENH_NHAN).length,
+        totalDoctors: users.filter((u) => u.role === ROLE.BAC_SI).length,
         totalDevices: devices.length,
         activeAlerts: alerts.filter((a) => !a.resolved).length,
         totalReports: reports.length,
@@ -252,7 +253,7 @@ const AdminDashboard = () => {
                           </div>
                         </div>
                         <div className="text-end">
-                          <span className={`badge bg-${user.role === "admin" ? "danger" : "primary"}`}>
+                          <span className={`badge bg-${user.role === ROLE.ADMIN ? "danger" : "primary"}`}>
                             {user.role}
                           </span>
                           <div>

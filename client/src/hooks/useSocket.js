@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import io from "socket.io-client"
 import { toast } from "react-toastify"
+import { ROLE } from "../services/string"
 
 const useSocket = (userId, userRole) => {
   const socketRef = useRef(null)
@@ -44,7 +45,7 @@ const useSocket = (userId, userRole) => {
 
     // Xử lý cảnh báo bệnh nhân (cho bác sĩ)
     socket.on("patient-alert", (alertData) => {
-      if (userRole === "bác sĩ") {
+      if (userRole === ROLE.BAC_SI) {
         toast.error(`Cảnh báo bệnh nhân: ${alertData.message}`, {
           autoClose: 15000,
           position: "top-center",
@@ -56,7 +57,7 @@ const useSocket = (userId, userRole) => {
 
     // Xử lý cảnh báo gia đình
     socket.on("family-alert", (alertData) => {
-      if (userRole === "gia đình") {
+      if (userRole === ROLE.GIA_DINH) {
         toast.warning(`Cảnh báo người thân: ${alertData.message}`, {
           autoClose: 12000,
           position: "top-center",
@@ -96,7 +97,7 @@ const useSocket = (userId, userRole) => {
 
     // Xử lý thống kê admin (chỉ cho admin)
     socket.on("admin-stats-update", (stats) => {
-      if (userRole === "admin") {
+      if (userRole === ROLE.ADMIN) {
         window.dispatchEvent(new CustomEvent("adminStatsUpdate", { detail: stats }))
       }
     })

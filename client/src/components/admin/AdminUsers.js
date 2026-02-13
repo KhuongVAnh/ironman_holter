@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import axios from "axios"
 import { toast } from "react-toastify"
+import { usersApi } from "../../services/api"
+import { ROLE, ROLE_BADGE } from "../../services/string"
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([])
@@ -30,7 +31,7 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
+      const response = await usersApi.getAll()
       setUsers(response.data.users)
     } catch (error) {
       console.error("Lỗi lấy danh sách người dùng:", error)
@@ -82,7 +83,7 @@ const AdminUsers = () => {
   const handleUpdate = async (e) => {
     e.preventDefault()
     try {
-      await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/users/${editingUser.user_id}`, editForm)
+      await usersApi.update(editingUser.user_id, editForm)
       toast.success("Cập nhật người dùng thành công")
       setEditingUser(null)
       fetchUsers()
@@ -95,7 +96,7 @@ const AdminUsers = () => {
   const handleDelete = async (userId, userName) => {
     if (window.confirm(`Bạn có chắc chắn muốn xóa người dùng "${userName}"?`)) {
       try {
-        await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/users/${userId}`)
+        await usersApi.delete(userId)
         toast.success("Xóa người dùng thành công")
         fetchUsers()
       } catch (error) {
@@ -110,14 +111,7 @@ const AdminUsers = () => {
   }
 
   const getRoleBadge = (role) => {
-    const roleConfig = {
-      "bệnh nhân": { class: "bg-primary", icon: "fas fa-user" },
-      "bác sĩ": { class: "bg-success", icon: "fas fa-user-md" },
-      "gia đình": { class: "bg-info", icon: "fas fa-users" },
-      admin: { class: "bg-danger", icon: "fas fa-user-shield" },
-    }
-
-    const config = roleConfig[role] || roleConfig["bệnh nhân"]
+    const config = ROLE_BADGE[role] || ROLE_BADGE[ROLE.BENH_NHAN]
 
     return (
       <span className={`badge ${config.class}`}>
@@ -175,10 +169,10 @@ const AdminUsers = () => {
         <div className="col-md-3">
           <select className="form-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
             <option value="all">Tất cả vai trò</option>
-            <option value="bệnh nhân">Bệnh nhân</option>
-            <option value="bác sĩ">Bác sĩ</option>
-            <option value="gia đình">Gia đình</option>
-            <option value="admin">Admin</option>
+            <option value={ROLE.BENH_NHAN}>Bệnh nhân</option>
+            <option value={ROLE.BAC_SI}>Bác sĩ</option>
+            <option value={ROLE.GIA_DINH}>Gia đình</option>
+            <option value={ROLE.ADMIN}>Admin</option>
           </select>
         </div>
         <div className="col-md-3">
@@ -332,10 +326,10 @@ const AdminUsers = () => {
                       value={editForm.role}
                       onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                     >
-                      <option value="bệnh nhân">Bệnh nhân</option>
-                      <option value="bác sĩ">Bác sĩ</option>
-                      <option value="gia đình">Gia đình</option>
-                      <option value="admin">Admin</option>
+                      <option value={ROLE.BENH_NHAN}>Bệnh nhân</option>
+                      <option value={ROLE.BAC_SI}>Bác sĩ</option>
+                      <option value={ROLE.GIA_DINH}>Gia đình</option>
+                      <option value={ROLE.ADMIN}>Admin</option>
                     </select>
                   </div>
                   <div className="mb-3">

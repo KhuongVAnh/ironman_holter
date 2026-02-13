@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "../../contexts/AuthContext"
 import { Link } from "react-router-dom"
-import axios from "axios"
 import { toast } from "react-toastify"
 import io from "socket.io-client"
+import { alertsApi, familyApi } from "../../services/api"
+import { ACCESS_STATUS, ALERT_TYPE } from "../../services/string"
 
 const FamilyDashboard = () => {
   const { user } = useAuth()
@@ -20,7 +21,7 @@ const FamilyDashboard = () => {
       if (familyMembers.length === 0) return
 
       const alertPromises = familyMembers.map((p) =>
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${p.user_id}?resolved=false`)
+        alertsApi.getByUser(p.user_id, false)
       )
 
       const alertResponses = await Promise.all(alertPromises)
@@ -74,14 +75,14 @@ const FamilyDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      const usersResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/family/patients/${user.user_id}`)
+      const usersResponse = await familyApi.getPatients(user.user_id)
 
       // Chuẩn hóa dữ liệu
       const patients = usersResponse.data.map((item) => ({
         user_id: item.patient.user_id,
         name: item.patient.name,
         email: item.patient.email,
-        is_active: item.status === "accepted",
+        is_active: item.status === ACCESS_STATUS.ACCEPTED,
       }))
 
       setFamilyMembers(patients)
@@ -102,16 +103,16 @@ const FamilyDashboard = () => {
     if (type.includes("ngưng tim") || type.includes("tim ngừng"))
       return { class: "bg-danger", priority: "Khẩn cấp" }
 
-    if (type.includes("rung nhĩ") || type.includes("rung tim"))
+    if (type.includes(ALERT_TYPE.RUNG_NHI) || type.includes("rung tim"))
       return { class: "bg-danger", priority: "Cao" }
 
-    if (type.includes("nhịp nhanh") || type.includes("tăng nhịp"))
+    if (type.includes(ALERT_TYPE.NHIP_NHANH) || type.includes("tăng nhịp"))
       return { class: "bg-warning", priority: "Trung bình" }
 
-    if (type.includes("nhịp chậm") || type.includes("giảm nhịp"))
+    if (type.includes(ALERT_TYPE.NHIP_CHAM) || type.includes("giảm nhịp"))
       return { class: "bg-info", priority: "Thấp" }
 
-    if (type.includes("ngoại tâm thu"))
+    if (type.includes(ALERT_TYPE.NGOAI_TAM_THU))
       return { class: "bg-secondary", priority: "Theo dõi" }
 
     // Mặc định

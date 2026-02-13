@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "../../contexts/AuthContext"
 import { Link } from "react-router-dom"
-import axios from "axios"
 import { toast } from "react-toastify"
+import { alertsApi, doctorApi } from "../../services/api"
+import { ALERT_TYPE } from "../../services/string"
 
 const DoctorDashboard = () => {
   const { user } = useAuth()
@@ -29,7 +30,7 @@ const DoctorDashboard = () => {
       setLoading(true)
 
       // 🩺 1️⃣ Lấy danh sách bệnh nhân được phép xem
-      const patientsRes = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/doctor/patients/${user.user_id}`)
+      const patientsRes = await doctorApi.getPatients(user.user_id)
       const accessList = patientsRes.data || []
       const patients = accessList.map((p) => ({
         user_id: p.patient.user_id,
@@ -39,7 +40,7 @@ const DoctorDashboard = () => {
 
       // 🔔 2️⃣ Lấy cảnh báo của từng bệnh nhân song song
       const alertPromises = patients.map((p) =>
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${p.user_id}?resolved=false`).catch(() => ({ data: { alerts: [] } }))
+        alertsApi.getByUser(p.user_id, false).catch(() => ({ data: { alerts: [] } }))
       )
       const alertResponses = await Promise.all(alertPromises)
       const allAlerts = alertResponses.flatMap((res) => res.data.alerts || [])
@@ -47,12 +48,14 @@ const DoctorDashboard = () => {
       // 🧮 3️⃣ Sắp xếp & lấy 5 cảnh báo mới nhất
       const sortedAlerts = allAlerts
         .filter((a) => a && a.alert_type)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .sort((a, b) => new Date(b.timestamp || b.created_at) - new Date(a.timestamp || a.created_at))
         .slice(0, 5)
 
       // 📈 4️⃣ Tính thống kê
       const criticalCount = allAlerts.filter(
-        (a) => a.alert_type.toLowerCase().includes("ngưng tim") || a.alert_type.toLowerCase().includes("rung nhĩ")
+        (a) =>
+          a.alert_type.toLowerCase().includes("ngưng tim") ||
+          a.alert_type.toLowerCase().includes(ALERT_TYPE.RUNG_NHI)
       ).length
 
       setStats({
@@ -77,8 +80,8 @@ const DoctorDashboard = () => {
   const getAlertPriority = (alertType = "") => {
     const t = alertType.toLowerCase()
     if (t.includes("ngưng tim")) return { class: "bg-danger", text: "Khẩn cấp" }
-    if (t.includes("rung nhĩ")) return { class: "bg-danger", text: "Cao" }
-    if (t.includes("nhịp nhanh")) return { class: "bg-warning", text: "Trung bình" }
+    if (t.includes(ALERT_TYPE.RUNG_NHI)) return { class: "bg-danger", text: "Cao" }
+    if (t.includes(ALERT_TYPE.NHIP_NHANH)) return { class: "bg-warning", text: "Trung bình" }
     return { class: "bg-info", text: "Thấp" }
   }
 

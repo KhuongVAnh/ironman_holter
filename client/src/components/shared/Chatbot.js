@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import axios from "axios"
 import { toast } from "react-toastify"
+import { chatApi } from "../../services/api"
+import { ROLE } from "../../services/string"
 
 const Chatbot = ({ userId, userRole }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -28,25 +29,16 @@ const Chatbot = ({ userId, userRole }) => {
 
   const loadChatHistory = async () => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/chat/history/${userId}`)
+      const response = await chatApi.getHistory()
       const history = response.data.history || []
 
       // Convert history to messages format
-      const formattedMessages = []
-      history.forEach((chat) => {
-        formattedMessages.push({
-          id: `user-${chat.id}`,
-          text: chat.user_message,
-          sender: "user",
-          timestamp: new Date(chat.created_at),
-        })
-        formattedMessages.push({
-          id: `bot-${chat.id}`,
-          text: chat.bot_response,
-          sender: "bot",
-          timestamp: new Date(chat.created_at),
-        })
-      })
+      const formattedMessages = history.map((chat) => ({
+        id: `${chat.role}-${chat.chat_id}`,
+        text: chat.message,
+        sender: chat.role,
+        timestamp: new Date(chat.timestamp),
+      }))
 
       setMessages(formattedMessages)
       setChatHistory(history)
@@ -70,11 +62,7 @@ const Chatbot = ({ userId, userRole }) => {
     setIsLoading(true)
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/chat`, {
-        message: inputMessage,
-        userId: userId,
-        userRole: userRole,
-      })
+      const response = await chatApi.send(inputMessage)
 
       const botMessage = {
         id: `bot-${Date.now()}`,
@@ -121,13 +109,13 @@ const Chatbot = ({ userId, userRole }) => {
 
   const getWelcomeMessage = () => {
     switch (userRole) {
-      case "bệnh nhân":
+      case ROLE.BENH_NHAN:
         return "Xin chào! Tôi là trợ lý AI của hệ thống Ironman Holter. Tôi có thể giúp bạn hiểu về tình trạng tim mạch, giải thích các chỉ số ECG, và trả lời các câu hỏi về sức khỏe tim mạch của bạn."
-      case "bác sĩ":
+      case ROLE.BAC_SI:
         return "Xin chào bác sĩ! Tôi có thể hỗ trợ phân tích dữ liệu ECG, đưa ra gợi ý chẩn đoán, và cung cấp thông tin y khoa cập nhật về các bệnh lý tim mạch."
-      case "gia đình":
+      case ROLE.GIA_DINH:
         return "Xin chào! Tôi có thể giúp bạn hiểu về tình trạng sức khỏe của người thân, giải thích các cảnh báo, và hướng dẫn cách chăm sóc bệnh nhân tim mạch."
-      case "admin":
+      case ROLE.ADMIN:
         return "Xin chào admin! Tôi có thể hỗ trợ phân tích dữ liệu hệ thống, thống kê sử dụng, và trả lời các câu hỏi về quản trị hệ thống."
       default:
         return "Xin chào! Tôi là trợ lý AI của hệ thống Ironman Holter. Tôi có thể giúp bạn với các câu hỏi về tim mạch và sức khỏe."

@@ -1,6 +1,7 @@
 import React from "react";
 import { Accordion, Card, Button } from "react-bootstrap";
 import DiagnosisBadge from "./DiagnosisBadge";
+import { ROLE } from "../../services/string";
 
 const MedicalHistoryList = ({ histories, onEdit, onDelete, role }) => {
     if (!histories || histories.length === 0)
@@ -35,7 +36,7 @@ const MedicalHistoryList = ({ histories, onEdit, onDelete, role }) => {
                                 <p>
                                     <strong>Ghi chú:</strong> {h.notes || "Không có"}
                                 </p>
-                                {role === "bác sĩ" && (
+                                {role === ROLE.BAC_SI && (
                                     <div className="text-end">
                                         <Button
                                             size="sm"

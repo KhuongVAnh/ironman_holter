@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import axios from "axios"
 import { toast } from "react-toastify"
+import { devicesApi, usersApi } from "../../services/api"
+import { DEVICE_STATUS, ROLE } from "../../services/string"
 
 const AdminDevices = () => {
   const [devices, setDevices] = useState([])
@@ -23,12 +24,12 @@ const AdminDevices = () => {
     try {
       setLoading(true)
       const [devicesResponse, usersResponse] = await Promise.all([
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/devices`),
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`),
+        devicesApi.getAll(),
+        usersApi.getAll(),
       ])
 
       setDevices(devicesResponse.data.devices)
-      setUsers(usersResponse.data.users.filter((u) => u.role === "bệnh nhân"))
+      setUsers(usersResponse.data.users.filter((u) => u.role === ROLE.BENH_NHAN))
     } catch (error) {
       console.error("Lỗi tải dữ liệu:", error)
       toast.error("Không thể tải dữ liệu thiết bị")
@@ -40,7 +41,7 @@ const AdminDevices = () => {
   const handleAddDevice = async (e) => {
     e.preventDefault()
     try {
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/devices/register`, addForm)
+      await devicesApi.register(addForm)
       toast.success("Đăng ký thiết bị thành công")
       setShowAddModal(false)
       setAddForm({ device_id: "", serial_number: "", user_id: "" })
@@ -53,7 +54,7 @@ const AdminDevices = () => {
 
   const updateDeviceStatus = async (deviceId, newStatus) => {
     try {
-      await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/devices/${deviceId}/status`, { status: newStatus })
+      await devicesApi.updateStatus(deviceId, newStatus)
       toast.success("Cập nhật trạng thái thiết bị thành công")
       fetchData()
     } catch (error) {
@@ -116,7 +117,7 @@ const AdminDevices = () => {
           <div className="card border-0 shadow-sm bg-success text-white">
             <div className="card-body text-center">
               <i className="fas fa-check-circle fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{devices.filter((d) => d.status === "đang hoạt động").length}</h3>
+              <h3 className="h4 mb-1">{devices.filter((d) => d.status === DEVICE_STATUS.DANG_HOAT_DONG).length}</h3>
               <p className="mb-0 small">Đang hoạt động</p>
             </div>
           </div>
@@ -125,7 +126,7 @@ const AdminDevices = () => {
           <div className="card border-0 shadow-sm bg-secondary text-white">
             <div className="card-body text-center">
               <i className="fas fa-pause-circle fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{devices.filter((d) => d.status === "ngưng hoạt động").length}</h3>
+              <h3 className="h4 mb-1">{devices.filter((d) => d.status === DEVICE_STATUS.NGUNG_HOAT_DONG).length}</h3>
               <p className="mb-0 small">Ngưng hoạt động</p>
             </div>
           </div>
@@ -180,7 +181,7 @@ const AdminDevices = () => {
                             </div>
                           </td>
                           <td>
-                            {device.status === "đang hoạt động" ? (
+                            {device.status === DEVICE_STATUS.DANG_HOAT_DONG ? (
                               <span className="badge bg-success">
                                 <i className="fas fa-check-circle me-1"></i>
                                 Đang hoạt động
@@ -195,10 +196,10 @@ const AdminDevices = () => {
                           <td>{formatDate(device.created_at)}</td>
                           <td>
                             <div className="btn-group" role="group">
-                              {device.status === "đang hoạt động" ? (
+                              {device.status === DEVICE_STATUS.DANG_HOAT_DONG ? (
                                 <button
                                   className="btn btn-outline-warning btn-sm"
-                                  onClick={() => updateDeviceStatus(device.device_id, "ngưng hoạt động")}
+                                  onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.NGUNG_HOAT_DONG)}
                                   title="Tạm dừng"
                                 >
                                   <i className="fas fa-pause"></i>
@@ -206,7 +207,7 @@ const AdminDevices = () => {
                               ) : (
                                 <button
                                   className="btn btn-outline-success btn-sm"
-                                  onClick={() => updateDeviceStatus(device.device_id, "đang hoạt động")}
+                                  onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.DANG_HOAT_DONG)}
                                   title="Kích hoạt"
                                 >
                                   <i className="fas fa-play"></i>

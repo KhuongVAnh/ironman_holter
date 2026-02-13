@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { Modal, Button, Form } from "react-bootstrap"
+import { ROLE } from "../../services/string"
 
 const MedicalHistoryForm = ({ show, handleClose, onSubmit, initialData, role }) => {
     const [formData, setFormData] = useState({
@@ -48,7 +49,7 @@ const MedicalHistoryForm = ({ show, handleClose, onSubmit, initialData, role }) 
                 <Modal.Title>
                     {formData.history_id
                         ? "Cập nhật bệnh sử"
-                        : role === "bác sĩ"
+                        : role === ROLE.BAC_SI
                             ? "Thêm bệnh sử mới"
                             : "Cập nhật triệu chứng"}
                 </Modal.Title>
@@ -56,7 +57,7 @@ const MedicalHistoryForm = ({ show, handleClose, onSubmit, initialData, role }) 
 
             <Modal.Body>
                 <Form onSubmit={handleSubmit}>
-                    {role === "bác sĩ" && (
+                    {role === ROLE.BAC_SI && (
                         <>
                             <Form.Group className="mb-3">
                                 <Form.Label>Chuẩn đoán</Form.Label>

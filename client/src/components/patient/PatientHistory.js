@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "../../contexts/AuthContext"
-import axios from "axios"
 import { toast } from "react-toastify"
 import ECGChart from "./ECGChart"
+import { readingsApi } from "../../services/api"
 
 const PatientHistory = () => {
   const { user } = useAuth()
@@ -22,9 +22,7 @@ const PatientHistory = () => {
     try {
       setLoading(true)
       const offset = (currentPage - 1) * itemsPerPage
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/api/readings/history/${user.user_id}?limit=${itemsPerPage}&offset=${offset}`,
-      )
+      const response = await readingsApi.getHistory(user.user_id, { limit: itemsPerPage, offset })
       setReadings(response.data.readings)
       setTotalPages(Math.ceil(response.data.total / itemsPerPage) || 1)
     } catch (error) {

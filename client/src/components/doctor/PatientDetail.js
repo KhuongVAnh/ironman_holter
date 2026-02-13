@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
-import axios from "axios"
 import { toast } from "react-toastify"
 import ECGChart from "../patient/ECGChart"
+import { alertsApi, readingsApi, reportsApi, usersApi } from "../../services/api"
 
 const PatientDetail = () => {
   const { patientId } = useParams()
@@ -25,20 +25,20 @@ const PatientDetail = () => {
       setLoading(true)
 
       // Fetch patient info
-      const usersResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
+      const usersResponse = await usersApi.getAll()
       const patientData = usersResponse.data.users.find((u) => u.user_id === Number.parseInt(patientId))
       setPatient(patientData)
 
       // Fetch readings
-      const readingsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/readings/history/${patientId}?limit=20`)
+      const readingsResponse = await readingsApi.getHistory(patientId, { limit: 20 })
       setReadings(readingsResponse.data.readings)
 
       // Fetch alerts
-      const alertsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${patientId}`)
+      const alertsResponse = await alertsApi.getByUser(patientId)
       setAlerts(alertsResponse.data.alerts)
 
       // Fetch reports
-      const reportsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/reports/${patientId}`)
+      const reportsResponse = await reportsApi.getByPatient(patientId)
       setReports(reportsResponse.data.reports)
     } catch (error) {
       console.error("Lỗi tải thông tin bệnh nhân:", error)
@@ -56,7 +56,7 @@ const PatientDetail = () => {
     }
 
     try {
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/reports/${patientId}`, reportForm)
+      await reportsApi.create(patientId, reportForm)
       toast.success("Tạo báo cáo thành công")
       setReportForm({ summary: "" })
       fetchPatientData() // Refresh data

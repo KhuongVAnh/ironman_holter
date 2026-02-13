@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { useAuth } from "../../contexts/AuthContext"
 import { toast } from "react-toastify"
-import axios from "axios"
+import { usersApi } from "../../services/api"
+import { ROLE, ROLE_BADGE } from "../../services/string"
 
 const PatientProfile = () => {
   const { user } = useAuth()
@@ -38,7 +39,7 @@ const PatientProfile = () => {
     setLoading(true)
 
     try {
-      await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/users/${user.user_id}`, formData)
+      await usersApi.update(user.user_id, formData)
       toast.success("Cập nhật thông tin thành công")
       setIsEditing(false)
     } catch (error) {
@@ -65,10 +66,7 @@ const PatientProfile = () => {
     setLoading(true)
 
     try {
-      await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/users/change-password`, {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-      })
+      await usersApi.changePassword(passwordData.currentPassword, passwordData.newPassword)
       toast.success("Đổi mật khẩu thành công")
       setPasswordData({
         currentPassword: "",
@@ -84,14 +82,7 @@ const PatientProfile = () => {
   }
 
   const getRoleBadge = (role) => {
-    const roleConfig = {
-      "bệnh nhân": { class: "bg-primary", icon: "fas fa-user" },
-      "bác sĩ": { class: "bg-success", icon: "fas fa-user-md" },
-      "gia đình": { class: "bg-info", icon: "fas fa-users" },
-      admin: { class: "bg-danger", icon: "fas fa-user-shield" },
-    }
-
-    const config = roleConfig[role] || roleConfig["bệnh nhân"]
+    const config = ROLE_BADGE[role] || ROLE_BADGE[ROLE.BENH_NHAN]
 
     return (
       <span className={`badge ${config.class}`}>

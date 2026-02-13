@@ -3,8 +3,9 @@ import { useEffect, useState } from "react"
 import { NavLink, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { toast } from "react-toastify"
-import axios from "axios"
 import io from "socket.io-client"
+import { accessApi } from "../services/api"
+import { ROLE, getDashboardPath } from "../services/string"
 import "../styles/customNav.css"
 
 const socket = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
@@ -28,11 +29,11 @@ const Navbar = () => {
   // --- Fetch số lượng yêu cầu chờ ---
   useEffect(() => {
     if (!user) return
-    if (user.role !== "bác sĩ" && user.role !== "gia đình") return
+    if (user.role !== ROLE.BAC_SI && user.role !== ROLE.GIA_DINH) return
 
     const fetchPending = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/access/pending`)
+        const res = await accessApi.getPending()
         setPendingCount(res.data.length)
       } catch (err) {
         console.error("Lỗi khi lấy pending requests:", err.message)
@@ -64,7 +65,7 @@ const Navbar = () => {
   // --- Nav link theo role ---
   const getNavLinks = () => {
     switch (user?.role) {
-      case "bệnh nhân":
+      case ROLE.BENH_NHAN:
         return (
           <>
             <li className="nav-item">
@@ -135,7 +136,7 @@ const Navbar = () => {
           </>
         )
 
-      case "bác sĩ":
+      case ROLE.BAC_SI:
         return (
           <>
             <li className="nav-item position-relative">
@@ -165,7 +166,7 @@ const Navbar = () => {
           </>
         )
 
-      case "gia đình":
+      case ROLE.GIA_DINH:
         return (
           <>
             <li className="nav-item position-relative">
@@ -200,18 +201,7 @@ const Navbar = () => {
     }
   }
 
-  const getDashboardRoute = (role = "bệnh nhân") => {
-    switch (role) {
-      case "bác sĩ":
-        return "/doctor/dashboard"
-      case "bệnh nhân":
-        return "/dashboard"
-      case "gia đình":
-        return "/family/dashboard"
-      default:
-        return "/dashboard"
-    }
-  }
+  const getDashboardRoute = (role = ROLE.BENH_NHAN) => getDashboardPath(role)
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark shadow-sm custom-navbar">

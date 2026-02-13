@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { toast } from "react-toastify"
+import { ROLE } from "../services/string"
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -11,7 +12,7 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "bệnh nhân",
+    role: ROLE.BENH_NHAN,
   })
   const [loading, setLoading] = useState(false)
   const { register } = useAuth()
@@ -102,9 +103,9 @@ const Register = () => {
                       Vai trò
                     </label>
                     <select className="form-select" id="role" name="role" value={formData.role} onChange={handleChange}>
-                      <option value="bệnh nhân">Bệnh nhân</option>
-                      <option value="gia đình">Gia đình</option>
-                      <option value="bác sĩ">Bác sĩ</option>
+                      <option value={ROLE.BENH_NHAN}>Bệnh nhân</option>
+                      <option value={ROLE.GIA_DINH}>Gia đình</option>
+                      <option value={ROLE.BAC_SI}>Bác sĩ</option>
                     </select>
                   </div>
                   <div className="mb-3">

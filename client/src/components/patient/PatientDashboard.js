@@ -6,7 +6,8 @@ import { toast } from "react-toastify"
 import io from "socket.io-client"
 import ECGChart from "./ECGChart"
 import useECGStream from "./useECGStream"
-import axios from "axios"
+import { accessApi, alertsApi, readingsApi } from "../../services/api"
+import { ACCESS_ROLE, ACCESS_STATUS, ALERT_TYPE } from "../../services/string"
 
 const PatientDashboard = () => {
   const { user } = useAuth()
@@ -80,7 +81,7 @@ const PatientDashboard = () => {
   // Lấy cảnh báo mới nhất
   const fetchRecentAlerts = async () => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts/${user.user_id}?resolved=false`)
+      const response = await alertsApi.getByUser(user.user_id, false)
       setAlerts(response.data.alerts)
       console.log(response.data.alerts)
       setRecentAlerts(response.data.alerts.slice(0, 5))
@@ -93,7 +94,7 @@ const PatientDashboard = () => {
   const generateFakeData = async () => {
     try {
       const deviceId = `device_${user.user_id}`
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/readings/fake`, { device_id: deviceId })
+      await readingsApi.createFake(deviceId)
       toast.success("Đã tạo dữ liệu giả lập")
     } catch (error) {
       console.error("Lỗi tạo dữ liệu giả:", error)
@@ -104,9 +105,9 @@ const PatientDashboard = () => {
   // 🔹 Danh sách bác sĩ giám sát
   const fetchSupervisingDoctors = async () => {
     try {
-      const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/access/list/${user.user_id}`)
+      const res = await accessApi.list(user.user_id)
       const doctors = res.data
-        .filter(acc => acc.role === "bác sĩ" && acc.status === "accepted")
+        .filter((acc) => acc.role === ACCESS_ROLE.BAC_SI && acc.status === ACCESS_STATUS.ACCEPTED)
         .map((acc) => ({
           id: acc.viewer_id,
           name: acc.viewer?.name || "Không rõ",
@@ -134,16 +135,16 @@ const PatientDashboard = () => {
     const type = alertType.toLowerCase();
 
     switch (type) {
-      case "nhịp nhanh":
+      case ALERT_TYPE.NHIP_NHANH:
         return "fas fa-arrow-up text-primary"; // Tim nhanh
-      case "rung nhĩ":
+      case ALERT_TYPE.RUNG_NHI:
         return "fas fa-heart-crack text-danger"; // Rối loạn nhịp
-      case "ngoại tâm thu":
+      case ALERT_TYPE.NGOAI_TAM_THU:
         return "fas fa-bolt text-warning"; // Xung điện bất thường
-      case "nhịp chậm":
+      case ALERT_TYPE.NHIP_CHAM:
         return "fas fa-arrow-down text-primary"; // Tim chậm
-      case "normal":
-      case "bình thường":
+      case ALERT_TYPE.NORMAL:
+      case ALERT_TYPE.BINH_THUONG:
         return "fas fa-check-circle text-success"; // Bình thường
       default:
         return "fas fa-heartbeat text-danger"; // Không xác định
@@ -154,16 +155,16 @@ const PatientDashboard = () => {
     const type = alertType.toLowerCase();
 
     switch (type) {
-      case "nhịp nhanh":
+      case ALERT_TYPE.NHIP_NHANH:
         return "text-primary";
-      case "rung nhĩ":
+      case ALERT_TYPE.RUNG_NHI:
         return "text-danger";
-      case "ngoại tâm thu":
+      case ALERT_TYPE.NGOAI_TAM_THU:
         return "text-warning";
-      case "nhịp chậm":
+      case ALERT_TYPE.NHIP_CHAM:
         return "text-primary";
-      case "normal":
-      case "bình thường":
+      case ALERT_TYPE.NORMAL:
+      case ALERT_TYPE.BINH_THUONG:
         return "text-success";
       default:
         return "text-danger";

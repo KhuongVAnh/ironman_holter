@@ -1,18 +1,19 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import axios from "axios"
 import { Card, Button, Form, Table, Badge } from "react-bootstrap"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import io from "socket.io-client"
+import { accessApi } from "../../services/api"
+import { ACCESS_ROLE, ACCESS_STATUS } from "../../services/string"
 
 const socket = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
 
 const PatientAccess = () => {
     const { user } = useAuth() // ⚡ chỉ cần user, token interceptor tự thêm rồi
     const [viewerEmail, setViewerEmail] = useState("")
-    const [role, setRole] = useState("bác sĩ")
+    const [role, setRole] = useState(ACCESS_ROLE.BAC_SI)
     const [accessList, setAccessList] = useState([])
 
     // --- Khi mở trang ---
@@ -45,7 +46,7 @@ const PatientAccess = () => {
     // --- API: Lấy danh sách quyền ---
     const fetchAccessList = async () => {
         try {
-            const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/access/list/${user.user_id}`)
+            const res = await accessApi.list(user.user_id)
             setAccessList(res.data)
         } catch (error) {
             console.error("❌ Lỗi tải danh sách:", error)
@@ -62,10 +63,7 @@ const PatientAccess = () => {
         }
 
         try {
-            const res = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/access/share`, {
-                viewer_email: viewerEmail,
-                role,
-            })
+            const res = await accessApi.share(viewerEmail, role)
 
             toast.success(res.data?.message || "✅ Đã gửi yêu cầu chia sẻ quyền")
             setViewerEmail("")
@@ -80,7 +78,7 @@ const PatientAccess = () => {
     const handleRevoke = async (id) => {
         if (!window.confirm("Bạn có chắc muốn thu hồi quyền này?")) return
         try {
-            await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/access/${id}`)
+            await accessApi.revoke(id)
             toast.warning("❌ Đã thu hồi quyền truy cập")
             fetchAccessList()
         } catch (err) {
@@ -113,8 +111,8 @@ const PatientAccess = () => {
                         <div className="col-md-3">
                             <Form.Label>Vai trò</Form.Label>
                             <Form.Select value={role} onChange={(e) => setRole(e.target.value)}>
-                                <option value="bác sĩ">Bác sĩ</option>
-                                <option value="gia đình">Gia đình</option>
+                                <option value={ACCESS_ROLE.BAC_SI}>Bác sĩ</option>
+                                <option value={ACCESS_ROLE.GIA_DINH}>Gia đình</option>
                             </Form.Select>
                         </div>
 
@@ -159,9 +157,9 @@ const PatientAccess = () => {
                                     <td>
                                         <Badge
                                             bg={
-                                                a.status === "accepted"
+                                                a.status === ACCESS_STATUS.ACCEPTED
                                                     ? "success"
-                                                    : a.status === "pending"
+                                                    : a.status === ACCESS_STATUS.PENDING
                                                         ? "warning"
                                                         : "danger"
                                             }

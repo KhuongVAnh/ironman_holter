@@ -33,11 +33,14 @@ import AdminDevices from "./components/admin/AdminDevices"
 import AdminLogs from "./components/admin/AdminLogs"
 import Chatbot from "./components/shared/Chatbot"
 import useSocket from "./hooks/useSocket"
+import { ROLE, getDashboardPath } from "./services/string"
 
 const AppContent = () => {
   const { user, loading } = useAuth()
 
-  const socketHook = useSocket(user?.id, user?.role)
+  useSocket(user?.user_id, user?.role)
+
+  const defaultRoute = getDashboardPath(user?.role)
 
   if (loading) {
     return (
@@ -58,46 +61,22 @@ const AppContent = () => {
           element={
             user ? (
               <Navigate
-                to={
-                  user.role === "bác sĩ"
-                    ? "/doctor/dashboard"
-                    : user.role === "bệnh nhân"
-                      ? "/dashboard"
-                      : user.role === "gia đình"
-                        ? "/family/dashboard"
-                        : "/dashboard"
-                }
+                to={defaultRoute}
               />
             ) : (
               <Navigate to="/login" />
             )
           }
         />
-        <Route path="/login" element={!user ? <Login /> : <Navigate to={
-          user.role === "bác sĩ"
-            ? "/doctor/dashboard"
-            : user.role === "bệnh nhân"
-              ? "dashboard"
-              : user.role === "gia đình"
-                ? "/family/dashboard"
-                : ""
-        } />} />
-        <Route path="/register" element={!user ? <Register /> : <Navigate to={
-          user.role === "bác sĩ"
-            ? "/doctor/dashboard"
-            : user.role === "bệnh nhân"
-              ? "dashboard"
-              : user.role === "gia đình"
-                ? "/family/dashboard"
-                : ""
-        } />} />
+        <Route path="/login" element={!user ? <Login /> : <Navigate to={defaultRoute} />} />
+        <Route path="/register" element={!user ? <Register /> : <Navigate to={defaultRoute} />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* Patient Routes */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute allowedRoles={["bệnh nhân"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BENH_NHAN]}>
               <PatientDashboard />
             </ProtectedRoute>
           }
@@ -105,7 +84,7 @@ const AppContent = () => {
         <Route
           path="/history"
           element={
-            <ProtectedRoute allowedRoles={["bệnh nhân"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BENH_NHAN]}>
               <PatientHistory />
             </ProtectedRoute>
           }
@@ -113,7 +92,7 @@ const AppContent = () => {
         <Route
           path="/alerts"
           element={
-            <ProtectedRoute allowedRoles={["bệnh nhân"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BENH_NHAN]}>
               <PatientAlerts />
             </ProtectedRoute>
           }
@@ -121,7 +100,7 @@ const AppContent = () => {
         <Route
           path="/patient/access"
           element={
-            <ProtectedRoute allowedRoles={["bệnh nhân"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BENH_NHAN]}>
               <PatientAccess />
             </ProtectedRoute>
           }
@@ -129,7 +108,7 @@ const AppContent = () => {
         <Route
           path="/profile"
           element={
-            <ProtectedRoute allowedRoles={["bệnh nhân"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BENH_NHAN]}>
               <PatientProfile />
             </ProtectedRoute>
           }
@@ -137,7 +116,7 @@ const AppContent = () => {
         <Route
           path="/chat"
           element={
-            <ProtectedRoute allowedRoles={["bệnh nhân"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BENH_NHAN]}>
               <PatientChat />
             </ProtectedRoute>
           }
@@ -145,7 +124,7 @@ const AppContent = () => {
         <Route
           path="/patient/history"
           element={
-            <ProtectedRoute allowedRoles={["bệnh nhân"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BENH_NHAN]}>
               <PatientHistorySecond />
             </ProtectedRoute>
           }
@@ -155,7 +134,7 @@ const AppContent = () => {
         <Route
           path="/doctor/dashboard"
           element={
-            <ProtectedRoute allowedRoles={["bác sĩ"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BAC_SI]}>
               <DoctorDashboard />
             </ProtectedRoute>
           }
@@ -163,7 +142,7 @@ const AppContent = () => {
         <Route
           path="/doctor/patients"
           element={
-            <ProtectedRoute allowedRoles={["bác sĩ"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BAC_SI]}>
               <DoctorPatients />
             </ProtectedRoute>
           }
@@ -171,7 +150,7 @@ const AppContent = () => {
         <Route
           path="/doctor/access-requests"
           element={
-            <ProtectedRoute allowedRoles={["bác sĩ"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BAC_SI]}>
               <DoctorAccessRequests />
             </ProtectedRoute>
           }
@@ -179,7 +158,7 @@ const AppContent = () => {
         <Route
           path="/doctor/history/:patientId"
           element={
-            <ProtectedRoute allowedRoles={["bác sĩ"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BAC_SI]}>
               <DoctorHistoryPanel />
             </ProtectedRoute>
           }
@@ -187,7 +166,7 @@ const AppContent = () => {
         <Route
           path="/doctor/patient/:patientId"
           element={
-            <ProtectedRoute allowedRoles={["bác sĩ"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BAC_SI]}>
               <PatientDetail />
             </ProtectedRoute>
           }
@@ -195,7 +174,7 @@ const AppContent = () => {
         <Route
           path="/doctor/reports"
           element={
-            <ProtectedRoute allowedRoles={["bác sĩ"]}>
+            <ProtectedRoute allowedRoles={[ROLE.BAC_SI]}>
               <DoctorReports />
             </ProtectedRoute>
           }
@@ -205,7 +184,7 @@ const AppContent = () => {
         <Route
           path="/family/dashboard"
           element={
-            <ProtectedRoute allowedRoles={["gia đình"]}>
+            <ProtectedRoute allowedRoles={[ROLE.GIA_DINH]}>
               <FamilyDashboard />
             </ProtectedRoute>
           }
@@ -213,7 +192,7 @@ const AppContent = () => {
         <Route
           path="/family/monitoring"
           element={
-            <ProtectedRoute allowedRoles={["gia đình"]}>
+            <ProtectedRoute allowedRoles={[ROLE.GIA_DINH]}>
               <FamilyMonitoring />
             </ProtectedRoute>
           }
@@ -221,7 +200,7 @@ const AppContent = () => {
         <Route
           path="/family/access-requests"
           element={
-            <ProtectedRoute allowedRoles={["gia đình"]}>
+            <ProtectedRoute allowedRoles={[ROLE.GIA_DINH]}>
               <FamilyAccessRequests />
             </ProtectedRoute>
           }
@@ -229,7 +208,7 @@ const AppContent = () => {
         <Route
           path="/family/history/:patientId"
           element={
-            <ProtectedRoute allowedRoles={["gia đình"]}>
+            <ProtectedRoute allowedRoles={[ROLE.GIA_DINH]}>
               <FamilyHistoryPanel />
             </ProtectedRoute>
           }
@@ -239,7 +218,7 @@ const AppContent = () => {
         <Route
           path="/admin/dashboard"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute allowedRoles={[ROLE.ADMIN]}>
               <AdminDashboard />
             </ProtectedRoute>
           }
@@ -247,7 +226,7 @@ const AppContent = () => {
         <Route
           path="/admin/users"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute allowedRoles={[ROLE.ADMIN]}>
               <AdminUsers />
             </ProtectedRoute>
           }
@@ -255,7 +234,7 @@ const AppContent = () => {
         <Route
           path="/admin/devices"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute allowedRoles={[ROLE.ADMIN]}>
               <AdminDevices />
             </ProtectedRoute>
           }
@@ -263,7 +242,7 @@ const AppContent = () => {
         <Route
           path="/admin/logs"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute allowedRoles={[ROLE.ADMIN]}>
               <AdminLogs />
             </ProtectedRoute>
           }
@@ -273,21 +252,13 @@ const AppContent = () => {
           path="/"
           element={
             <Navigate
-              to={
-                user?.role === "bác sĩ"
-                  ? "/doctor/dashboard"
-                  : user?.role === "gia đình"
-                    ? "/family/dashboard"
-                    : user?.role === "admin"
-                      ? "/admin/dashboard"
-                      : "/dashboard"
-              }
+              to={defaultRoute}
             />
           }
         />
       </Routes>
 
-      {user && <Chatbot userId={user.id} userRole={user.role} />}
+      {user && <Chatbot userId={user.user_id} userRole={user.role} />}
 
       <ToastContainer position="bottom-right" autoClose={3000} />
     </div>

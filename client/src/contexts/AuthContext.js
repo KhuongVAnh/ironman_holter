@@ -1,7 +1,8 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect } from "react"
-import axios from "axios"
+import { authApi, api } from "../services/api"
+import { ROLE } from "../services/string"
 
 const AuthContext = createContext()
 
@@ -13,8 +14,6 @@ export const useAuth = () => {
   return context
 }
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL + "/api"
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -23,9 +22,9 @@ export const AuthProvider = ({ children }) => {
   // Cấu hình axios interceptor
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`
     } else {
-      delete axios.defaults.headers.common["Authorization"]
+      delete api.defaults.headers.common["Authorization"]
     }
   }, [token])
 
@@ -34,7 +33,7 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       if (token) {
         try {
-          const response = await axios.get(`${API_BASE_URL}/auth/me`)
+          const response = await authApi.me()
           setUser(response.data.user)
         } catch (error) {
           console.error("Token không hợp lệ:", error)
@@ -49,10 +48,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
-        email,
-        password,
-      })
+      const response = await authApi.login(email, password)
 
       const { token: newToken, user: userData } = response.data
 
@@ -67,14 +63,9 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const register = async (name, email, password, role = "bệnh nhân") => {
+  const register = async (name, email, password, role = ROLE.BENH_NHAN) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/register`, {
-        name,
-        email,
-        password,
-        role,
-      })
+      const response = await authApi.register(name, email, password, role)
 
       const { token: newToken, user: userData } = response.data
 
@@ -93,7 +84,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token")
     setToken(null)
     setUser(null)
-    delete axios.defaults.headers.common["Authorization"]
+    delete api.defaults.headers.common["Authorization"]
   }
 
   const value = {

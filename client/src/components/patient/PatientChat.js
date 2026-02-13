@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "../../contexts/AuthContext"
 import useSocket from "../../hooks/useSocket"
-import axios from "axios"
 import { toast } from "react-toastify"
+import { chatApi, usersApi } from "../../services/api"
+import { ROLE } from "../../services/string"
 
 const PatientChat = () => {
   const { user } = useAuth()
-  const { sendChatMessage } = useSocket(user?.id, user?.role)
+  const { sendChatMessage } = useSocket(user?.user_id, user?.role)
   const [messages, setMessages] = useState([])
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -53,15 +54,18 @@ const PatientChat = () => {
   const loadContacts = async () => {
     try {
       // Load doctors
-      const doctorsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`, {
-        params: { role: "bác sĩ" },
-      })
-      setDoctors(doctorsResponse.data.users || [])
+      const doctorsResponse = await usersApi.getAll({ role: ROLE.BAC_SI })
+      const doctorList = (doctorsResponse.data.users || []).map((doctor) => ({
+        id: doctor.user_id,
+        full_name: doctor.name,
+        role: doctor.role,
+      }))
+      setDoctors(doctorList)
 
       // Load family members (mock data for now)
       setFamilyMembers([
-        { id: "family1", full_name: "Nguyễn Văn A (Con trai)", role: "gia đình" },
-        { id: "family2", full_name: "Trần Thị B (Con gái)", role: "gia đình" },
+        { id: "family1", full_name: "Nguyễn Văn A (Con trai)", role: ROLE.GIA_DINH },
+        { id: "family2", full_name: "Trần Thị B (Con gái)", role: ROLE.GIA_DINH },
       ])
     } catch (error) {
       console.error("Lỗi tải danh bạ:", error)
@@ -71,7 +75,7 @@ const PatientChat = () => {
 
   const loadChatHistory = async () => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/chat/history/${user.id}`)
+      const response = await chatApi.getHistory()
       const history = response.data.history || []
 
       // Convert từ chat_logs trong DB -> messages format
@@ -108,11 +112,7 @@ const PatientChat = () => {
       // Gửi cho AI bot
       setIsLoading(true)
       try {
-        const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/chat`, {
-          message: inputMessage,
-          userId: user.id,
-          userRole: user.role,
-        })
+        const response = await chatApi.send(inputMessage)
 
         const botMessage = {
           id: `bot-${Date.now()}`,
@@ -272,7 +272,7 @@ const PatientChat = () => {
               <div className="me-3">
                 {selectedRecipient ? (
                   <i
-                    className={`fas ${selectedRecipient.role === "bác sĩ" ? "fa-user-md text-success" : "fa-users text-info"} fa-lg`}
+                    className={`fas ${selectedRecipient.role === ROLE.BAC_SI ? "fa-user-md text-success" : "fa-users text-info"} fa-lg`}
                   ></i>
                 ) : (
                   <i className="fas fa-robot fa-lg text-primary"></i>
@@ -282,7 +282,7 @@ const PatientChat = () => {
                 <h6 className="mb-0">{selectedRecipient ? selectedRecipient.full_name : "Trợ lý AI Ironman"}</h6>
                 <small className="text-muted">
                   {selectedRecipient
-                    ? selectedRecipient.role === "bác sĩ"
+                    ? selectedRecipient.role === ROLE.BAC_SI
                       ? "Bác sĩ tim mạch"
                       : "Thành viên gia đình"
                     : "Hỗ trợ tư vấn tim mạch"}

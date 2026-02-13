@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import axios from "axios"
 import { toast } from "react-toastify"
+import { alertsApi } from "../../services/api"
+import { ALERT_TYPE } from "../../services/string"
 
 const AdminLogs = () => {
   const [stats, setStats] = useState({
@@ -24,12 +25,8 @@ const AdminLogs = () => {
       setLoading(true)
 
       // Fetch alerts for statistics
-      const alertsResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/alerts`)
+      const alertsResponse = await alertsApi.getAll()
       const alerts = alertsResponse.data.alerts
-
-      // Fetch users for statistics
-      const usersResponse = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/users`)
-      const users = usersResponse.data.users
 
       // Mock system logs (in a real app, these would come from a logging service)
       const mockSystemLogs = [
@@ -105,12 +102,12 @@ const AdminLogs = () => {
   }
 
   const getAlertTypeIcon = (alertType) => {
-    switch (alertType.toLowerCase()) {
-      case "nhịp nhanh":
+    switch ((alertType || "").toLowerCase()) {
+      case ALERT_TYPE.NHIP_NHANH:
         return "fas fa-arrow-up text-danger"
-      case "nhịp chậm":
+      case ALERT_TYPE.NHIP_CHAM:
         return "fas fa-arrow-down text-warning"
-      case "rung nhĩ":
+      case ALERT_TYPE.RUNG_NHI:
         return "fas fa-exclamation-triangle text-danger"
       default:
         return "fas fa-exclamation-circle text-info"
@@ -205,16 +202,16 @@ const AdminLogs = () => {
               ) : (
                 <div className="list-group list-group-flush">
                   {recentAlerts.map((alert) => (
-                    <div key={alert.id} className="list-group-item border-0 px-0">
+                    <div key={alert.alert_id || alert.id} className="list-group-item border-0 px-0">
                       <div className="d-flex align-items-center">
                         <i className={`${getAlertTypeIcon(alert.alert_type)} me-3`}></i>
                         <div className="flex-grow-1">
                           <h6 className="mb-1">{alert.alert_type}</h6>
                           <p className="mb-1 text-muted small">{alert.message}</p>
-                          <small className="text-muted">{formatDate(alert.created_at)}</small>
+                          <small className="text-muted">{formatDate(alert.timestamp || alert.created_at)}</small>
                         </div>
-                        <span className={`badge ${alert.status === "resolved" ? "bg-success" : "bg-warning"}`}>
-                          {alert.status === "resolved" ? "Đã xử lý" : "Chờ xử lý"}
+                        <span className={`badge ${alert.resolved ? "bg-success" : "bg-warning"}`}>
+                          {alert.resolved ? "Đã xử lý" : "Chờ xử lý"}
                         </span>
                       </div>
                     </div>

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "../../contexts/AuthContext"
-import axios from "axios"
 import { toast } from "react-toastify"
+import { alertsApi } from "../../services/api"
+import { ALERT_TYPE, ROLE } from "../../services/string"
 
 const PatientAlerts = () => {
   const { user } = useAuth()
@@ -23,11 +24,8 @@ const PatientAlerts = () => {
   const fetchAlerts = async () => {
     try {
       setLoading(true)
-      let url = `${process.env.REACT_APP_API_BASE_URL}/api/alerts/${user.user_id}`
-      if (filter !== "all") {
-        url += `?resolved=${filter === "resolved"}`
-      }
-      const response = await axios.get(url)
+      const resolved = filter === "all" ? undefined : filter === "resolved"
+      const response = await alertsApi.getByUser(user.user_id, resolved)
       setAlerts(Array.isArray(response.data?.alerts) ? response.data.alerts : [])
     } catch (error) {
       console.error("Lỗi lấy cảnh báo:", error)
@@ -42,16 +40,16 @@ const PatientAlerts = () => {
 
   const getAlertIcon = (alertType) => {
     switch ((alertType || "").toLowerCase()) {
-      case "nhịp nhanh":
+      case ALERT_TYPE.NHIP_NHANH:
         return "fas fa-arrow-up text-primary"
-      case "nhịp chậm":
+      case ALERT_TYPE.NHIP_CHAM:
         return "fas fa-arrow-down text-primary"
-      case "rung nhĩ":
+      case ALERT_TYPE.RUNG_NHI:
         return "fas fa-heart-crack text-danger"
-      case "ngoại tâm thu":
+      case ALERT_TYPE.NGOAI_TAM_THU:
         return "fas fa-bolt text-warning"
-      case "normal":
-      case "bình thường":
+      case ALERT_TYPE.NORMAL:
+      case ALERT_TYPE.BINH_THUONG:
         return "fas fa-check-circle text-success"
       default:
         return "fas fa-heartbeat text-danger"
@@ -60,16 +58,16 @@ const PatientAlerts = () => {
 
   const getAlertColor = (alertType) => {
     switch ((alertType || "").toLowerCase()) {
-      case "nhịp nhanh":
+      case ALERT_TYPE.NHIP_NHANH:
         return "border-secondary"
-      case "rung nhĩ":
+      case ALERT_TYPE.RUNG_NHI:
         return "border-danger"
-      case "ngoại tâm thu":
+      case ALERT_TYPE.NGOAI_TAM_THU:
         return "border-warning"
-      case "nhịp chậm":
+      case ALERT_TYPE.NHIP_CHAM:
         return "border-secondary"
-      case "normal":
-      case "bình thường":
+      case ALERT_TYPE.NORMAL:
+      case ALERT_TYPE.BINH_THUONG:
         return "border-success"
       default:
         return "border-danger"
@@ -153,7 +151,7 @@ const PatientAlerts = () => {
                     {/* 👇 Thay nút xử lý bằng dòng thông báo */}
                     {!alert.resolved && (
                       <span className="text-secondary small fst-italic">
-                        ⏳ Đang chờ bác sĩ xử lý...
+                        ⏳ Đang chờ {ROLE.BAC_SI} xử lý...
                       </span>
                     )}
                   </div>
