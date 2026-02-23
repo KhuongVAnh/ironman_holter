@@ -1,4 +1,4 @@
-import axios from "axios"
+﻿import axios from "axios"
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:4000"
 const API_URL = `${API_BASE}/api`
@@ -57,7 +57,7 @@ export const alertsApi = {
 export const accessApi = {
   list: (patientId) => api.get(`/access/list/${patientId}`),
   share: (viewerEmail, role) => api.post("/access/share", { viewer_email: viewerEmail, role }),
-  respond: (id, status) => api.put(`/access/respond/${id}`, { status }),
+  respond: (id, action) => api.put(`/access/respond/${id}`, { action }),
   revoke: (id) => api.delete(`/access/${id}`),
   getPending: () => api.get("/access/pending"),
 }

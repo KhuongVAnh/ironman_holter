@@ -83,6 +83,15 @@ const useSocket = (userId, userRole) => {
       window.dispatchEvent(new CustomEvent("newChatMessage", { detail: messageData }))
     })
 
+    // Xử lý tin nhắn direct chat bác sĩ - bệnh nhân
+    socket.on("direct-message:new", (messageData) => {
+      window.dispatchEvent(new CustomEvent("directChatMessage", { detail: messageData }))
+    })
+
+    socket.on("direct-message:read", (payload) => {
+      window.dispatchEvent(new CustomEvent("directChatRead", { detail: payload }))
+    })
+
     // Xử lý thông báo hệ thống
     socket.on("system-notification", (notification) => {
       toast.info(notification.message, {

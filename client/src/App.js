@@ -20,6 +20,7 @@ import DoctorReports from "./components/doctor/DoctorReports"
 import DoctorHistoryPanel from "./components/doctor/DoctorHistoryPanel";
 import DoctorAccessRequests from "./components/doctor/DoctorAccessRequests"
 import PatientDetail from "./components/doctor/PatientDetail"
+import DoctorChat from "./components/doctor/DoctorChat"
 import FamilyDashboard from "./components/family/FamilyDashboard"
 import FamilyMonitoring from "./components/family/FamilyMonitoring"
 import FamilyAccessRequests from "./components/family/FamilyAccessRequests"
@@ -156,6 +157,14 @@ const AppContent = () => {
           }
         />
         <Route
+          path="/doctor/history"
+          element={
+            <ProtectedRoute allowedRoles={[ROLE.BAC_SI]}>
+              <Navigate to="/doctor/patients" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/doctor/history/:patientId"
           element={
             <ProtectedRoute allowedRoles={[ROLE.BAC_SI]}>
@@ -176,6 +185,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={[ROLE.BAC_SI]}>
               <DoctorReports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/doctor/chat"
+          element={
+            <ProtectedRoute allowedRoles={[ROLE.BAC_SI]}>
+              <DoctorChat />
             </ProtectedRoute>
           }
         />

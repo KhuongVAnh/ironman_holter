@@ -5,7 +5,7 @@ import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { chatApi } from "../../services/api"
 
-const PatientChat = () => {
+const DoctorChat = () => {
   const { user } = useAuth()
   const [contacts, setContacts] = useState([])
   const [selectedContactId, setSelectedContactId] = useState(null)
@@ -84,19 +84,19 @@ const PatientChat = () => {
         return stillExists ? current : list[0].user_id
       })
     } catch (error) {
-      console.error("Loi tai danh sach bac si:", error)
-      toast.error("Khong the tai danh sach bac si")
+      console.error("Loi tai danh sach benh nhan:", error)
+      toast.error("Khong the tai danh sach benh nhan")
     } finally {
       if (showLoading) setLoadingContacts(false)
     }
   }
 
-  const fetchMessages = async (doctorId) => {
+  const fetchMessages = async (patientId) => {
     try {
       setLoadingMessages(true)
-      const response = await chatApi.getDirectHistory(doctorId, { limit: 200 })
+      const response = await chatApi.getDirectHistory(patientId, { limit: 200 })
       setMessages(response.data?.messages || [])
-      await markRead(doctorId, false)
+      await markRead(patientId, false)
       await fetchContacts(false)
     } catch (error) {
       console.error("Loi tai lich su chat:", error)
@@ -177,8 +177,8 @@ const PatientChat = () => {
       <div className="row">
         <div className="col-12">
           <h1 className="h3 mb-4">
-            <i className="fas fa-comments me-2 text-primary"></i>
-            Chat voi bac si
+            <i className="fas fa-comments me-2 text-success"></i>
+            Chat voi benh nhan
           </h1>
         </div>
       </div>
@@ -187,12 +187,12 @@ const PatientChat = () => {
         <div className="col-lg-4 col-xl-3">
           <div className="card border-0 shadow-sm">
             <div className="card-header bg-white border-0">
-              <h6 className="mb-0">Danh sach bac si duoc phep chat</h6>
+              <h6 className="mb-0">Danh sach benh nhan da cap quyen</h6>
             </div>
             <div className="list-group list-group-flush">
               {contacts.length === 0 && (
                 <div className="list-group-item text-muted small">
-                  Chua co bac si nao duoc cap quyen truy cap.
+                  Chua co benh nhan nao cap quyen chat cho ban.
                 </div>
               )}
 
@@ -229,14 +229,14 @@ const PatientChat = () => {
           <div className="card border-0 shadow-sm" style={{ minHeight: "640px" }}>
             <div className="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
               <div>
-                <h6 className="mb-0">{selectedContact ? selectedContact.name : "Chon bac si"}</h6>
+                <h6 className="mb-0">{selectedContact ? selectedContact.name : "Chon benh nhan"}</h6>
                 <small className="text-muted">{selectedContact?.email || ""}</small>
               </div>
             </div>
 
             <div className="card-body overflow-auto" style={{ height: "500px" }}>
               {!selectedContact && (
-                <div className="text-center text-muted py-5">Vui long chon bac si de bat dau tro chuyen.</div>
+                <div className="text-center text-muted py-5">Vui long chon benh nhan de bat dau tro chuyen.</div>
               )}
 
               {selectedContact && loadingMessages && (
@@ -263,7 +263,7 @@ const PatientChat = () => {
                     >
                       <div
                         className={`rounded-3 p-3 shadow-sm ${
-                          isMine ? "bg-primary text-white ms-5" : "bg-light me-5"
+                          isMine ? "bg-success text-white ms-5" : "bg-light me-5"
                         }`}
                         style={{ maxWidth: "75%" }}
                       >
@@ -283,7 +283,7 @@ const PatientChat = () => {
               <div className="input-group">
                 <textarea
                   className="form-control border-0 bg-light"
-                  placeholder={selectedContact ? `Nhap tin nhan gui ${selectedContact.name}...` : "Chon bac si de nhan tin"}
+                  placeholder={selectedContact ? `Nhap tin nhan gui ${selectedContact.name}...` : "Chon benh nhan de nhan tin"}
                   value={inputMessage}
                   onChange={(event) => setInputMessage(event.target.value)}
                   onKeyDown={handleKeyDown}
@@ -292,7 +292,7 @@ const PatientChat = () => {
                   disabled={!selectedContact || sending}
                 />
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-success"
                   onClick={sendMessage}
                   disabled={!selectedContact || !inputMessage.trim() || sending}
                 >
@@ -307,4 +307,4 @@ const PatientChat = () => {
   )
 }
 
-export default PatientChat
+export default DoctorChat

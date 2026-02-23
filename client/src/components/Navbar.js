@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useEffect, useState } from "react"
 import { NavLink, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
@@ -130,7 +130,7 @@ const Navbar = () => {
                   "nav-link custom-link" + (isActive ? " active" : "")
                 }
               >
-                <i className="fas fa-comments me-2"></i>Tư vấn AI
+                <i className="fas fa-comments me-2"></i>Tư vấn
               </NavLink>
             </li>
           </>
@@ -147,18 +147,23 @@ const Navbar = () => {
                 }
               >
                 <i className="fas fa-envelope-open me-1"></i> Danh sách bệnh nhân
-                {pendingCount > 0 && (
-                  <span className="badge bg-danger ms-2">{pendingCount}</span>
-                )}
+                {pendingCount > 0 && <span className="badge bg-danger ms-2">{pendingCount}</span>}
               </NavLink>
             </li>
 
             <li className="nav-item">
               <NavLink
-                to="/doctor/history"
-                className={({ isActive }) =>
-                  "nav-link custom-link" + (isActive ? " active" : "")
-                }
+                to="/doctor/chat"
+                className={({ isActive }) => "nav-link custom-link" + (isActive ? " active" : "")}
+              >
+                <i className="fas fa-comments me-2"></i>Tin nhắn
+              </NavLink>
+            </li>
+
+            <li className="nav-item">
+              <NavLink
+                to="/doctor/patients"
+                className={({ isActive }) => "nav-link custom-link" + (isActive ? " active" : "")}
               >
                 <i className="fas fa-folder-medical me-2"></i> Hồ sơ bệnh nhân
               </NavLink>
