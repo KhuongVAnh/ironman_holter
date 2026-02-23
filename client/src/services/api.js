@@ -66,6 +66,10 @@ export const accessApi = {
 export const chatApi = {
   getHistory: () => api.get("/chat/history"),
   send: (message) => api.post("/chat", { message }),
+  getContacts: () => api.get("/chat/contacts"),
+  getDirectHistory: (otherUserId, params) => api.get(`/chat/direct/${otherUserId}`, { params }),
+  sendDirect: (receiverId, message) => api.post("/chat/direct", { receiver_id: receiverId, message }),
+  markDirectRead: (otherUserId) => api.put(`/chat/direct/${otherUserId}/read`),
 }
 
 // ========== History (Medical) ==========

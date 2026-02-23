@@ -7,7 +7,15 @@ exports.getAccessiblePatients = async (req, res) => {
     const accessPermissions = await prisma.accessPermission.findMany({
       where: { viewer_id, status: "accepted" },
       include: {
-        patient: { select: { user_id: true, name: true, email: true } },
+        patient: {
+          select: {
+            user_id: true,
+            name: true,
+            email: true,
+            is_active: true,
+            created_at: true,
+          },
+        },
       },
     })
 
