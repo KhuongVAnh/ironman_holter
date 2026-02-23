@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
-import { usersApi } from "../../services/api"
-import { ROLE } from "../../services/string"
+import { useAuth } from "../../contexts/AuthContext"
+import { doctorApi } from "../../services/api"
 
 const DoctorPatients = () => {
+  const { user } = useAuth()
   const [patients, setPatients] = useState([])
   const [filteredPatients, setFilteredPatients] = useState([])
   const [loading, setLoading] = useState(true)
@@ -14,8 +15,10 @@ const DoctorPatients = () => {
   const [statusFilter, setStatusFilter] = useState("all")
 
   useEffect(() => {
-    fetchPatients()
-  }, [])
+    if (user?.user_id) {
+      fetchPatients()
+    }
+  }, [user?.user_id])
 
   useEffect(() => {
     filterPatients()
@@ -23,9 +26,16 @@ const DoctorPatients = () => {
 
   const fetchPatients = async () => {
     try {
+      if (!user?.user_id) return
+
       setLoading(true)
-      const response = await usersApi.getAll()
-      const allPatients = response.data.users.filter((user) => user.role === ROLE.BENH_NHAN)
+      const response = await doctorApi.getPatients(user.user_id)
+      const accessList = Array.isArray(response.data) ? response.data : []
+
+      const allPatients = accessList
+        .map((item) => item?.patient)
+        .filter(Boolean)
+
       setPatients(allPatients)
     } catch (error) {
       console.error("Lỗi lấy danh sách bệnh nhân:", error)
@@ -40,10 +50,11 @@ const DoctorPatients = () => {
 
     // Filter by search term
     if (searchTerm) {
+      const keyword = searchTerm.toLowerCase()
       filtered = filtered.filter(
         (patient) =>
-          patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          patient.email.toLowerCase().includes(searchTerm.toLowerCase()),
+          (patient.name || "").toLowerCase().includes(keyword) ||
+          (patient.email || "").toLowerCase().includes(keyword),
       )
     }
 
@@ -60,6 +71,7 @@ const DoctorPatients = () => {
   }
 
   const formatDate = (dateString) => {
+    if (!dateString) return "-"
     return new Date(dateString).toLocaleDateString("vi-VN")
   }
 
@@ -145,7 +157,7 @@ const DoctorPatients = () => {
                           <td>
                             <div className="d-flex align-items-center">
                               <div className="avatar-circle bg-primary text-white me-3">
-                                {patient.name.charAt(0).toUpperCase()}
+                                {(patient.name || "?").charAt(0).toUpperCase()}
                               </div>
                               <div>
                                 <h6 className="mb-0">{patient.name}</h6>

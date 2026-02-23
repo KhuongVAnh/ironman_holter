@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { toast } from "react-toastify"
+import { useAuth } from "../../contexts/AuthContext"
 import ECGChart from "../patient/ECGChart"
-import { alertsApi, readingsApi, reportsApi, usersApi } from "../../services/api"
+import { alertsApi, readingsApi, reportsApi, doctorApi } from "../../services/api"
 
 const PatientDetail = () => {
+  const { user } = useAuth()
   const { patientId } = useParams()
   const [patient, setPatient] = useState(null)
   const [readings, setReadings] = useState([])
@@ -17,17 +19,26 @@ const PatientDetail = () => {
   const [reportForm, setReportForm] = useState({ summary: "" })
 
   useEffect(() => {
-    fetchPatientData()
-  }, [patientId])
+    if (user?.user_id) fetchPatientData()
+  }, [patientId, user?.user_id])
 
   const fetchPatientData = async () => {
     try {
       setLoading(true)
 
       // Fetch patient info
-      const usersResponse = await usersApi.getAll()
-      const patientData = usersResponse.data.users.find((u) => u.user_id === Number.parseInt(patientId))
+      const usersResponse = await doctorApi.getPatients(user.user_id)
+      const patientData = (usersResponse.data || [])
+        .map((item) => item.patient)
+        .find((u) => u?.user_id === Number.parseInt(patientId, 10))
       setPatient(patientData)
+
+      if (!patientData) {
+        setReadings([])
+        setAlerts([])
+        setReports([])
+        return
+      }
 
       // Fetch readings
       const readingsResponse = await readingsApi.getHistory(patientId, { limit: 20 })
