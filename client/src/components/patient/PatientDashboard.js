@@ -6,7 +6,7 @@ import { toast } from "react-toastify"
 import io from "socket.io-client"
 import ECGChart from "./ECGChart"
 import useECGStream from "./useECGStream"
-import { accessApi, alertsApi, readingsApi } from "../../services/api"
+import { accessApi, alertsApi, readingsApi, devicesApi } from "../../services/api"
 import { ACCESS_ROLE, ACCESS_STATUS, ALERT_TYPE } from "../../services/string"
 
 const PatientDashboard = () => {
@@ -93,7 +93,13 @@ const PatientDashboard = () => {
   // Tạo dữ liệu giả
   const generateFakeData = async () => {
     try {
-      const deviceId = `device_${user.user_id}`
+      const deviceResponse = await devicesApi.getByUser(user.user_id)
+      const devices = deviceResponse?.data?.devices || []
+      if (devices.length === 0) {
+        toast.error("Khong tim thay thiet bi cua ban")
+        return
+      }
+      const deviceId = devices[0].device_id
       await readingsApi.createFake(deviceId)
       toast.success("Đã tạo dữ liệu giả lập")
     } catch (error) {
