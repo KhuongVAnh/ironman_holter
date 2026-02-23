@@ -117,7 +117,7 @@ exports.addSymptom = async (req, res) => {
     let symptoms = []
     if (history.symptoms) {
       try {
-        symptoms = JSON.parse(history.symptoms)
+        symptoms = JSON.parse(history.symptoms) || history.symptoms
       } catch (error) {
         symptoms = []
       }

@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 const prisma = require("../prismaClient")
 const { toPrismaUserRole, fromPrismaUserRole } = require("../utils/enumMappings")
+const {hashPass} = require("../services/authService")
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -24,8 +25,7 @@ const register = async (req, res) => {
       return res.status(400).json({ message: "Email đã được sử dụng" })
     }
 
-    const saltRounds = 10
-    const password_hash = await bcrypt.hash(password, saltRounds)
+    const password_hash = await hashPass(password);
 
     const user = await prisma.user.create({
       data: {
