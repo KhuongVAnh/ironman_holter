@@ -66,7 +66,6 @@ async function main() {
     // 2) Device cho benh nhan
     const device = await prisma.device.create({
         data: {
-            device_id: "DEV-001",
             user_id: patient.user_id,
             serial_number: "SN-ECG-0001",
             status: DeviceStatus.DANG_HOAT_DONG,

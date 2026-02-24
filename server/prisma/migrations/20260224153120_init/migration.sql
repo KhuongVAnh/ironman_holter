@@ -15,7 +15,7 @@ CREATE TABLE `users` (
 
 -- CreateTable
 CREATE TABLE `devices` (
-    `device_id` VARCHAR(191) NOT NULL,
+    `device_id` INTEGER NOT NULL AUTO_INCREMENT,
     `user_id` INTEGER NOT NULL,
     `serial_number` VARCHAR(191) NOT NULL,
     `status` ENUM('đang hoạt động', 'ngừng hoạt động') NOT NULL DEFAULT 'đang hoạt động',
@@ -29,7 +29,7 @@ CREATE TABLE `devices` (
 -- CreateTable
 CREATE TABLE `readings` (
     `reading_id` INTEGER NOT NULL AUTO_INCREMENT,
-    `device_id` VARCHAR(191) NOT NULL,
+    `device_id` INTEGER NOT NULL,
     `timestamp` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `heart_rate` INTEGER NOT NULL,
     `ecg_signal` JSON NOT NULL,
@@ -72,6 +72,21 @@ CREATE TABLE `chat_logs` (
     `timestamp` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     PRIMARY KEY (`chat_id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `direct_messages` (
+    `message_id` INTEGER NOT NULL AUTO_INCREMENT,
+    `conversation_key` VARCHAR(64) NOT NULL,
+    `sender_id` INTEGER NOT NULL,
+    `receiver_id` INTEGER NOT NULL,
+    `message` TEXT NOT NULL,
+    `is_read` BOOLEAN NOT NULL DEFAULT false,
+    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    INDEX `direct_messages_conversation_key_created_at_idx`(`conversation_key`, `created_at`),
+    INDEX `direct_messages_receiver_id_is_read_created_at_idx`(`receiver_id`, `is_read`, `created_at`),
+    PRIMARY KEY (`message_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
@@ -125,6 +140,12 @@ ALTER TABLE `reports` ADD CONSTRAINT `reports_doctor_id_fkey` FOREIGN KEY (`doct
 
 -- AddForeignKey
 ALTER TABLE `chat_logs` ADD CONSTRAINT `chat_logs_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `direct_messages` ADD CONSTRAINT `direct_messages_sender_id_fkey` FOREIGN KEY (`sender_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `direct_messages` ADD CONSTRAINT `direct_messages_receiver_id_fkey` FOREIGN KEY (`receiver_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `access_permissions` ADD CONSTRAINT `access_permissions_patient_id_fkey` FOREIGN KEY (`patient_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;

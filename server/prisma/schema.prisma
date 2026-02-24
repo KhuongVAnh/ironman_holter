@@ -61,7 +61,7 @@ model User {
 }
 
 model Device {
-  device_id     String       @id
+  device_id     Int          @id @default(autoincrement())
   user_id       Int
   serial_number String       @unique
   status        DeviceStatus @default(DANG_HOAT_DONG)
@@ -76,7 +76,7 @@ model Device {
 
 model Reading {
   reading_id        Int      @id @default(autoincrement())
-  device_id         String
+  device_id         Int
   timestamp         DateTime @default(now())
   heart_rate        Int
   ecg_signal        Json
