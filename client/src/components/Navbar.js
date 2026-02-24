@@ -29,6 +29,7 @@ const Navbar = () => {
   // --- Fetch số lượng yêu cầu chờ ---
   useEffect(() => {
     if (!user) return
+    socket.emit("join-user-room", user.user_id)
     if (user.role !== ROLE.BAC_SI && user.role !== ROLE.GIA_DINH) return
 
     const fetchPending = async () => {
@@ -257,7 +258,7 @@ const Navbar = () => {
                 {user?.role === ROLE.BENH_NHAN && (
                   <li>
                     <NavLink className="dropdown-item" to="/patient/devices">
-                      <i className="fas fa-microchip me-2"></i> Thiết bị
+                      <i className="fas fa-microchip me-2"></i> Thiết bị của bạn
                     </NavLink>
                   </li>
                 )}

@@ -29,7 +29,8 @@ const socketService = {
         console.log(`User joined role room: role-${role}`)
       })
 
-      // Join room theo device để nhận dữ liệu ECG real-time
+      // Event chưa được sử dụng trong flow hiện tại.
+      /*
       socket.on("join-device-room", (deviceId) => {
         socket.join(`device-${deviceId}`)
         console.log(`User joined device room: device-${deviceId}`)
@@ -90,6 +91,7 @@ const socketService = {
           timestamp: new Date(),
         })
       })
+      */
 
       socket.on("disconnect", () => {
         console.log("Người dùng đã ngắt kết nối:", socket.id)
@@ -102,7 +104,8 @@ const socketService = {
     })
   },
 
-  // Bắt đầu stream dữ liệu ECG giả lập
+  // Service method chưa được sử dụng trong flow hiện tại.
+  /*
   startECGStream(socket, userId, deviceId) {
     if (socket.ecgInterval) {
       clearInterval(socket.ecgInterval)
@@ -252,6 +255,7 @@ const socketService = {
       timestamp: new Date(),
     })
   },
+  */
 }
 
 module.exports = socketService

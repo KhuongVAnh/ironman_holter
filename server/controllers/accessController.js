@@ -6,6 +6,7 @@ const {
   fromPrismaAccessRole,
   fromPrismaUserRole,
 } = require("../utils/enumMappings")
+const { emitToUsers } = require("../services/socketEmitService")
 
 exports.shareAccess = async (req, res) => {
   try {
@@ -39,12 +40,13 @@ exports.shareAccess = async (req, res) => {
       },
     })
 
-    io.emit("access-request", {
+    const requestPayload = {
       viewer_id: viewer.user_id,
       patient_id: user_id,
       role: fromPrismaAccessRole(newPermission.role),
       permission_id: newPermission.permission_id,
-    })
+    }
+    emitToUsers(io, [viewer.user_id], "access-request", requestPayload)
 
     return res.status(201).json({
       message: "Đã gửi yêu cầu chia sẻ quyền truy cập",
@@ -78,12 +80,13 @@ exports.respondAccess = async (req, res) => {
       data: { status },
     })
 
-    io.emit("access-response", {
+    const responsePayload = {
       patient_id: updatedPermission.patient_id,
       viewer_id: updatedPermission.viewer_id,
       status: updatedPermission.status,
       permission_id: updatedPermission.permission_id,
-    })
+    }
+    emitToUsers(io, [updatedPermission.patient_id, updatedPermission.viewer_id], "access-response", responsePayload)
 
     return res.json({
       message: `Đã ${action === "accept" ? "chấp nhận" : "từ chối"} quyền truy cập`,
@@ -141,10 +144,11 @@ exports.revokeAccess = async (req, res) => {
 
     await prisma.accessPermission.delete({ where: { permission_id: permissionId } })
 
-    io.emit("access-revoke", {
+    const revokePayload = {
       viewer_id: permission.viewer_id,
       patient_id: permission.patient_id,
-    })
+    }
+    emitToUsers(io, [permission.patient_id, permission.viewer_id], "access-revoke", revokePayload)
 
     return res.json({ message: "Đã thu hồi quyền truy cập" })
   } catch (error) {

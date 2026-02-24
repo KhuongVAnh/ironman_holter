@@ -414,14 +414,15 @@ const markDirectMessagesRead = async (req, res) => {
     const updatedCount = Number(updated.count || 0)
     const io = req.app.get("io")
 
-    if (io && updatedCount > 0) {
-      io.to(`user-${otherUserId}`).emit("direct-message:read", {
-        reader_id: currentUserId,
-        conversation_key: pair.conversationKey,
-        read_count: updatedCount,
-        timestamp: new Date(),
-      })
-    }
+    // Unused realtime event for now (no FE consumer): direct-message:read
+    // if (io && updatedCount > 0) {
+    //   io.to(`user-${otherUserId}`).emit("direct-message:read", {
+    //     reader_id: currentUserId,
+    //     conversation_key: pair.conversationKey,
+    //     read_count: updatedCount,
+    //     timestamp: new Date(),
+    //   })
+    // }
 
     return res.json({ updated: updatedCount })
   } catch (error) {

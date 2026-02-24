@@ -20,6 +20,7 @@ const PatientAccess = () => {
     useEffect(() => {
         if (!user) return
 
+        socket.emit("join-user-room", user.user_id)
         fetchAccessList()
 
         // --- Socket realtime ---

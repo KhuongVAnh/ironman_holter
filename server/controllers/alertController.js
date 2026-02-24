@@ -1,5 +1,19 @@
 const prisma = require("../prismaClient")
 const { fromPrismaUserRole } = require("../utils/enumMappings")
+const { AccessStatus } = require("@prisma/client")
+const { emitToUsers } = require("../services/socketEmitService")
+
+const getAlertRecipientIds = async (patientId) => {
+  const viewers = await prisma.accessPermission.findMany({
+    where: {
+      patient_id: patientId,
+      status: AccessStatus.accepted,
+    },
+    select: { viewer_id: true },
+  })
+
+  return [patientId, ...viewers.map((item) => item.viewer_id)]
+}
 
 const createAlert = async (req, res) => {
   try {
@@ -20,7 +34,8 @@ const createAlert = async (req, res) => {
     })
 
     const io = req.app.get("io")
-    io.emit("alert", {
+    const recipients = await getAlertRecipientIds(userId)
+    emitToUsers(io, recipients, "alert", {
       alert_id: alert.alert_id,
       user_id: userId,
       alert_type,

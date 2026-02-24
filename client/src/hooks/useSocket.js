@@ -32,7 +32,8 @@ const useSocket = (userId, userRole) => {
       }
     })
 
-    // Xử lý cảnh báo mới
+    // Event chưa được sử dụng trong flow hiện tại.
+    /*
     socket.on("new-alert", (alertData) => {
       toast.warning(`Cảnh báo: ${alertData.message}`, {
         autoClose: 10000,
@@ -82,12 +83,15 @@ const useSocket = (userId, userRole) => {
     socket.on("new-chat-message", (messageData) => {
       window.dispatchEvent(new CustomEvent("newChatMessage", { detail: messageData }))
     })
+    */
 
     // Xử lý tin nhắn direct chat bác sĩ - bệnh nhân
     socket.on("direct-message:new", (messageData) => {
       window.dispatchEvent(new CustomEvent("directChatMessage", { detail: messageData }))
     })
 
+    // Event chưa có consumer hoặc chưa có emitter trong flow hiện tại.
+    /*
     socket.on("direct-message:read", (payload) => {
       window.dispatchEvent(new CustomEvent("directChatRead", { detail: payload }))
     })
@@ -110,6 +114,7 @@ const useSocket = (userId, userRole) => {
         window.dispatchEvent(new CustomEvent("adminStatsUpdate", { detail: stats }))
       }
     })
+    */
 
     // Xử lý lỗi kết nối
     socket.on("connect_error", (error) => {
@@ -134,7 +139,8 @@ const useSocket = (userId, userRole) => {
     }
   }, [userId, userRole])
 
-  // Các hàm utility để sử dụng socket
+  // Utility event chưa được sử dụng trong flow hiện tại.
+  /*
   const emitEvent = (eventName, data) => {
     if (socketRef.current) {
       socketRef.current.emit(eventName, data)
@@ -170,15 +176,16 @@ const useSocket = (userId, userRole) => {
   const joinDeviceRoom = (deviceId) => {
     emitEvent("join-device-room", deviceId)
   }
+  */
 
   return {
     socket: socketRef.current,
-    emitEvent,
-    requestECGData,
-    stopECGStream,
-    sendChatMessage,
-    sendEmergencyAlert,
-    joinDeviceRoom,
+    // emitEvent,
+    // requestECGData,
+    // stopECGStream,
+    // sendChatMessage,
+    // sendEmergencyAlert,
+    // joinDeviceRoom,
   }
 }
 

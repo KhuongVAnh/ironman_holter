@@ -61,11 +61,13 @@ const getUserReports = async (req, res) => {
 const getDoctorReports = async (req, res) => {
   try {
     const doctor_id = Number.parseInt(req.user.user_id, 10)
+    const isAdmin = req.user.role === "admin"
 
     const reports = await prisma.report.findMany({
-      where: { doctor_id },
+      where: isAdmin ? {} : { doctor_id },
       include: {
         patient: { select: { name: true, email: true } },
+        doctor: { select: { name: true, email: true } },
       },
       orderBy: { created_at: "desc" },
     })

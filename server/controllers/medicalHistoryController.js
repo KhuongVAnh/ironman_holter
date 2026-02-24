@@ -64,8 +64,9 @@ exports.createHistory = async (req, res) => {
       },
     })
 
-    const io = req.app.get("io")
-    io.emit("new-history", { user_id, doctor_id })
+    // Unused realtime event for now (no FE listener): new-history
+    // const io = req.app.get("io")
+    // io.emit("new-history", { user_id, doctor_id })
 
     return res.status(201).json({
       message: "Thêm bệnh sử thành công",
@@ -93,8 +94,9 @@ exports.updateHistory = async (req, res) => {
       data: { doctor_diagnosis, medication, condition, notes },
     })
 
-    const io = req.app.get("io")
-    io.emit("update-history", { history_id: historyId })
+    // Unused realtime event for now (no FE listener): update-history
+    // const io = req.app.get("io")
+    // io.emit("update-history", { history_id: historyId })
 
     return res.json({ message: "Cập nhật bệnh sử thành công", data: updatedHistory })
   } catch (error) {
@@ -152,8 +154,9 @@ exports.updateAIResult = async (req, res) => {
       data: { ai_diagnosis },
     })
 
-    const io = req.app.get("io")
-    io.emit("ai-diagnosis", { history_id: historyId, ai_diagnosis })
+    // Unused realtime event for now (no FE listener): ai-diagnosis
+    // const io = req.app.get("io")
+    // io.emit("ai-diagnosis", { history_id: historyId, ai_diagnosis })
 
     return res.json({ message: "Đã cập nhật chẩn đoán AI", data: updatedHistory })
   } catch (error) {

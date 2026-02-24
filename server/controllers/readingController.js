@@ -1,4 +1,6 @@
 const prisma = require("../prismaClient")
+const { AccessStatus } = require("@prisma/client")
+const { emitToUsers } = require("../services/socketEmitService")
 
 const generateFakeECGData = (duration = 10, sampleRate = 250, heartRate = 75) => {
   const data = []
@@ -38,11 +40,31 @@ function mockAIClassifier(ecgSignal) {
   return results[Math.floor(Math.random() * results.length)]
 }
 
+const toDeviceId = (value) => {
+  const parsed = Number.parseInt(value, 10)
+  return Number.isInteger(parsed) ? parsed : null
+}
+
+const getPatientRecipientIds = async (patientId) => {
+  const viewers = await prisma.accessPermission.findMany({
+    where: {
+      patient_id: patientId,
+      status: AccessStatus.accepted,
+    },
+    select: { viewer_id: true },
+  })
+
+  return [patientId, ...viewers.map((item) => item.viewer_id)]
+}
+
 const createFakeReading = async (req, res) => {
   try {
-    const { device_id } = req.body
+    const deviceId = toDeviceId(req.body?.device_id)
+    if (deviceId === null) {
+      return res.status(400).json({ message: "device_id khong hop le" })
+    }
 
-    const device = await prisma.device.findUnique({ where: { device_id } })
+    const device = await prisma.device.findUnique({ where: { device_id: deviceId } })
     if (!device) {
       return res.status(404).json({ message: "Không tìm thấy thiết bị" })
     }
@@ -55,21 +77,24 @@ const createFakeReading = async (req, res) => {
 
     const reading = await prisma.reading.create({
       data: {
-        device_id: device_id || "device_1",
+        device_id: deviceId,
         heart_rate,
         ecg_signal: JSON.stringify(ecg_signal),
-        abnormal_detected: false,
+        abnormal_detected,
         ai_result: aiResult,
         timestamp: new Date(),
       },
     })
 
     const io = req.app.get("io")
-    io.emit("fake-reading", {
-      device_id: device_id || "device_1",
+    const recipients = await getPatientRecipientIds(device.user_id)
+
+    emitToUsers(io, recipients, "fake-reading", {
+      device_id: deviceId,
+      user_id: device.user_id,
       heart_rate,
       ecg_signal,
-      abnormal_detected: false,
+      abnormal_detected,
       ai_result: aiResult,
       timestamp: reading.timestamp,
     })
@@ -86,7 +111,7 @@ const createFakeReading = async (req, res) => {
         },
       })
 
-      io.emit("alert", {
+      emitToUsers(io, recipients, "alert", {
         user_id: device.user_id,
         alert_type: alertType,
         message,
@@ -106,11 +131,15 @@ const createFakeReading = async (req, res) => {
 
 const getDeviceReadings = async (req, res) => {
   try {
-    const { device_id } = req.params
+    const deviceId = toDeviceId(req.params.device_id)
     const { limit = 50, offset = 0 } = req.query
 
+    if (deviceId === null) {
+      return res.status(400).json({ message: "device_id khong hop le" })
+    }
+
     const readings = await prisma.reading.findMany({
-      where: { device_id },
+      where: { device_id: deviceId },
       orderBy: { timestamp: "desc" },
       take: Number.parseInt(limit, 10),
       skip: Number.parseInt(offset, 10),
@@ -162,21 +191,34 @@ function fakeECGSignal(length = 100) {
 
 const receiveTelemetry = async (req, res) => {
   try {
-    const { device_id, heart_rate, ecg_signal } = req.body
+    const { heart_rate, ecg_signal } = req.body
+    const serialNumber = String(req.body?.serial_number ?? req.body?.serial ?? "").trim()
     const io = req.app.get("io")
 
-    const ecg = ecg_signal || fakeECGSignal()
+    if (!serialNumber) {
+      return res.status(400).json({ message: "serial_number la bat buoc" })
+    }
 
+    const device = await prisma.device.findUnique({
+      where: { serial_number: serialNumber },
+      select: { device_id: true, user_id: true, serial_number: true },
+    })
+
+    if (!device) {
+      return res.status(404).json({ message: "Khong tim thay thiet bi" })
+    }
+
+    const ecg = ecg_signal || fakeECGSignal()
     const aiResult = mockAIClassifier(ecg)
     const abnormal_detected = aiResult !== "Normal"
 
     const reading = await prisma.reading.create({
       data: {
-        device_id: device_id || "device_1",
+        device_id: device.device_id,
         heart_rate: heart_rate || Math.floor(Math.random() * 60) + 60,
         ecg_signal: JSON.stringify(ecg),
-        abnormal_detected: false,
-        ai_result: "Bình thường",
+        abnormal_detected,
+        ai_result: aiResult,
         timestamp: new Date(),
       },
     })
@@ -207,9 +249,13 @@ const receiveTelemetry = async (req, res) => {
       if (mergedECG.length > 2500) mergedECG = mergedECG.slice(-2500)
     }
 
-    io.emit("reading-update", {
+    const recipients = await getPatientRecipientIds(device.user_id)
+
+    emitToUsers(io, recipients, "reading-update", {
       reading_id: reading.reading_id,
       device_id: reading.device_id,
+      user_id: device.user_id,
+      serial_number: device.serial_number,
       heart_rate: reading.heart_rate,
       ecg_signal: mergedECG,
       ai_result: reading.ai_result,
@@ -218,11 +264,7 @@ const receiveTelemetry = async (req, res) => {
 
     if (abnormal_detected) {
       const alertType = aiResult
-      const message = `Phát hiện dấu hiệu của ${alertType}: Nhịp tim ${heart_rate} bpm`
-
-      const device = await prisma.device.findUnique({
-        where: { device_id: reading.device_id },
-      })
+      const message = `Phat hien dau hieu cua ${alertType}: Nhip tim ${reading.heart_rate} bpm`
 
       await prisma.alert.create({
         data: {
@@ -232,7 +274,7 @@ const receiveTelemetry = async (req, res) => {
         },
       })
 
-      io.emit("alert", {
+      emitToUsers(io, recipients, "alert", {
         user_id: device.user_id,
         alert_type: alertType,
         message,
