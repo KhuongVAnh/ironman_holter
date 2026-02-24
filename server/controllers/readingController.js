@@ -1,7 +1,9 @@
+// Controller xu ly telemetry, du lieu ECG va lich su chi so tim mach.
 const prisma = require("../prismaClient")
 const { AccessStatus } = require("@prisma/client")
 const { emitToUsers } = require("../services/socketEmitService")
 
+// Ham xu ly tao du lieu ECG gia lap theo nhip tim va tan so lay mau.
 const generateFakeECGData = (duration = 10, sampleRate = 250, heartRate = 75) => {
   const data = []
   const samples = sampleRate * duration
@@ -35,16 +37,19 @@ const generateFakeECGData = (duration = 10, sampleRate = 250, heartRate = 75) =>
   return data
 }
 
+// Ham xu ly mo phong phan loai AI tren tin hieu ECG.
 function mockAIClassifier(ecgSignal) {
   const results = ["Normal", "AFIB", "Ngoại tâm thu", "Nhịp nhanh", "Nhịp chậm"]
   return results[Math.floor(Math.random() * results.length)]
 }
 
+// Ham xu ly chuan hoa device_id ve so nguyen hop le.
 const toDeviceId = (value) => {
   const parsed = Number.parseInt(value, 10)
   return Number.isInteger(parsed) ? parsed : null
 }
 
+// Ham xu ly tim cac tai khoan can nhan du lieu real-time cua benh nhan.
 const getPatientRecipientIds = async (patientId) => {
   const viewers = await prisma.accessPermission.findMany({
     where: {
@@ -57,6 +62,7 @@ const getPatientRecipientIds = async (patientId) => {
   return [patientId, ...viewers.map((item) => item.viewer_id)]
 }
 
+// Ham xu ly tao du lieu ECG gia lap de test.
 const createFakeReading = async (req, res) => {
   try {
     const deviceId = toDeviceId(req.body?.device_id)
@@ -129,6 +135,7 @@ const createFakeReading = async (req, res) => {
   }
 }
 
+// Ham xu ly lay du lieu doc theo thiet bi.
 const getDeviceReadings = async (req, res) => {
   try {
     const deviceId = toDeviceId(req.params.device_id)
@@ -152,6 +159,7 @@ const getDeviceReadings = async (req, res) => {
   }
 }
 
+// Ham xu ly lay lich su du lieu tim mach theo nguoi dung.
 const getUserReadingHistory = async (req, res) => {
   try {
     const { user_id } = req.params
@@ -179,6 +187,7 @@ const getUserReadingHistory = async (req, res) => {
   }
 }
 
+// Ham xu ly tao mang ECG gia lap khi thiet bi khong gui du lieu.
 function fakeECGSignal(length = 100) {
   const arr = []
   for (let i = 0; i < length; i++) {
@@ -189,6 +198,7 @@ function fakeECGSignal(length = 100) {
   return arr
 }
 
+// Ham xu ly nhan telemetry tu thiet bi qua serial.
 const receiveTelemetry = async (req, res) => {
   try {
     const { heart_rate, ecg_signal } = req.body

@@ -1,5 +1,7 @@
+// Controller xu ly danh sach benh nhan ma bac si duoc cap quyen theo doi.
 const prisma = require("../prismaClient")
 
+// Ham xu ly lay danh sach benh nhan duoc phep theo doi.
 exports.getAccessiblePatients = async (req, res) => {
   try {
     const viewer_id = Number.parseInt(req.params.viewer_id, 10)
@@ -26,6 +28,7 @@ exports.getAccessiblePatients = async (req, res) => {
   }
 }
 
+// Ham xu ly lay benh su cua benh nhan duoc cap quyen.
 exports.getPatientHistory = async (req, res) => {
   try {
     const patient_id = Number.parseInt(req.params.patient_id, 10)
@@ -45,6 +48,7 @@ exports.getPatientHistory = async (req, res) => {
   }
 }
 
+// Ham xu ly them chan doan moi cho benh su benh nhan.
 exports.addDiagnosis = async (req, res) => {
   try {
     const { patient_id, doctor_id, doctor_diagnosis, medication, condition, notes } = req.body
@@ -69,6 +73,7 @@ exports.addDiagnosis = async (req, res) => {
   }
 }
 
+// Ham xu ly an ban ghi chan doan trong benh su.
 exports.deleteDiagnosis = async (req, res) => {
   try {
     const historyId = Number.parseInt(req.params.id, 10)
@@ -85,6 +90,7 @@ exports.deleteDiagnosis = async (req, res) => {
   }
 }
 
+// Ham xu ly cap nhat noi dung chan doan cua bac si.
 exports.updateDiagnosis = async (req, res) => {
   try {
     const historyId = Number.parseInt(req.params.id, 10)

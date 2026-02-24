@@ -1,9 +1,11 @@
+// Controller xu ly dang ky, dang nhap va xac thuc thong tin nguoi dung.
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 const prisma = require("../prismaClient")
 const { toPrismaUserRole, fromPrismaUserRole } = require("../utils/enumMappings")
 const {hashPass} = require("../services/authService")
 
+// Ham xu ly tao JWT token cho nguoi dung sau khi xac thuc.
 const generateToken = (user) => {
   return jwt.sign(
     {
@@ -16,6 +18,7 @@ const generateToken = (user) => {
   )
 }
 
+// Ham xu ly dang ky tai khoan moi.
 const register = async (req, res) => {
   try {
     const { name, email, password, role = "bệnh nhân" } = req.body
@@ -54,6 +57,7 @@ const register = async (req, res) => {
   }
 }
 
+// Ham xu ly dang nhap va cap token xac thuc.
 const login = async (req, res) => {
   try {
     const { email, password } = req.body
@@ -90,6 +94,7 @@ const login = async (req, res) => {
   }
 }
 
+// Ham xu ly lay thong tin tai khoan dang dang nhap.
 const getMe = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({

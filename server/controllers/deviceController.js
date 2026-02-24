@@ -1,3 +1,4 @@
+// Controller xu ly dang ky va quan ly trang thai thiet bi theo doi.
 const prisma = require("../prismaClient")
 const {
   toPrismaDeviceStatus,
@@ -5,6 +6,7 @@ const {
   fromPrismaUserRole,
 } = require("../utils/enumMappings")
 
+// Ham xu ly dang ky thiet bi moi cho benh nhan.
 const registerDevice = async (req, res) => {
   try {
     const { serial_number, user_id } = req.body
@@ -68,6 +70,7 @@ const registerDevice = async (req, res) => {
   }
 }
 
+// Ham xu ly lay danh sach thiet bi cua nguoi dung.
 const getUserDevices = async (req, res) => {
   try {
     const { user_id } = req.params
@@ -105,6 +108,7 @@ const getUserDevices = async (req, res) => {
   }
 }
 
+// Ham xu ly cap nhat trang thai hoat dong cua thiet bi.
 const updateDeviceStatus = async (req, res) => {
   try {
     const id = Number.parseInt(req.params.id, 10)
@@ -137,6 +141,7 @@ const updateDeviceStatus = async (req, res) => {
   }
 }
 
+// Ham xu ly lay danh sach tat ca thiet bi cho quan tri.
 const getAllDevices = async (req, res) => {
   try {
     const devices = await prisma.device.findMany({

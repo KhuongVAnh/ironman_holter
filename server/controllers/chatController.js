@@ -1,22 +1,27 @@
-﻿const axios = require("axios")
+// Controller xu ly chat AI va chat truc tiep giua benh nhan voi bac si.
+const axios = require("axios")
 const { AccessRole, AccessStatus, UserRole } = require("@prisma/client")
 const prisma = require("../prismaClient")
 
 const MAX_DIRECT_MESSAGE_LENGTH = 2000
 
+// Ham xu ly chuyen gia tri id ve so nguyen hop le.
 const parseId = (value) => {
   const parsed = Number.parseInt(value, 10)
   return Number.isNaN(parsed) ? null : parsed
 }
 
+// Ham xu ly tao khoa hoi thoai duy nhat cho cap nguoi dung.
 const getConversationKey = (a, b) => {
   const left = Number(a)
   const right = Number(b)
   return left < right ? `${left}_${right}` : `${right}_${left}`
 }
 
+// Ham xu ly kiem tra role co duoc phep chat truc tiep hay khong.
 const isDirectChatRole = (role) => role === UserRole.BENH_NHAN || role === UserRole.BAC_SI
 
+// Ham xu ly lay tin nhan moi nhat cua mot cuoc chat truc tiep.
 const findLastDirectMessage = async (conversationKey) => {
   return prisma.directMessage.findFirst({
     where: { conversation_key: conversationKey },
@@ -24,6 +29,7 @@ const findLastDirectMessage = async (conversationKey) => {
   })
 }
 
+// Ham xu ly dem tin nhan chua doc cho nguoi nhan.
 const countUnreadDirectMessages = async (senderId, receiverId) => {
   return prisma.directMessage.count({
     where: {
@@ -34,6 +40,7 @@ const countUnreadDirectMessages = async (senderId, receiverId) => {
   })
 }
 
+// Ham xu ly kiem tra va xac dinh cap chat bac si - benh nhan hop le.
 const resolveDirectPair = async (currentUserId, otherUserId) => {
   if (!currentUserId || !otherUserId) {
     const error = new Error("INVALID_USER")
@@ -117,6 +124,7 @@ const resolveDirectPair = async (currentUserId, otherUserId) => {
   }
 }
 
+// Ham xu ly map ma loi chat truc tiep thanh response HTTP phu hop.
 const mapDirectError = (error, res) => {
   if (error.message === "INVALID_USER") {
     return res.status(400).json({ message: "Thong tin nguoi dung khong hop le" })
@@ -141,6 +149,7 @@ const mapDirectError = (error, res) => {
   return res.status(statusCode).json({ message: "Loi server noi bo" })
 }
 
+// Ham xu ly hoi dap voi tro ly AI.
 const chatWithGemini = async (req, res) => {
   try {
     const { message } = req.body
@@ -209,6 +218,7 @@ const chatWithGemini = async (req, res) => {
   }
 }
 
+// Ham xu ly lay lich su hoi dap voi AI.
 const getChatHistory = async (req, res) => {
   try {
     const user_id = req.user.user_id
@@ -225,6 +235,7 @@ const getChatHistory = async (req, res) => {
   }
 }
 
+// Ham xu ly lay danh sach lien he chat truc tiep.
 const getDirectChatContacts = async (req, res) => {
   try {
     const userId = parseId(req.user.user_id)
@@ -320,6 +331,7 @@ const getDirectChatContacts = async (req, res) => {
   }
 }
 
+// Ham xu ly lay lich su tin nhan truc tiep giua hai nguoi dung.
 const getDirectMessages = async (req, res) => {
   try {
     const currentUserId = parseId(req.user.user_id)
@@ -352,6 +364,7 @@ const getDirectMessages = async (req, res) => {
   }
 }
 
+// Ham xu ly gui tin nhan truc tiep.
 const sendDirectMessage = async (req, res) => {
   try {
     const senderId = parseId(req.user.user_id)
@@ -394,6 +407,7 @@ const sendDirectMessage = async (req, res) => {
   }
 }
 
+// Ham xu ly danh dau tin nhan truc tiep da doc.
 const markDirectMessagesRead = async (req, res) => {
   try {
     const currentUserId = parseId(req.user.user_id)

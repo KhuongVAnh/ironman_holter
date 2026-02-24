@@ -1,8 +1,10 @@
+// Controller xu ly tao, truy van va cap nhat trang thai canh bao tim mach.
 const prisma = require("../prismaClient")
 const { fromPrismaUserRole } = require("../utils/enumMappings")
 const { AccessStatus } = require("@prisma/client")
 const { emitToUsers } = require("../services/socketEmitService")
 
+// Ham xu ly tim cac tai khoan can nhan thong bao canh bao.
 const getAlertRecipientIds = async (patientId) => {
   const viewers = await prisma.accessPermission.findMany({
     where: {
@@ -15,6 +17,7 @@ const getAlertRecipientIds = async (patientId) => {
   return [patientId, ...viewers.map((item) => item.viewer_id)]
 }
 
+// Ham xu ly tao canh bao moi cho benh nhan.
 const createAlert = async (req, res) => {
   try {
     const { user_id, alert_type, message } = req.body
@@ -53,6 +56,7 @@ const createAlert = async (req, res) => {
   }
 }
 
+// Ham xu ly lay danh sach canh bao theo nguoi dung.
 const getUserAlerts = async (req, res) => {
   try {
     const { user_id } = req.params
@@ -76,6 +80,7 @@ const getUserAlerts = async (req, res) => {
   }
 }
 
+// Ham xu ly danh dau canh bao da duoc xu ly.
 const resolveAlert = async (req, res) => {
   try {
     const { id } = req.params
@@ -101,6 +106,7 @@ const resolveAlert = async (req, res) => {
   }
 }
 
+// Ham xu ly lay toan bo canh bao cho quan tri.
 const getAllAlerts = async (req, res) => {
   try {
     const { resolved } = req.query

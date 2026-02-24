@@ -1,5 +1,7 @@
+// Controller xu ly tao va truy van bao cao y khoa.
 const prisma = require("../prismaClient")
 
+// Ham xu ly tao bao cao y khoa cho benh nhan.
 const createReport = async (req, res) => {
   try {
     const { user_id } = req.params
@@ -38,6 +40,7 @@ const createReport = async (req, res) => {
   }
 }
 
+// Ham xu ly lay danh sach bao cao cua benh nhan.
 const getUserReports = async (req, res) => {
   try {
     const { user_id } = req.params
@@ -58,6 +61,7 @@ const getUserReports = async (req, res) => {
   }
 }
 
+// Ham xu ly lay danh sach bao cao do bac si tao.
 const getDoctorReports = async (req, res) => {
   try {
     const doctor_id = Number.parseInt(req.user.user_id, 10)

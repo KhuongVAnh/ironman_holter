@@ -1,8 +1,10 @@
+// Controller xu ly nghiep vu benh su y te cua benh nhan va bac si.
 "use strict"
 
 const prisma = require("../prismaClient")
 const { fromPrismaUserRole } = require("../utils/enumMappings")
 
+// Ham xu ly lay danh sach benh su theo quyen truy cap.
 exports.getHistories = async (req, res) => {
   try {
     const { user_id } = req.params
@@ -48,6 +50,7 @@ exports.getHistories = async (req, res) => {
   }
 }
 
+// Ham xu ly tao ban ghi benh su moi.
 exports.createHistory = async (req, res) => {
   try {
     const { user_id, doctor_diagnosis, medication, condition, notes } = req.body
@@ -78,6 +81,7 @@ exports.createHistory = async (req, res) => {
   }
 }
 
+// Ham xu ly cap nhat ban ghi benh su.
 exports.updateHistory = async (req, res) => {
   try {
     const { id } = req.params
@@ -105,6 +109,7 @@ exports.updateHistory = async (req, res) => {
   }
 }
 
+// Ham xu ly bo sung trieu chung vao benh su.
 exports.addSymptom = async (req, res) => {
   try {
     const { id } = req.params
@@ -138,6 +143,7 @@ exports.addSymptom = async (req, res) => {
   }
 }
 
+// Ham xu ly cap nhat ket qua chan doan AI.
 exports.updateAIResult = async (req, res) => {
   try {
     const { id } = req.params
@@ -165,6 +171,7 @@ exports.updateAIResult = async (req, res) => {
   }
 }
 
+// Ham xu ly an ban ghi benh su da xoa.
 exports.deleteHistory = async (req, res) => {
   try {
     const { id } = req.params
@@ -185,7 +192,7 @@ exports.deleteHistory = async (req, res) => {
       data: { deleted_at: new Date() },
     })
 
-    return res.json({ message: "Đã xóa (ẩn) bệnh sử" })
+    return res.json({ message: "Da xoa (an) benh su" })
   } catch (error) {
     console.error("Error deleting history:", error)
     return res.status(500).json({ error: "Lỗi khi xóa bệnh sử" })

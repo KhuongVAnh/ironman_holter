@@ -1,3 +1,4 @@
+// Controller xu ly chia se va quan ly quyen truy cap du lieu benh nhan.
 "use strict"
 
 const prisma = require("../prismaClient")
@@ -8,6 +9,7 @@ const {
 } = require("../utils/enumMappings")
 const { emitToUsers } = require("../services/socketEmitService")
 
+// Ham xu ly gui yeu cau chia se du lieu benh nhan.
 exports.shareAccess = async (req, res) => {
   try {
     const { viewer_email, role } = req.body
@@ -61,6 +63,7 @@ exports.shareAccess = async (req, res) => {
   }
 }
 
+// Ham xu ly phe duyet hoac tu choi yeu cau truy cap.
 exports.respondAccess = async (req, res) => {
   try {
     const { id } = req.params
@@ -101,6 +104,7 @@ exports.respondAccess = async (req, res) => {
   }
 }
 
+// Ham xu ly lay danh sach quyen truy cap cua benh nhan.
 exports.listAccess = async (req, res) => {
   try {
     const { patient_id } = req.params
@@ -131,6 +135,7 @@ exports.listAccess = async (req, res) => {
   }
 }
 
+// Ham xu ly thu hoi quyen truy cap da cap.
 exports.revokeAccess = async (req, res) => {
   try {
     const { id } = req.params
@@ -157,6 +162,7 @@ exports.revokeAccess = async (req, res) => {
   }
 }
 
+// Ham xu ly lay cac yeu cau truy cap dang cho.
 exports.getPendingRequests = async (req, res) => {
   try {
     const user_id = Number.parseInt(req.user.user_id, 10)

@@ -1,7 +1,9 @@
+// Controller xu ly quan ly tai khoan nguoi dung va thong tin ho so.
 const bcrypt = require("bcrypt")
 const prisma = require("../prismaClient")
 const { toPrismaUserRole, fromPrismaUserRole } = require("../utils/enumMappings")
 
+// Ham xu ly lay danh sach nguoi dung trong he thong.
 const getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -29,6 +31,7 @@ const getAllUsers = async (req, res) => {
   }
 }
 
+// Ham xu ly cap nhat thong tin nguoi dung.
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params
@@ -80,6 +83,7 @@ const updateUser = async (req, res) => {
   }
 }
 
+// Ham xu ly xoa tai khoan nguoi dung.
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params
@@ -103,6 +107,7 @@ const deleteUser = async (req, res) => {
   }
 }
 
+// Ham xu ly doi mat khau nguoi dung.
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body
