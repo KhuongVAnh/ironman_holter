@@ -7,42 +7,64 @@ const {
 
 const registerDevice = async (req, res) => {
   try {
-    const { device_id, serial_number, user_id } = req.body
-    const userId = Number.parseInt(user_id, 10)
+    const { serial_number, user_id } = req.body
+    const requesterId = Number.parseInt(req.user?.user_id, 10)
+    const requesterRole = req.user?.role
+    const isAdmin = requesterRole === "admin"
 
-    const user = await prisma.user.findUnique({ where: { user_id: userId } })
+    const normalizedSerial = typeof serial_number === "string" ? serial_number.trim() : ""
+
+    if (!normalizedSerial) {
+      return res.status(400).json({ message: "serial_number la bat buoc" })
+    }
+
+    if (!Number.isInteger(requesterId)) {
+      return res.status(401).json({ message: "Nguoi dung chua duoc xac thuc" })
+    }
+
+    const requestedUserId = Number.parseInt(user_id, 10)
+    const targetUserId = isAdmin ? requestedUserId : requesterId
+
+    if (!Number.isInteger(targetUserId)) {
+      return res.status(400).json({ message: "user_id khong hop le" })
+    }
+
+    if (!isAdmin && Number.isInteger(requestedUserId) && requestedUserId !== requesterId) {
+      return res.status(403).json({ message: "Ban chi duoc dang ky thiet bi cho tai khoan cua minh" })
+    }
+
+    const user = await prisma.user.findUnique({ where: { user_id: targetUserId } })
     if (!user) {
-      return res.status(404).json({ message: "Không tìm thấy người dùng" })
+      return res.status(404).json({ message: "Khong tim thay nguoi dung" })
     }
 
     const existingDevice = await prisma.device.findFirst({
       where: {
-        OR: [{ device_id }, { serial_number }],
+        serial_number: normalizedSerial,
       },
     })
 
     if (existingDevice) {
-      return res.status(400).json({ message: "Thiết bị đã được đăng ký" })
+      return res.status(400).json({ message: "Thiet bi da duoc dang ky" })
     }
 
     const device = await prisma.device.create({
       data: {
-        device_id,
-        serial_number,
-        user_id: userId,
+        serial_number: normalizedSerial,
+        user_id: targetUserId,
       },
     })
 
     res.status(201).json({
-      message: "Đăng ký thiết bị thành công",
+      message: "Dang ky thiet bi thanh cong",
       device: {
         ...device,
         status: fromPrismaDeviceStatus(device.status),
       },
     })
   } catch (error) {
-    console.error("Lỗi đăng ký thiết bị:", error)
-    res.status(500).json({ message: "Lỗi server nội bộ" })
+    console.error("Loi dang ky thiet bi:", error)
+    res.status(500).json({ message: "Loi server noi bo" })
   }
 }
 
@@ -50,6 +72,16 @@ const getUserDevices = async (req, res) => {
   try {
     const { user_id } = req.params
     const userId = Number.parseInt(user_id, 10)
+    const requesterId = Number.parseInt(req.user?.user_id, 10)
+    const isAdmin = req.user?.role === "admin"
+
+    if (!Number.isInteger(userId)) {
+      return res.status(400).json({ message: "user_id khong hop le" })
+    }
+
+    if (!isAdmin && requesterId !== userId) {
+      return res.status(403).json({ message: "Khong co quyen truy cap danh sach thiet bi nay" })
+    }
 
     const devices = await prisma.device.findMany({
       where: { user_id: userId },
@@ -68,19 +100,23 @@ const getUserDevices = async (req, res) => {
 
     res.json({ devices: mappedDevices })
   } catch (error) {
-    console.error("Lỗi lấy danh sách thiết bị:", error)
-    res.status(500).json({ message: "Lỗi server nội bộ" })
+    console.error("Loi lay danh sach thiet bi:", error)
+    res.status(500).json({ message: "Loi server noi bo" })
   }
 }
 
 const updateDeviceStatus = async (req, res) => {
   try {
-    const { id } = req.params
+    const id = Number.parseInt(req.params.id, 10)
     const { status } = req.body
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ message: "device_id khong hop le" })
+    }
 
     const device = await prisma.device.findUnique({ where: { device_id: id } })
     if (!device) {
-      return res.status(404).json({ message: "Không tìm thấy thiết bị" })
+      return res.status(404).json({ message: "Khong tim thay thiet bi" })
     }
 
     const updatedDevice = await prisma.device.update({
@@ -89,15 +125,15 @@ const updateDeviceStatus = async (req, res) => {
     })
 
     res.json({
-      message: "Cập nhật trạng thái thiết bị thành công",
+      message: "Cap nhat trang thai thiet bi thanh cong",
       device: {
         ...updatedDevice,
         status: fromPrismaDeviceStatus(updatedDevice.status),
       },
     })
   } catch (error) {
-    console.error("Lỗi cập nhật thiết bị:", error)
-    res.status(500).json({ message: "Lỗi server nội bộ" })
+    console.error("Loi cap nhat thiet bi:", error)
+    res.status(500).json({ message: "Loi server noi bo" })
   }
 }
 
@@ -125,8 +161,8 @@ const getAllDevices = async (req, res) => {
 
     res.json({ devices: mappedDevices })
   } catch (error) {
-    console.error("Lỗi lấy tất cả thiết bị:", error)
-    res.status(500).json({ message: "Lỗi server nội bộ" })
+    console.error("Loi lay tat ca thiet bi:", error)
+    res.status(500).json({ message: "Loi server noi bo" })
   }
 }
 
