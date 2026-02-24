@@ -33,6 +33,7 @@ import AdminDashboard from "./components/admin/AdminDashboard"
 import AdminUsers from "./components/admin/AdminUsers"
 import AdminDevices from "./components/admin/AdminDevices"
 import AdminLogs from "./components/admin/AdminLogs"
+import NotificationsPage from "./components/notifications/NotificationsPage"
 import Chatbot from "./components/shared/Chatbot"
 import useSocket from "./hooks/useSocket"
 import { ROLE, getDashboardPath } from "./services/string"
@@ -73,6 +74,14 @@ const AppContent = () => {
         <Route path="/login" element={!user ? <Login /> : <Navigate to={defaultRoute} />} />
         <Route path="/register" element={!user ? <Register /> : <Navigate to={defaultRoute} />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute allowedRoles={[ROLE.BENH_NHAN, ROLE.BAC_SI, ROLE.GIA_DINH, ROLE.ADMIN]}>
+              <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Patient Routes */}
         <Route

@@ -53,6 +53,14 @@ export const alertsApi = {
   resolve: (alertId) => api.put(`/alerts/${alertId}/resolve`),
 }
 
+// ========== Notifications ==========
+export const notificationsApi = {
+  list: (params) => api.get("/notifications", { params }),
+  getUnreadCount: () => api.get("/notifications/unread-count"),
+  markRead: (notificationId) => api.put(`/notifications/${notificationId}/read`),
+  markAllRead: () => api.put("/notifications/read-all"),
+}
+
 // ========== Access ==========
 export const accessApi = {
   list: (patientId) => api.get(`/access/list/${patientId}`),

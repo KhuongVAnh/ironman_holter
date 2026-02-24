@@ -6,6 +6,7 @@ import { toast } from "react-toastify"
 import io from "socket.io-client"
 import { accessApi } from "../services/api"
 import { ROLE, getDashboardPath } from "../services/string"
+import NotificationBell from "./notifications/NotificationBell"
 import "../styles/customNav.css"
 
 const socket = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
@@ -237,6 +238,9 @@ const Navbar = () => {
 
           {/* User dropdown */}
           <ul className="navbar-nav">
+            <li className="nav-item d-flex align-items-center me-2">
+              <NotificationBell />
+            </li>
             <li className="nav-item dropdown">
               <a
                 className={`nav-link dropdown-toggle d-flex align-items-center custom-link ${isProfileActive ? "active" : ""}`}

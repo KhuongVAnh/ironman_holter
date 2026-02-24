@@ -1,7 +1,8 @@
 // Controller xu ly telemetry, du lieu ECG va lich su chi so tim mach.
 const prisma = require("../prismaClient")
-const { AccessStatus } = require("@prisma/client")
+const { AccessStatus, NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("../services/socketEmitService")
+const { createNotification } = require("../services/notificationService")
 
 // Ham xu ly tao du lieu ECG gia lap theo nhip tim va tan so lay mau.
 const generateFakeECGData = (duration = 10, sampleRate = 250, heartRate = 75) => {
@@ -109,7 +110,7 @@ const createFakeReading = async (req, res) => {
       const alertType = aiResult
       const message = `Phát hiện dấu hiệu của ${alertType}: Nhịp tim ${heart_rate} bpm`
 
-      await prisma.alert.create({
+      const createdAlert = await prisma.alert.create({
         data: {
           user_id: device.user_id,
           alert_type: alertType,
@@ -122,6 +123,22 @@ const createFakeReading = async (req, res) => {
         alert_type: alertType,
         message,
         timestamp: new Date(),
+      })
+
+      await createNotification({
+        type: NotificationType.ALERT,
+        title: "Canh bao suc khoe",
+        message,
+        actorId: req.user?.user_id,
+        entityType: "alert",
+        entityId: createdAlert.alert_id,
+        payload: {
+          user_id: device.user_id,
+          alert_type: alertType,
+          reading_id: createdAlert.reading_id || null,
+        },
+        recipientUserIds: recipients,
+        io,
       })
     }
 
@@ -276,7 +293,7 @@ const receiveTelemetry = async (req, res) => {
       const alertType = aiResult
       const message = `Phat hien dau hieu cua ${alertType}: Nhip tim ${reading.heart_rate} bpm`
 
-      await prisma.alert.create({
+      const createdAlert = await prisma.alert.create({
         data: {
           user_id: device.user_id,
           alert_type: alertType,
@@ -289,6 +306,23 @@ const receiveTelemetry = async (req, res) => {
         alert_type: alertType,
         message,
         timestamp: new Date(),
+      })
+
+      await createNotification({
+        type: NotificationType.ALERT,
+        title: "Canh bao suc khoe",
+        message,
+        actorId: null,
+        entityType: "alert",
+        entityId: createdAlert.alert_id,
+        payload: {
+          user_id: device.user_id,
+          alert_type: alertType,
+          serial_number: device.serial_number,
+          reading_id: reading.reading_id,
+        },
+        recipientUserIds: recipients,
+        io,
       })
     }
 

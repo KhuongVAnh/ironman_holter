@@ -86,9 +86,18 @@ const useSocket = (userId, userRole) => {
     */
 
     // Xử lý tin nhắn direct chat bác sĩ - bệnh nhân
-    socket.on("direct-message:new", (messageData) => {
+    const handleDirectMessageNew = (messageData) => {
       window.dispatchEvent(new CustomEvent("directChatMessage", { detail: messageData }))
-    })
+    }
+    socket.on("direct-message:new", handleDirectMessageNew)
+
+    const handleNotificationNew = (notification) => {
+      const title = notification?.title ? `${notification.title}: ` : ""
+      const body = notification?.message || "Bạn có thông báo mới"
+      toast.info(`${title}${body}`, { autoClose: 4000 })
+      window.dispatchEvent(new CustomEvent("appNotificationNew", { detail: notification }))
+    }
+    socket.on("notification:new", handleNotificationNew)
 
     // Event chưa có consumer hoặc chưa có emitter trong flow hiện tại.
     /*
@@ -133,6 +142,8 @@ const useSocket = (userId, userRole) => {
     // Cleanup khi component unmount
     return () => {
       if (socketRef.current) {
+        socketRef.current.off("direct-message:new", handleDirectMessageNew)
+        socketRef.current.off("notification:new", handleNotificationNew)
         socketRef.current.disconnect()
         socketRef.current = null
       }

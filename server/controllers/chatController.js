@@ -1,7 +1,8 @@
 // Controller xu ly chat AI va chat truc tiep giua benh nhan voi bac si.
 const axios = require("axios")
-const { AccessRole, AccessStatus, UserRole } = require("@prisma/client")
+const { AccessRole, AccessStatus, NotificationType, UserRole } = require("@prisma/client")
 const prisma = require("../prismaClient")
+const { createNotification } = require("../services/notificationService")
 
 const MAX_DIRECT_MESSAGE_LENGTH = 2000
 
@@ -396,6 +397,22 @@ const sendDirectMessage = async (req, res) => {
       io.to(`user-${senderId}`).emit("direct-message:new", createdMessage)
       io.to(`user-${receiverId}`).emit("direct-message:new", createdMessage)
     }
+
+    await createNotification({
+      type: NotificationType.DIRECT_MESSAGE,
+      title: "Tin nhan moi",
+      message: createdMessage.message,
+      actorId: senderId,
+      entityType: "direct_message",
+      entityId: createdMessage.message_id,
+      payload: {
+        conversation_key: createdMessage.conversation_key,
+        sender_id: createdMessage.sender_id,
+        receiver_id: createdMessage.receiver_id,
+      },
+      recipientUserIds: [receiverId],
+      io,
+    })
 
     return res.status(201).json({
       message: "Gui tin nhan thanh cong",

@@ -2,12 +2,14 @@
 "use strict"
 
 const prisma = require("../prismaClient")
+const { NotificationType } = require("@prisma/client")
 const {
   toPrismaAccessRole,
   fromPrismaAccessRole,
   fromPrismaUserRole,
 } = require("../utils/enumMappings")
 const { emitToUsers } = require("../services/socketEmitService")
+const { createNotification } = require("../services/notificationService")
 
 // Ham xu ly gui yeu cau chia se du lieu benh nhan.
 exports.shareAccess = async (req, res) => {
@@ -27,39 +29,67 @@ exports.shareAccess = async (req, res) => {
       where: { patient_id: user_id, viewer_id: viewer.user_id },
     })
 
-    if (existing) {
-      return res
-        .status(400)
-        .json({ error: "Đã gửi yêu cầu hoặc đã cấp quyền trước đó" })
+    if (existing?.status === "accepted") {
+      return res.status(400).json({ error: "Nguoi nay da duoc cap quyen truy cap" })
     }
 
-    const newPermission = await prisma.accessPermission.create({
-      data: {
-        patient_id: user_id,
-        viewer_id: viewer.user_id,
-        role: toPrismaAccessRole(role),
-        status: "pending",
-      },
-    })
+    if (existing?.status === "pending") {
+      return res.status(400).json({ error: "Yeu cau truy cap dang cho duoc xu ly" })
+    }
+
+    let permissionRecord
+    if (existing?.status === "rejected") {
+      permissionRecord = await prisma.accessPermission.update({
+        where: { permission_id: existing.permission_id },
+        data: {
+          role: toPrismaAccessRole(role),
+          status: "pending",
+        },
+      })
+    } else {
+      permissionRecord = await prisma.accessPermission.create({
+        data: {
+          patient_id: user_id,
+          viewer_id: viewer.user_id,
+          role: toPrismaAccessRole(role),
+          status: "pending",
+        },
+      })
+    }
 
     const requestPayload = {
       viewer_id: viewer.user_id,
       patient_id: user_id,
-      role: fromPrismaAccessRole(newPermission.role),
-      permission_id: newPermission.permission_id,
+      role: fromPrismaAccessRole(permissionRecord.role),
+      permission_id: permissionRecord.permission_id,
     }
     emitToUsers(io, [viewer.user_id], "access-request", requestPayload)
 
-    return res.status(201).json({
-      message: "Đã gửi yêu cầu chia sẻ quyền truy cập",
+    await createNotification({
+      type: NotificationType.ACCESS_REQUEST,
+      title: "Yeu cau truy cap moi",
+      message: "Ban vua nhan mot yeu cau truy cap du lieu benh nhan.",
+      actorId: user_id,
+      entityType: "access_permission",
+      entityId: permissionRecord.permission_id,
+      payload: requestPayload,
+      recipientUserIds: [viewer.user_id],
+      io,
+    })
+
+    return res.status(existing?.status === "rejected" ? 200 : 201).json({
+      message:
+        existing?.status === "rejected"
+          ? "Da gui lai yeu cau chia se quyen truy cap"
+          : "Da gui yeu cau chia se quyen truy cap",
       data: {
-        ...newPermission,
-        role: fromPrismaAccessRole(newPermission.role),
+        ...permissionRecord,
+        role: fromPrismaAccessRole(permissionRecord.role),
       },
     })
   } catch (error) {
     console.error("Error sharing access:", error)
-    return res.status(500).json({ error: "Lỗi khi chia sẻ quyền truy cập" })
+    return res.status(500).json({ error: "Loi khi chia se quyen truy cap" })
   }
 }
 
@@ -69,6 +99,7 @@ exports.respondAccess = async (req, res) => {
     const { id } = req.params
     const { action } = req.body
     const io = req.app.get("io")
+    const actorId = Number.parseInt(req.user.user_id, 10)
     const permissionId = Number.parseInt(id, 10)
 
     const permission = await prisma.accessPermission.findUnique({
@@ -91,6 +122,21 @@ exports.respondAccess = async (req, res) => {
     }
     emitToUsers(io, [updatedPermission.patient_id, updatedPermission.viewer_id], "access-response", responsePayload)
 
+    await createNotification({
+      type: NotificationType.ACCESS_RESPONSE,
+      title: status === "accepted" ? "Yeu cau da duoc chap nhan" : "Yeu cau da bi tu choi",
+      message:
+        status === "accepted"
+          ? "Yeu cau truy cap cua ban da duoc chap nhan."
+          : "Yeu cau truy cap cua ban da bi tu choi.",
+      actorId,
+      entityType: "access_permission",
+      entityId: updatedPermission.permission_id,
+      payload: responsePayload,
+      recipientUserIds: [updatedPermission.patient_id],
+      io,
+    })
+
     return res.json({
       message: `Đã ${action === "accept" ? "chấp nhận" : "từ chối"} quyền truy cập`,
       data: {
@@ -111,10 +157,11 @@ exports.listAccess = async (req, res) => {
     const patientId = Number.parseInt(patient_id, 10)
 
     const list = await prisma.accessPermission.findMany({
-      where: { patient_id: patientId, status: "accepted" },
+      where: { patient_id: patientId },
       include: {
         viewer: { select: { user_id: true, name: true, email: true, role: true } },
       },
+      orderBy: { updated_at: "desc" },
     })
 
     const mapped = list.map((item) => ({
@@ -140,6 +187,7 @@ exports.revokeAccess = async (req, res) => {
   try {
     const { id } = req.params
     const io = req.app.get("io")
+    const actorId = Number.parseInt(req.user.user_id, 10)
     const permissionId = Number.parseInt(id, 10)
 
     const permission = await prisma.accessPermission.findUnique({
@@ -154,6 +202,18 @@ exports.revokeAccess = async (req, res) => {
       patient_id: permission.patient_id,
     }
     emitToUsers(io, [permission.patient_id, permission.viewer_id], "access-revoke", revokePayload)
+
+    await createNotification({
+      type: NotificationType.ACCESS_REVOKE,
+      title: "Quyen truy cap da bi thu hoi",
+      message: "Quyen truy cap du lieu benh nhan cua ban da bi thu hoi.",
+      actorId,
+      entityType: "access_permission",
+      entityId: permission.permission_id,
+      payload: revokePayload,
+      recipientUserIds: [permission.viewer_id],
+      io,
+    })
 
     return res.json({ message: "Đã thu hồi quyền truy cập" })
   } catch (error) {

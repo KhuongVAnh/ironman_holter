@@ -1,8 +1,9 @@
 // Controller xu ly tao, truy van va cap nhat trang thai canh bao tim mach.
 const prisma = require("../prismaClient")
 const { fromPrismaUserRole } = require("../utils/enumMappings")
-const { AccessStatus } = require("@prisma/client")
+const { AccessStatus, NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("../services/socketEmitService")
+const { createNotification } = require("../services/notificationService")
 
 // Ham xu ly tim cac tai khoan can nhan thong bao canh bao.
 const getAlertRecipientIds = async (patientId) => {
@@ -44,6 +45,22 @@ const createAlert = async (req, res) => {
       alert_type,
       message,
       timestamp: alert.timestamp,
+    })
+
+    await createNotification({
+      type: NotificationType.ALERT,
+      title: "Canh bao suc khoe",
+      message,
+      actorId: req.user?.user_id,
+      entityType: "alert",
+      entityId: alert.alert_id,
+      payload: {
+        user_id: userId,
+        alert_type,
+        reading_id: alert.reading_id || null,
+      },
+      recipientUserIds: recipients,
+      io,
     })
 
     res.status(201).json({
