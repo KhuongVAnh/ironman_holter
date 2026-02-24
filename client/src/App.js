@@ -14,6 +14,7 @@ import PatientProfile from "./components/patient/PatientProfile"
 import PatientChat from "./components/patient/PatientChat"
 import PatientAccess from "./components/patient/PatientAccess"
 import PatientHistorySecond from "./components/patient/PatientHistorySecond";
+import PatientDeviceRegistration from "./components/patient/PatientDeviceRegistration"
 import DoctorDashboard from "./components/doctor/DoctorDashboard"
 import DoctorPatients from "./components/doctor/DoctorPatients"
 import DoctorReports from "./components/doctor/DoctorReports"
@@ -127,6 +128,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={[ROLE.BENH_NHAN]}>
               <PatientHistorySecond />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patient/devices"
+          element={
+            <ProtectedRoute allowedRoles={[ROLE.BENH_NHAN]}>
+              <PatientDeviceRegistration />
             </ProtectedRoute>
           }
         />

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "react-toastify"
@@ -84,8 +84,8 @@ const PatientChat = () => {
         return stillExists ? current : list[0].user_id
       })
     } catch (error) {
-      console.error("Loi tai danh sach bac si:", error)
-      toast.error("Khong the tai danh sach bac si")
+      console.error("Lỗi tải danh sách bác sĩ:", error)
+      toast.error("Không thể tải danh sách bác sĩ")
     } finally {
       if (showLoading) setLoadingContacts(false)
     }
@@ -99,8 +99,8 @@ const PatientChat = () => {
       await markRead(doctorId, false)
       await fetchContacts(false)
     } catch (error) {
-      console.error("Loi tai lich su chat:", error)
-      toast.error(error.response?.data?.message || "Khong the tai lich su chat")
+      console.error("Lỗi tải lịch sử chat:", error)
+      toast.error(error.response?.data?.message || "Không thể tải lịch sử chat")
       setMessages([])
     } finally {
       setLoadingMessages(false)
@@ -112,7 +112,7 @@ const PatientChat = () => {
       await chatApi.markDirectRead(contactId)
     } catch (error) {
       if (notify) {
-        toast.error("Khong the cap nhat trang thai da doc")
+        toast.error("Không thể cập nhật trạng thái đã đọc")
       }
     }
   }
@@ -137,8 +137,8 @@ const PatientChat = () => {
       setInputMessage("")
       fetchContacts(false)
     } catch (error) {
-      console.error("Loi gui tin nhan:", error)
-      toast.error(error.response?.data?.message || "Khong the gui tin nhan")
+      console.error("Lỗi gửi tin nhắn:", error)
+      toast.error(error.response?.data?.message || "Không thể gửi tin nhắn")
     } finally {
       setSending(false)
     }
@@ -165,7 +165,7 @@ const PatientChat = () => {
       <div className="container py-4">
         <div className="d-flex justify-content-center">
           <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Dang tai...</span>
+            <span className="visually-hidden">Đang tải...</span>
           </div>
         </div>
       </div>
@@ -178,7 +178,7 @@ const PatientChat = () => {
         <div className="col-12">
           <h1 className="h3 mb-4">
             <i className="fas fa-comments me-2 text-primary"></i>
-            Chat voi bac si
+            Chat với bác sĩ
           </h1>
         </div>
       </div>
@@ -187,12 +187,12 @@ const PatientChat = () => {
         <div className="col-lg-4 col-xl-3">
           <div className="card border-0 shadow-sm">
             <div className="card-header bg-white border-0">
-              <h6 className="mb-0">Danh sach bac si duoc phep chat</h6>
+              <h6 className="mb-0">Danh sách bác sĩ được phép chat</h6>
             </div>
             <div className="list-group list-group-flush">
               {contacts.length === 0 && (
                 <div className="list-group-item text-muted small">
-                  Chua co bac si nao duoc cap quyen truy cap.
+                  Chưa có bác sĩ nào được cấp quyền truy cập.
                 </div>
               )}
 
@@ -212,7 +212,7 @@ const PatientChat = () => {
                         {contact.email}
                       </small>
                       <div className="small mt-1">
-                        {contact.last_message || "Chua co tin nhan"}
+                        {contact.last_message || "Chưa có tin nhắn"}
                       </div>
                     </div>
                     {contact.unread_count > 0 && (
@@ -229,26 +229,26 @@ const PatientChat = () => {
           <div className="card border-0 shadow-sm" style={{ minHeight: "640px" }}>
             <div className="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
               <div>
-                <h6 className="mb-0">{selectedContact ? selectedContact.name : "Chon bac si"}</h6>
+                <h6 className="mb-0">{selectedContact ? selectedContact.name : "Chọn bác sĩ"}</h6>
                 <small className="text-muted">{selectedContact?.email || ""}</small>
               </div>
             </div>
 
             <div className="card-body overflow-auto" style={{ height: "500px" }}>
               {!selectedContact && (
-                <div className="text-center text-muted py-5">Vui long chon bac si de bat dau tro chuyen.</div>
+                <div className="text-center text-muted py-5">Vui lòng chọn bác sĩ để bắt đầu trò chuyện.</div>
               )}
 
               {selectedContact && loadingMessages && (
                 <div className="d-flex justify-content-center py-4">
                   <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Dang tai...</span>
+                    <span className="visually-hidden">Đang tải...</span>
                   </div>
                 </div>
               )}
 
               {selectedContact && !loadingMessages && messages.length === 0 && (
-                <div className="text-center text-muted py-5">Chua co tin nhan nao trong cuoc tro chuyen nay.</div>
+                <div className="text-center text-muted py-5">Chưa có tin nhắn nào trong cuộc trò chuyện này.</div>
               )}
 
               {selectedContact &&
@@ -283,7 +283,7 @@ const PatientChat = () => {
               <div className="input-group">
                 <textarea
                   className="form-control border-0 bg-light"
-                  placeholder={selectedContact ? `Nhap tin nhan gui ${selectedContact.name}...` : "Chon bac si de nhan tin"}
+                  placeholder={selectedContact ? `Nhập tin nhắn gửi ${selectedContact.name}...` : "Chọn bác sĩ để nhắn tin"}
                   value={inputMessage}
                   onChange={(event) => setInputMessage(event.target.value)}
                   onKeyDown={handleKeyDown}

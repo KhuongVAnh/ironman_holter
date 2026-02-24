@@ -133,6 +133,7 @@ const Navbar = () => {
                 <i className="fas fa-comments me-2"></i>Tư vấn
               </NavLink>
             </li>
+
           </>
         )
 
@@ -253,6 +254,13 @@ const Navbar = () => {
                     <i className="fas fa-user-edit me-2"></i> Hồ sơ
                   </NavLink>
                 </li>
+                {user?.role === ROLE.BENH_NHAN && (
+                  <li>
+                    <NavLink className="dropdown-item" to="/patient/devices">
+                      <i className="fas fa-microchip me-2"></i> Thiết bị
+                    </NavLink>
+                  </li>
+                )}
                 <li><hr className="dropdown-divider" /></li>
                 <li>
                   <button className="dropdown-item" onClick={handleLogout}>

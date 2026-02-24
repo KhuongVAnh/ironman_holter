@@ -11,7 +11,6 @@ const AdminDevices = () => {
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [addForm, setAddForm] = useState({
-    device_id: "",
     serial_number: "",
     user_id: "",
   })
@@ -44,7 +43,7 @@ const AdminDevices = () => {
       await devicesApi.register(addForm)
       toast.success("Đăng ký thiết bị thành công")
       setShowAddModal(false)
-      setAddForm({ device_id: "", serial_number: "", user_id: "" })
+      setAddForm({ serial_number: "", user_id: "" })
       fetchData()
     } catch (error) {
       console.error("Lỗi đăng ký thiết bị:", error)
@@ -249,20 +248,6 @@ const AdminDevices = () => {
               </div>
               <form onSubmit={handleAddDevice}>
                 <div className="modal-body">
-                  <div className="mb-3">
-                    <label htmlFor="deviceId" className="form-label">
-                      ID Thiết bị
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="deviceId"
-                      value={addForm.device_id}
-                      onChange={(e) => setAddForm({ ...addForm, device_id: e.target.value })}
-                      placeholder="VD: HOLTER_001"
-                      required
-                    />
-                  </div>
                   <div className="mb-3">
                     <label htmlFor="serialNumber" className="form-label">
                       Số Serial
