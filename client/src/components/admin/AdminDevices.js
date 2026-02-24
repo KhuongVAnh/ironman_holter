@@ -171,11 +171,11 @@ const AdminDevices = () => {
                           <td>
                             <div className="d-flex align-items-center">
                               <div className="avatar-circle bg-primary text-white me-2">
-                                {device.User?.name?.charAt(0).toUpperCase() || "?"}
+                                {device.user?.name?.charAt(0).toUpperCase() || "?"}
                               </div>
                               <div>
-                                <h6 className="mb-0">{device.User?.name || "Không xác định"}</h6>
-                                <small className="text-muted">{device.User?.email}</small>
+                                <h6 className="mb-0">{device.user?.name || "Không xác định"}</h6>
+                                <small className="text-muted">{device.user?.email}</small>
                               </div>
                             </div>
                           </td>
