@@ -1,9 +1,15 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { toast } from "react-toastify"
+
+const demoAccounts = [
+  { role: "Bệnh nhân", email: "patient@example.com", password: "123456" },
+  { role: "Bác sĩ", email: "doctor@example.com", password: "123456" },
+  { role: "Gia đình", email: "family@example.com", password: "123456" },
+]
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -41,9 +47,21 @@ const Login = () => {
     <div className="container-fluid vh-100">
       <div className="row h-100">
         <div className="col-md-6 d-flex align-items-center justify-content-center bg-primary">
-          <div className="text-center text-white">
+          <div className="text-center text-white" style={{ maxWidth: "560px" }}>
             <h1 className="display-4 fw-bold">Ironman Holter</h1>
             <p className="lead">Hệ thống theo dõi tim mạch liên tục</p>
+
+            <div className="mt-4 p-3 rounded bg-white bg-opacity-10 text-start">
+              <h6 className="mb-2">Tài khoản mẫu để tham khảo</h6>
+              <div className="small">
+                {demoAccounts.map((account) => (
+                  <div key={account.email} className="mb-1">
+                    <strong>{account.role}:</strong> {account.email} / {account.password}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-4">
               <i className="fas fa-heartbeat fa-3x"></i>
             </div>
