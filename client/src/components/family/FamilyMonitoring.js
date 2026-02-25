@@ -5,6 +5,7 @@ import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import ECGChart from "../patient/ECGChart"
 import RecentAlertsPanel, { getAlertTypeLabel } from "../shared/RecentAlertsPanel"
+import ReadingDetailModal from "../shared/ReadingDetailModal"
 import { alertsApi, familyApi, readingsApi } from "../../services/api"
 
 const FamilyMonitoring = () => {
@@ -13,6 +14,7 @@ const FamilyMonitoring = () => {
   const [selectedMember, setSelectedMember] = useState(null)
   const [memberReadings, setMemberReadings] = useState([])
   const [memberAlerts, setMemberAlerts] = useState([])
+  const [selectedReadingId, setSelectedReadingId] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -65,6 +67,7 @@ const FamilyMonitoring = () => {
 
       const alertsResponse = await alertsApi.getByUser(memberId)
       setMemberAlerts((alertsResponse.data?.alerts || []).slice(0, 5))
+      setSelectedReadingId(null)
     } catch (error) {
       console.error("Lỗi lấy dữ liệu người thân:", error)
       toast.error("Không thể tải dữ liệu người thân")
@@ -143,7 +146,8 @@ const FamilyMonitoring = () => {
               title="Cảnh báo gần nhất"
               subtitle="Theo dõi cảnh báo mới nhất của người thân được chọn."
               alerts={memberAlerts}
-              isAlertDisabled={() => false}
+              onAlertClick={(alert) => setSelectedReadingId(alert?.reading_id || null)}
+              isAlertDisabled={(alert) => !alert?.reading_id}
               getAlertTitle={(alert) => getAlertTypeLabel(alert.alert_type)}
               getAlertStatus={(alert) =>
                 alert?.resolved
@@ -152,7 +156,11 @@ const FamilyMonitoring = () => {
               }
               getAlertTimestamp={(alert) => alert.timestamp}
               formatDate={formatDate}
-              getAlertHint={() => ""}
+              getAlertHint={(_alert, disabled, canClick) => {
+                if (disabled) return "Không có reading"
+                if (canClick) return "Nhấn để xem đồ thị ECG"
+                return ""
+              }}
               emptyText="Không có cảnh báo"
             />
           </div>
@@ -291,6 +299,12 @@ const FamilyMonitoring = () => {
           )}
         </div>
       </div>
+
+      <ReadingDetailModal
+        show={Boolean(selectedReadingId)}
+        onHide={() => setSelectedReadingId(null)}
+        readingId={selectedReadingId}
+      />
     </div>
   )
 }

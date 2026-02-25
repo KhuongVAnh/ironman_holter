@@ -8,11 +8,13 @@ import { useAuth } from "../../contexts/AuthContext"
 import { alertsApi, familyApi } from "../../services/api"
 import { ACCESS_STATUS } from "../../services/string"
 import RecentAlertsPanel, { getAlertTypeLabel } from "../shared/RecentAlertsPanel"
+import ReadingDetailModal from "../shared/ReadingDetailModal"
 
 const FamilyDashboard = () => {
   const { user } = useAuth()
   const [familyMembers, setFamilyMembers] = useState([])
   const [recentAlerts, setRecentAlerts] = useState([])
+  const [selectedReadingId, setSelectedReadingId] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const fetchRecentAlerts = async (members = familyMembers) => {
@@ -237,7 +239,8 @@ const FamilyDashboard = () => {
             title="Cảnh báo gần nhất"
             subtitle="Tổng hợp cảnh báo mới nhất của người thân được cấp quyền."
             alerts={recentAlerts}
-            isAlertDisabled={() => false}
+            onAlertClick={(alert) => setSelectedReadingId(alert?.reading_id || null)}
+            isAlertDisabled={(alert) => !alert?.reading_id}
             getAlertTitle={(alert) => {
               const typeLabel = getAlertTypeLabel(alert.alert_type)
               return alert.patient_name ? `${alert.patient_name} - ${typeLabel}` : typeLabel
@@ -246,7 +249,11 @@ const FamilyDashboard = () => {
               const priority = getAlertPriority(alert.alert_type)
               return { label: priority.label, className: priority.className }
             }}
-            getAlertHint={() => ""}
+            getAlertHint={(_alert, disabled, canClick) => {
+              if (disabled) return "Không có reading"
+              if (canClick) return "Nhấn để xem đồ thị ECG"
+              return ""
+            }}
             emptyText="Không có cảnh báo nào"
           />
         </div>
@@ -290,6 +297,12 @@ const FamilyDashboard = () => {
           </div>
         </div>
       </div>
+
+      <ReadingDetailModal
+        show={Boolean(selectedReadingId)}
+        onHide={() => setSelectedReadingId(null)}
+        readingId={selectedReadingId}
+      />
     </div>
   )
 }

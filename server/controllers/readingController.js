@@ -379,17 +379,17 @@ const getReadingDetail = async (req, res) => {
 
     const patientId = reading.device.user_id
     if (requesterId !== patientId) {
-      const doctorAccess = await prisma.accessPermission.findFirst({
+      const viewerAccess = await prisma.accessPermission.findFirst({
         where: {
           patient_id: patientId,
           viewer_id: requesterId,
-          role: AccessRole.BAC_SI,
+          role: { in: [AccessRole.BAC_SI, AccessRole.GIA_DINH] },
           status: AccessStatus.accepted,
         },
         select: { permission_id: true },
       })
 
-      if (!doctorAccess) {
+      if (!viewerAccess) {
         return res.status(403).json({ message: "Ban khong co quyen xem reading nay" })
       }
     }
