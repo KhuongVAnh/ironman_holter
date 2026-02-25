@@ -21,17 +21,48 @@ const getAlertRecipientIds = async (patientId) => {
 // Ham xu ly tao canh bao moi cho benh nhan.
 const createAlert = async (req, res) => {
   try {
-    const { user_id, alert_type, message } = req.body
+    const { user_id, reading_id, alert_type, message } = req.body
     const userId = Number.parseInt(user_id, 10)
+    const readingId = Number.parseInt(reading_id, 10)
+
+    if (!Number.isInteger(userId)) {
+      return res.status(400).json({ message: "user_id la bat buoc va phai hop le" })
+    }
+
+    if (!Number.isInteger(readingId)) {
+      return res.status(400).json({ message: "reading_id la bat buoc va phai hop le" })
+    }
+
+    if (!alert_type || !message) {
+      return res.status(400).json({ message: "alert_type va message la bat buoc" })
+    }
 
     const user = await prisma.user.findUnique({ where: { user_id: userId } })
     if (!user) {
-      return res.status(404).json({ message: "Không tìm thấy người dùng" })
+      return res.status(404).json({ message: "Khong tim thay nguoi dung" })
+    }
+
+    const reading = await prisma.reading.findUnique({
+      where: { reading_id: readingId },
+      include: {
+        device: {
+          select: { user_id: true },
+        },
+      },
+    })
+
+    if (!reading) {
+      return res.status(404).json({ message: "Khong tim thay reading" })
+    }
+
+    if (reading.device.user_id !== userId) {
+      return res.status(400).json({ message: "reading_id khong thuoc user_id duoc chon" })
     }
 
     const alert = await prisma.alert.create({
       data: {
         user_id: userId,
+        reading_id: readingId,
         alert_type,
         message,
       },
@@ -42,6 +73,7 @@ const createAlert = async (req, res) => {
     emitToUsers(io, recipients, "alert", {
       alert_id: alert.alert_id,
       user_id: userId,
+      reading_id: readingId,
       alert_type,
       message,
       timestamp: alert.timestamp,
@@ -57,7 +89,7 @@ const createAlert = async (req, res) => {
       payload: {
         user_id: userId,
         alert_type,
-        reading_id: alert.reading_id || null,
+        reading_id: alert.reading_id,
       },
       recipientUserIds: recipients,
       io,

@@ -41,6 +41,7 @@ export const devicesApi = {
 // ========== Readings ==========
 export const readingsApi = {
   getHistory: (userId, params) => api.get(`/readings/history/${userId}`, { params }),
+  getDetail: (readingId) => api.get(`/readings/detail/${readingId}`),
   getByDevice: (deviceId) => api.get(`/readings/${deviceId}`),
   createFake: (deviceId) => api.post("/readings/fake", { device_id: deviceId }),
 }

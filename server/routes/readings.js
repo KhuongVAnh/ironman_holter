@@ -1,8 +1,12 @@
 const express = require("express")
-const { createFakeReading, getDeviceReadings, getUserReadingHistory,
-    receiveTelemetry, createReading 
- } = require("../controllers/readingController")
-const { authenticateToken, authorizeRoles } = require("../middleware/auth")
+const {
+  createFakeReading,
+  getDeviceReadings,
+  getUserReadingHistory,
+  receiveTelemetry,
+  getReadingDetail,
+} = require("../controllers/readingController")
+const { authenticateToken } = require("../middleware/auth")
 
 const router = express.Router()
 // route cho ESP32 gửi dữ liệu
@@ -11,7 +15,10 @@ router.post("/telemetry", receiveTelemetry);
 // Tạo dữ liệu đọc giả lập
 router.post("/fake", authenticateToken, createFakeReading)
 
-// Lấy dữ liệu đọc của thiết bị
+// Lay chi tiet reading theo reading_id
+router.get("/detail/:reading_id", authenticateToken, getReadingDetail)
+
+// Lay du lieu doc cua thiet bi
 router.get("/:device_id", authenticateToken, getDeviceReadings)
 
 // Lấy lịch sử đọc của người dùng

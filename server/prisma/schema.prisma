@@ -102,14 +102,14 @@ model Reading {
 model Alert {
   alert_id   Int      @id @default(autoincrement())
   user_id    Int
-  reading_id Int?
+  reading_id Int
   alert_type String
   message    String   @db.Text
   timestamp  DateTime @default(now())
   resolved   Boolean  @default(false)
 
-  user    User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
-  reading Reading? @relation(fields: [reading_id], references: [reading_id], onDelete: Cascade, onUpdate: Cascade)
+  user    User    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
+  reading Reading @relation(fields: [reading_id], references: [reading_id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("alerts")
 }

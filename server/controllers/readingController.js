@@ -1,6 +1,6 @@
 // Controller xu ly telemetry, du lieu ECG va lich su chi so tim mach.
 const prisma = require("../prismaClient")
-const { AccessStatus, NotificationType } = require("@prisma/client")
+const { AccessRole, AccessStatus, NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("../services/socketEmitService")
 const { createNotification } = require("../services/notificationService")
 
@@ -46,6 +46,11 @@ function mockAIClassifier(ecgSignal) {
 
 // Ham xu ly chuan hoa device_id ve so nguyen hop le.
 const toDeviceId = (value) => {
+  const parsed = Number.parseInt(value, 10)
+  return Number.isInteger(parsed) ? parsed : null
+}
+
+const toReadingId = (value) => {
   const parsed = Number.parseInt(value, 10)
   return Number.isInteger(parsed) ? parsed : null
 }
@@ -113,16 +118,19 @@ const createFakeReading = async (req, res) => {
       const createdAlert = await prisma.alert.create({
         data: {
           user_id: device.user_id,
+          reading_id: reading.reading_id,
           alert_type: alertType,
           message,
         },
       })
 
       emitToUsers(io, recipients, "alert", {
+        alert_id: createdAlert.alert_id,
         user_id: device.user_id,
+        reading_id: reading.reading_id,
         alert_type: alertType,
         message,
-        timestamp: new Date(),
+        timestamp: createdAlert.timestamp,
       })
 
       await createNotification({
@@ -135,7 +143,7 @@ const createFakeReading = async (req, res) => {
         payload: {
           user_id: device.user_id,
           alert_type: alertType,
-          reading_id: createdAlert.reading_id || null,
+          reading_id: createdAlert.reading_id,
         },
         recipientUserIds: recipients,
         io,
@@ -296,16 +304,19 @@ const receiveTelemetry = async (req, res) => {
       const createdAlert = await prisma.alert.create({
         data: {
           user_id: device.user_id,
+          reading_id: reading.reading_id,
           alert_type: alertType,
           message,
         },
       })
 
       emitToUsers(io, recipients, "alert", {
+        alert_id: createdAlert.alert_id,
         user_id: device.user_id,
+        reading_id: reading.reading_id,
         alert_type: alertType,
         message,
-        timestamp: new Date(),
+        timestamp: createdAlert.timestamp,
       })
 
       await createNotification({
@@ -336,9 +347,78 @@ const receiveTelemetry = async (req, res) => {
   }
 }
 
+// Ham xu ly lay chi tiet reading de hien thi do thi ECG.
+const getReadingDetail = async (req, res) => {
+  try {
+    const readingId = toReadingId(req.params.reading_id)
+    const requesterId = Number.parseInt(req.user.user_id, 10)
+
+    if (readingId === null) {
+      return res.status(400).json({ message: "reading_id khong hop le" })
+    }
+
+    const reading = await prisma.reading.findUnique({
+      where: { reading_id: readingId },
+      include: {
+        device: {
+          select: {
+            device_id: true,
+            serial_number: true,
+            user_id: true,
+            user: {
+              select: { user_id: true, name: true, email: true },
+            },
+          },
+        },
+      },
+    })
+
+    if (!reading) {
+      return res.status(404).json({ message: "Khong tim thay reading" })
+    }
+
+    const patientId = reading.device.user_id
+    if (requesterId !== patientId) {
+      const doctorAccess = await prisma.accessPermission.findFirst({
+        where: {
+          patient_id: patientId,
+          viewer_id: requesterId,
+          role: AccessRole.BAC_SI,
+          status: AccessStatus.accepted,
+        },
+        select: { permission_id: true },
+      })
+
+      if (!doctorAccess) {
+        return res.status(403).json({ message: "Ban khong co quyen xem reading nay" })
+      }
+    }
+
+    return res.json({
+      reading: {
+        reading_id: reading.reading_id,
+        timestamp: reading.timestamp,
+        heart_rate: reading.heart_rate,
+        ecg_signal: reading.ecg_signal,
+        abnormal_detected: reading.abnormal_detected,
+        ai_result: reading.ai_result,
+        device: {
+          device_id: reading.device.device_id,
+          serial_number: reading.device.serial_number,
+        },
+        patient: reading.device.user,
+      },
+    })
+  } catch (error) {
+    console.error("Loi lay chi tiet reading:", error)
+    return res.status(500).json({ message: "Loi server noi bo" })
+  }
+}
+
 module.exports = {
   createFakeReading,
   getDeviceReadings,
   getUserReadingHistory,
   receiveTelemetry,
+  getReadingDetail,
 }

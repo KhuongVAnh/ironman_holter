@@ -93,10 +93,7 @@ async function main() {
         },
     });
 
-    // tranh warning bien khong dung khi lint
-    void reading1;
-
-    // 4) Alerts (1 alert gan reading2, 1 alert khong gan reading)
+    // 4) Alerts (ca 2 alert deu gan voi reading)
     await prisma.alert.createMany({
         data: [
             {
@@ -108,7 +105,7 @@ async function main() {
             },
             {
                 user_id: patient.user_id,
-                reading_id: null,
+                reading_id: reading1.reading_id,
                 alert_type: "DEVICE_INFO",
                 message: "Thiet bi da ket noi va dang hoat dong binh thuong.",
                 resolved: true,
