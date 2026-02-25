@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import MedicalHistoryList from "../shared/MedicalHistoryList";
 import MedicalHistoryForm from "../shared/MedicalHistoryForm";
 
-const PatientHistorySecond = () => {
+const PatientMedicalHistory = () => {
     const { user } = useAuth();
     const [histories, setHistories] = useState([]);
     const [showForm, setShowForm] = useState(false);
@@ -52,4 +52,4 @@ const PatientHistorySecond = () => {
     );
 };
 
-export default PatientHistorySecond;
+export default PatientMedicalHistory;

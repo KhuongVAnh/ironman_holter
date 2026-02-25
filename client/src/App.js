@@ -13,7 +13,7 @@ import PatientAlerts from "./components/patient/PatientAlerts"
 import PatientProfile from "./components/patient/PatientProfile"
 import PatientChat from "./components/patient/PatientChat"
 import PatientAccess from "./components/patient/PatientAccess"
-import PatientHistorySecond from "./components/patient/PatientHistorySecond";
+import PatientMedicalHistory from "./components/patient/PatientMedicalHistory";
 import PatientDeviceRegistration from "./components/patient/PatientDeviceRegistration"
 import DoctorDashboard from "./components/doctor/DoctorDashboard"
 import DoctorPatients from "./components/doctor/DoctorPatients"
@@ -25,6 +25,7 @@ import DoctorChat from "./components/doctor/DoctorChat"
 import FamilyDashboard from "./components/family/FamilyDashboard"
 import FamilyMonitoring from "./components/family/FamilyMonitoring"
 import FamilyAccessRequests from "./components/family/FamilyAccessRequests"
+import FamilyHistorySelector from "./components/family/FamilyHistorySelector"
 import FamilyHistoryPanel from "./components/family/FamilyHistoryPanel"
 import ProtectedRoute from "./components/ProtectedRoute"
 import Navbar from "./components/Navbar"
@@ -136,7 +137,7 @@ const AppContent = () => {
           path="/patient/history"
           element={
             <ProtectedRoute allowedRoles={[ROLE.BENH_NHAN]}>
-              <PatientHistorySecond />
+              <PatientMedicalHistory />
             </ProtectedRoute>
           }
         />
@@ -245,6 +246,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={[ROLE.GIA_DINH]}>
               <FamilyHistoryPanel />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/family/history"
+          element={
+            <ProtectedRoute allowedRoles={[ROLE.GIA_DINH]}>
+              <FamilyHistorySelector />
             </ProtectedRoute>
           }
         />
