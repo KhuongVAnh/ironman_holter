@@ -1,6 +1,6 @@
-"use client"
+﻿"use client"
 
-import { useRef } from "react"
+import { useMemo, useRef } from "react"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -15,28 +15,46 @@ import { Line } from "react-chartjs-2"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
+const normalizeEcgData = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => Number(item))
+      .filter((item) => Number.isFinite(item))
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => Number(item))
+          .filter((item) => Number.isFinite(item))
+      }
+    } catch (error) {
+      return []
+    }
+  }
+
+  return []
+}
+
 const ECGChart = ({ data = [] }) => {
-  const chartRef = useRef()
+  const chartRef = useRef(null)
 
-  // Cấu hình
+  const normalizedData = useMemo(() => normalizeEcgData(data), [data])
+
   const sampleRate = 250
-  const windowSize = 5 * sampleRate // 1250 mẫu = 5 giây
+  const windowSize = 5 * sampleRate
 
-  // Lấy tối đa 1250 mẫu gần nhất
-  let visibleData = data.slice(-windowSize)
+  const visibleData = normalizedData.slice(-windowSize)
+  const startTime = Math.max(0, normalizedData.length - windowSize) / sampleRate
 
-  // Nếu chưa đủ dữ liệu thì không pad 0 nữa (hiển thị phần có sẵn)
-  const startTime = Math.max(0, data.length - windowSize) / sampleRate
-
-  // Dữ liệu hiển thị
   const chartData = {
-    labels: visibleData.map((_, index) =>
-      (startTime + index / sampleRate).toFixed(2)
-    ),
+    labels: visibleData.map((_, index) => (startTime + index / sampleRate).toFixed(2)),
     datasets: [
       {
         label: "ECG Signal",
-        data: visibleData.map(v => v),
+        data: visibleData,
         borderColor: "#dc3545",
         backgroundColor: "rgba(220, 53, 69, 0.1)",
         fill: false,
@@ -96,9 +114,7 @@ const ECGChart = ({ data = [] }) => {
               <span className="visually-hidden">Đang tải...</span>
             </div>
             <p className="text-muted">Đang chờ dữ liệu ECG...</p>
-            <small className="text-muted">
-              Nhấn "Tạo dữ liệu giả" để bắt đầu
-            </small>
+            <small className="text-muted">Nhấn "Tạo dữ liệu giả" để bắt đầu</small>
           </div>
         </div>
       )}

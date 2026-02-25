@@ -1,51 +1,49 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useAuth } from "../../contexts/AuthContext"
+import { useEffect, useState } from "react"
 import { toast } from "react-toastify"
 import io from "socket.io-client"
+import { useAuth } from "../../contexts/AuthContext"
+import { accessApi, alertsApi, devicesApi, readingsApi } from "../../services/api"
+import { ACCESS_ROLE, ACCESS_STATUS } from "../../services/string"
 import ECGChart from "./ECGChart"
 import useECGStream from "./useECGStream"
-import { accessApi, alertsApi, readingsApi, devicesApi } from "../../services/api"
-import { ACCESS_ROLE, ACCESS_STATUS, ALERT_TYPE } from "../../services/string"
+import ReadingDetailModal from "../shared/ReadingDetailModal"
+import RecentAlertsPanel, { getAlertTypeLabel } from "../shared/RecentAlertsPanel"
 
 const PatientDashboard = () => {
   const { user } = useAuth()
   const [currentHeartRate, setCurrentHeartRate] = useState(75)
-  const [rawEcgData, setRawEcgData] = useState([]) // dữ liệu gốc 5s từ ESP32
+  const [rawEcgData, setRawEcgData] = useState([])
   const [alerts, setAlerts] = useState([])
   const [recentAlerts, setRecentAlerts] = useState([])
   const [isConnected, setIsConnected] = useState(false)
-  const [socket, setSocket] = useState(null)
   const [aiResult, setAiResult] = useState(null)
   const [supervisingDoctors, setSupervisingDoctors] = useState([])
+  const [selectedReadingId, setSelectedReadingId] = useState(null)
 
   useEffect(() => {
-    // 🔹 Khởi tạo Socket.IO
-    const newSocket = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
-    setSocket(newSocket)
+    const socketClient = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
 
-    newSocket.on("connect", () => {
+    socketClient.on("connect", () => {
       setIsConnected(true)
-      newSocket.emit("join-user-room", user.user_id)
+      socketClient.emit("join-user-room", user.user_id)
       console.log("Đã kết nối Socket.IO")
     })
 
-    newSocket.on("disconnect", () => {
+    socketClient.on("disconnect", () => {
       setIsConnected(false)
       console.log("Ngắt kết nối Socket.IO")
     })
 
-    // 🔹 Xử lý dữ liệu ECG (cả thật & giả)
     const handleEcgData = (data) => {
       setCurrentHeartRate(data.heart_rate)
-      // ⚙️ Không reset liên tục, chỉ cập nhật nếu có tín hiệu mới thực sự
       if (Array.isArray(data.ecg_signal) && data.ecg_signal.length > 0) {
         setRawEcgData(data.ecg_signal)
       }
 
       setAiResult({
-        result: "bình thường",
+        result: "Bình thường",
         time: data.timestamp,
         hr: data.heart_rate,
       })
@@ -55,48 +53,47 @@ const PatientDashboard = () => {
       }
     }
 
-    newSocket.on("reading-update", handleEcgData)
-    newSocket.on("fake-reading", handleEcgData)
-
-    // 🔹 Lắng nghe cảnh báo realtime
-    newSocket.on("alert", (alertData) => {
+    const handleAlert = (alertData) => {
       if (alertData.user_id === user.user_id) {
         toast.error(`Cảnh báo: ${alertData.message}`)
         fetchRecentAlerts()
       }
-    })
+    }
 
-    // 🔹 Lấy cảnh báo ban đầu
+    socketClient.on("reading-update", handleEcgData)
+    socketClient.on("fake-reading", handleEcgData)
+    socketClient.on("alert", handleAlert)
+
     fetchRecentAlerts()
     fetchSupervisingDoctors()
 
     return () => {
-      newSocket.close()
+      socketClient.off("reading-update", handleEcgData)
+      socketClient.off("fake-reading", handleEcgData)
+      socketClient.off("alert", handleAlert)
+      socketClient.close()
     }
   }, [user.user_id])
 
-  // 🔹 Mô phỏng dữ liệu chạy từng 0.5s, hiển thị 4s 
   const streamedEcgData = useECGStream(rawEcgData, 250, 0.2)
 
-  // Lấy cảnh báo mới nhất
   const fetchRecentAlerts = async () => {
     try {
       const response = await alertsApi.getByUser(user.user_id, false)
-      setAlerts(response.data.alerts)
-      console.log(response.data.alerts)
-      setRecentAlerts(response.data.alerts.slice(0, 5))
+      const nextAlerts = Array.isArray(response.data?.alerts) ? response.data.alerts : []
+      setAlerts(nextAlerts)
+      setRecentAlerts(nextAlerts.slice(0, 5))
     } catch (error) {
       console.error("Lỗi lấy cảnh báo:", error)
     }
   }
 
-  // Tạo dữ liệu giả
   const generateFakeData = async () => {
     try {
       const deviceResponse = await devicesApi.getByUser(user.user_id)
       const devices = deviceResponse?.data?.devices || []
       if (devices.length === 0) {
-        toast.error("Khong tim thay thiet bi cua ban")
+        toast.error("Không tìm thấy thiết bị của bạn")
         return
       }
       const deviceId = devices[0].device_id
@@ -108,7 +105,6 @@ const PatientDashboard = () => {
     }
   }
 
-  // 🔹 Danh sách bác sĩ giám sát
   const fetchSupervisingDoctors = async () => {
     try {
       const res = await accessApi.list(user.user_id)
@@ -117,66 +113,32 @@ const PatientDashboard = () => {
         .map((acc) => ({
           id: acc.viewer_id,
           name: acc.viewer?.name || "Không rõ",
-          email: acc.viewer?.email || "—",
-          phone: acc.viewer?.phone || "0123456789", // giả định chưa có cột phone
+          email: acc.viewer?.email || "-",
+          phone: acc.viewer?.phone || "0123456789",
           status: acc.status,
         }))
       setSupervisingDoctors(doctors)
     } catch (error) {
-      console.error("❌ Lỗi tải danh sách bác sĩ:", error)
+      console.error("Lỗi tải danh sách bác sĩ:", error)
       toast.error("Không thể tải danh sách bác sĩ giám sát")
     }
   }
 
-
-  // Trạng thái nhịp tim
   const getHeartRateStatus = () => {
     if (currentHeartRate < 60) return { status: "Nhịp chậm", color: "text-warning" }
     if (currentHeartRate > 100) return { status: "Nhịp nhanh", color: "text-danger" }
     return { status: "Bình thường", color: "text-success" }
   }
+
   const heartRateStatus = getHeartRateStatus()
 
-  const getAlertIcon = (alertType = "") => {
-    const type = alertType.toLowerCase();
-
-    switch (type) {
-      case ALERT_TYPE.NHIP_NHANH:
-        return "fas fa-arrow-up text-primary"; // Tim nhanh
-      case ALERT_TYPE.RUNG_NHI:
-        return "fas fa-heart-crack text-danger"; // Rối loạn nhịp
-      case ALERT_TYPE.NGOAI_TAM_THU:
-        return "fas fa-bolt text-warning"; // Xung điện bất thường
-      case ALERT_TYPE.NHIP_CHAM:
-        return "fas fa-arrow-down text-primary"; // Tim chậm
-      case ALERT_TYPE.NORMAL:
-      case ALERT_TYPE.BINH_THUONG:
-        return "fas fa-check-circle text-success"; // Bình thường
-      default:
-        return "fas fa-heartbeat text-danger"; // Không xác định
+  const handleOpenReadingDetail = (alert) => {
+    if (!alert?.reading_id) {
+      toast.warning("Cảnh báo này không có reading để xem")
+      return
     }
-  };
-
-  const getAlertTextColor = (alertType = "") => {
-    const type = alertType.toLowerCase();
-
-    switch (type) {
-      case ALERT_TYPE.NHIP_NHANH:
-        return "text-primary";
-      case ALERT_TYPE.RUNG_NHI:
-        return "text-danger";
-      case ALERT_TYPE.NGOAI_TAM_THU:
-        return "text-warning";
-      case ALERT_TYPE.NHIP_CHAM:
-        return "text-primary";
-      case ALERT_TYPE.NORMAL:
-      case ALERT_TYPE.BINH_THUONG:
-        return "text-success";
-      default:
-        return "text-danger";
-    }
-  };
-
+    setSelectedReadingId(alert.reading_id)
+  }
 
   return (
     <div className="container-fluid py-4">
@@ -185,7 +147,7 @@ const PatientDashboard = () => {
           <div className="d-flex justify-content-between align-items-center mb-4">
             <h1 className="h3 mb-0">
               <i className="fas fa-tachometer-alt me-2 text-primary"></i>
-              Dashboard Bệnh nhân
+              Dashboard bệnh nhân
             </h1>
             <div className="d-flex align-items-center gap-3">
               <div className={`badge ${isConnected ? "bg-success" : "bg-danger"}`}>
@@ -201,7 +163,6 @@ const PatientDashboard = () => {
         </div>
       </div>
 
-      {/* Nhịp tim & AI */}
       <div className="row g-4">
         <div className="col-md-4">
           <div className="card h-100 border-0 shadow-sm">
@@ -215,19 +176,18 @@ const PatientDashboard = () => {
                 {heartRateStatus.status}
               </span>
 
-              {/* Kết quả AI */}
               <div className="mt-4">
                 <div className="card border-0 bg-light">
                   <div className="card-body p-2">
                     <h6 className="text-muted mb-1">
-                      <i className="fas fa-robot me-2 text-success"></i>Kết quả AI
+                      <i className="fas fa-robot me-2 text-success"></i>
+                      Kết quả AI
                     </h6>
                     {aiResult ? (
                       <p className="fw-bold small mb-0">
-                        HR: {aiResult.hr} | AI: {aiResult.result} <br />
-                        <small className="text-muted">
-                          {new Date(aiResult.time).toLocaleString("vi-VN")}
-                        </small>
+                        HR: {aiResult.hr} | AI: {aiResult.result}
+                        <br />
+                        <small className="text-muted">{new Date(aiResult.time).toLocaleString("vi-VN")}</small>
                       </p>
                     ) : (
                       <p className="text-muted small mb-0">Đang chờ dữ liệu...</p>
@@ -239,7 +199,6 @@ const PatientDashboard = () => {
           </div>
         </div>
 
-        {/* Biểu đồ ECG */}
         <div className="col-md-8">
           <div className="card h-100 border-0 shadow-sm">
             <div className="card-header bg-white border-0">
@@ -255,51 +214,25 @@ const PatientDashboard = () => {
         </div>
       </div>
 
-      {/* Các phần còn lại giữ nguyên */}
       <div className="row g-4 mt-2">
-        {/* Cảnh báo gần nhất */}
         <div className="col-md-6">
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-0">
-              <h5 className="card-title mb-0">
-                <i className="fas fa-exclamation-triangle me-2 text-warning"></i>
-                Cảnh báo gần nhất
-              </h5>
-            </div>
-            <div className="card-body">
-              {recentAlerts.length > 0 ? (
-                <div className="list-group list-group-flush">
-                  {recentAlerts.map(alert => (
-                    <div key={alert.alert_id} className="list-group-item px-0 border-0">
-                      <div className="d-flex justify-content-between align-items-start">
-                        <div>
-                          <h6 className={`mb-2 fw-semibold d-flex align-items-center gap-2 ${getAlertTextColor(alert.alert_type)}`}>
-                            <i className={`${getAlertIcon(alert.alert_type)} fs-5`}></i>
-                            {alert.alert_type.toUpperCase()}
-                          </h6>
-                          <p className="mb-1 text-muted small">{alert.message}</p>
-                          <small className="text-muted">
-                            {new Date(alert.timestamp).toLocaleString("vi-VN")}
-                          </small>
-                        </div>
-                        <span className="badge bg-danger">Mới</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <i className="fas fa-check-circle fa-3x text-success mb-3"></i>
-                  <p className="text-muted">Không có cảnh báo nào</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <RecentAlertsPanel
+            title="Cảnh báo gần nhất"
+            subtitle="Ưu tiên xử lý cảnh báo nguy cơ cao trước."
+            alerts={recentAlerts}
+            onAlertClick={handleOpenReadingDetail}
+            getAlertTitle={(alert) => getAlertTypeLabel(alert.alert_type)}
+            getAlertStatus={(alert) =>
+              alert?.resolved
+                ? { label: "Đã xử lý", variant: "is-resolved" }
+                : { label: "Mới", variant: "is-pending" }
+            }
+            getAlertHint={(_alert, disabled) => (disabled ? "Không có reading" : "Nhấn để xem đồ thị ECG")}
+            emptyText="Không có cảnh báo nào"
+          />
         </div>
 
-        {/* Thống kê + Bác sĩ giám sát cùng khối */}
         <div className="col-md-6">
-          {/* Thống kê hôm nay */}
           <div className="card border-0 shadow-sm mb-4">
             <div className="card-header bg-white border-0">
               <h5 className="card-title mb-0">
@@ -325,7 +258,6 @@ const PatientDashboard = () => {
             </div>
           </div>
 
-          {/* Bác sĩ giám sát */}
           <div className="card border-0 shadow-sm">
             <div className="card-header bg-white border-0">
               <h5 className="card-title mb-0">
@@ -367,7 +299,6 @@ const PatientDashboard = () => {
         </div>
       </div>
 
-      {/* Hướng dẫn nhanh */}
       <div className="row mt-4">
         <div className="col-12">
           <div className="card border-0 shadow-sm bg-light">
@@ -379,22 +310,26 @@ const PatientDashboard = () => {
               <div className="row">
                 <div className="col-md-3">
                   <small className="text-muted">
-                    <i className="fas fa-chart-line me-1"></i>Theo dõi ECG realtime
+                    <i className="fas fa-chart-line me-1"></i>
+                    Theo dõi ECG realtime
                   </small>
                 </div>
                 <div className="col-md-3">
                   <small className="text-muted">
-                    <i className="fas fa-bell me-1"></i>Nhận cảnh báo tức thì
+                    <i className="fas fa-bell me-1"></i>
+                    Nhận cảnh báo tức thì
                   </small>
                 </div>
                 <div className="col-md-3">
                   <small className="text-muted">
-                    <i className="fas fa-comments me-1"></i>Tư vấn với AI
+                    <i className="fas fa-comments me-1"></i>
+                    Tư vấn với AI
                   </small>
                 </div>
                 <div className="col-md-3">
                   <small className="text-muted">
-                    <i className="fas fa-history me-1"></i>Xem lịch sử chi tiết
+                    <i className="fas fa-history me-1"></i>
+                    Xem lịch sử chi tiết
                   </small>
                 </div>
               </div>
@@ -402,6 +337,12 @@ const PatientDashboard = () => {
           </div>
         </div>
       </div>
+
+      <ReadingDetailModal
+        show={Boolean(selectedReadingId)}
+        readingId={selectedReadingId}
+        onHide={() => setSelectedReadingId(null)}
+      />
     </div>
   )
 }

@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useAuth } from "../../contexts/AuthContext"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
+import { useAuth } from "../../contexts/AuthContext"
 import { alertsApi, doctorApi } from "../../services/api"
-import { ALERT_TYPE } from "../../services/string"
+import ReadingDetailModal from "../shared/ReadingDetailModal"
+import RecentAlertsPanel, { getAlertTypeLabel } from "../shared/RecentAlertsPanel"
 
 const DoctorDashboard = () => {
   const { user } = useAuth()
@@ -18,6 +19,7 @@ const DoctorDashboard = () => {
   const [recentPatients, setRecentPatients] = useState([])
   const [recentAlerts, setRecentAlerts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [selectedReadingId, setSelectedReadingId] = useState(null)
 
   // Gọi API khi đăng nhập xong
   useEffect(() => {
@@ -43,20 +45,29 @@ const DoctorDashboard = () => {
         alertsApi.getByUser(p.user_id, false).catch(() => ({ data: { alerts: [] } }))
       )
       const alertResponses = await Promise.all(alertPromises)
-      const allAlerts = alertResponses.flatMap((res) => res.data.alerts || [])
 
-      // 🧮 3️⃣ Sắp xếp & lấy 5 cảnh báo mới nhất
+      const allAlerts = alertResponses.flatMap((res, index) => {
+        const patient = patients[index]
+        const alerts = res.data?.alerts || []
+        return alerts.map((alert) => ({
+          ...alert,
+          patient_name: patient?.name || "Bệnh nhân",
+          patient_id: patient?.user_id,
+        }))
+      })
+
       const sortedAlerts = allAlerts
         .filter((a) => a && a.alert_type)
         .sort((a, b) => new Date(b.timestamp || b.created_at) - new Date(a.timestamp || a.created_at))
         .slice(0, 5)
 
-      // 📈 4️⃣ Tính thống kê
-      const criticalCount = allAlerts.filter(
-        (a) =>
-          a.alert_type.toLowerCase().includes("ngưng tim") ||
-          a.alert_type.toLowerCase().includes(ALERT_TYPE.RUNG_NHI)
-      ).length
+      const criticalCount = allAlerts.filter((a) => {
+        const type = String(a.alert_type || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+        return type.includes("ngung tim") || type.includes("afib") || type.includes("rung nhi")
+      }).length
 
       setStats({
         totalPatients: patients.length,
@@ -75,14 +86,12 @@ const DoctorDashboard = () => {
     }
   }
 
-  const formatDate = (dateString) => new Date(dateString).toLocaleString("vi-VN")
-
-  const getAlertPriority = (alertType = "") => {
-    const t = alertType.toLowerCase()
-    if (t.includes("ngưng tim")) return { class: "bg-danger", text: "Khẩn cấp" }
-    if (t.includes(ALERT_TYPE.RUNG_NHI)) return { class: "bg-danger", text: "Cao" }
-    if (t.includes(ALERT_TYPE.NHIP_NHANH)) return { class: "bg-warning", text: "Trung bình" }
-    return { class: "bg-info", text: "Thấp" }
+  const handleOpenReadingDetail = (alert) => {
+    if (!alert?.reading_id) {
+      toast.warning("Cảnh báo này không có reading để xem")
+      return
+    }
+    setSelectedReadingId(alert.reading_id)
   }
 
   if (loading) {
@@ -119,44 +128,24 @@ const DoctorDashboard = () => {
       <div className="row g-4">
         {/* 🔔 Cảnh báo gần nhất */}
         <div className="col-md-8">
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-              <h5 className="card-title mb-0">
-                <i className="fas fa-bell me-2 text-danger"></i>Cảnh báo gần nhất
-              </h5>
-              <Link to="/doctor/patients" className="btn btn-outline-primary btn-sm">
-                Xem tất cả
-              </Link>
-            </div>
-            <div className="card-body">
-              {recentAlerts.length > 0 ? (
-                <div className="list-group list-group-flush">
-                  {recentAlerts.map((alert) => {
-                    const priority = getAlertPriority(alert.alert_type)
-                    return (
-                      <div key={alert.alert_id} className="list-group-item px-0 border-0">
-                        <div className="d-flex justify-content-between align-items-start">
-                          <div className="flex-grow-1">
-                            <div className="d-flex align-items-center mb-1">
-                              <h6 className="mb-0 me-2">{alert.alert_type || "Không xác định"}</h6>
-                              <span className={`badge ${priority.class}`}>{priority.text}</span>
-                            </div>
-                            <p className="mb-1 text-muted small">{alert.message}</p>
-                            <small className="text-muted">{formatDate(alert.timestamp || alert.created_at)}</small>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <i className="fas fa-check-circle fa-3x text-success mb-3"></i>
-                  <p className="text-muted">Không có cảnh báo nào</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <RecentAlertsPanel
+            title="Cảnh báo gần nhất"
+            subtitle="Ưu tiên xử lý cảnh báo nguy cơ cao và mở nhanh đồ thị ECG."
+            alerts={recentAlerts}
+            viewAllLink={{ to: "/doctor/patients", label: "Xem tất cả" }}
+            onAlertClick={handleOpenReadingDetail}
+            getAlertTitle={(alert) => {
+              const typeLabel = getAlertTypeLabel(alert.alert_type)
+              return alert.patient_name ? `${alert.patient_name} - ${typeLabel}` : typeLabel
+            }}
+            getAlertStatus={(alert) =>
+              alert?.resolved
+                ? { label: "Đã xử lý", variant: "is-resolved" }
+                : { label: "Mới", variant: "is-pending" }
+            }
+            getAlertHint={(_alert, disabled) => (disabled ? "Không có reading" : "Nhấn để xem đồ thị ECG")}
+            emptyText="Không có cảnh báo nào"
+          />
         </div>
 
         {/* ⚡ Thao tác nhanh + Bệnh nhân gần đây */}
@@ -189,6 +178,12 @@ const DoctorDashboard = () => {
           </div>
         </div>
       </div>
+
+      <ReadingDetailModal
+        show={Boolean(selectedReadingId)}
+        readingId={selectedReadingId}
+        onHide={() => setSelectedReadingId(null)}
+      />
     </div>
   )
 }

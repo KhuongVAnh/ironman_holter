@@ -1,12 +1,14 @@
-"use client"
+﻿"use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "react-toastify"
+import { useAuth } from "../../contexts/AuthContext"
 import ECGChart from "../patient/ECGChart"
-import { alertsApi, readingsApi, usersApi } from "../../services/api"
-import { ROLE } from "../../services/string"
+import RecentAlertsPanel, { getAlertTypeLabel } from "../shared/RecentAlertsPanel"
+import { alertsApi, familyApi, readingsApi } from "../../services/api"
 
 const FamilyMonitoring = () => {
+  const { user } = useAuth()
   const [familyMembers, setFamilyMembers] = useState([])
   const [selectedMember, setSelectedMember] = useState(null)
   const [memberReadings, setMemberReadings] = useState([])
@@ -14,24 +16,37 @@ const FamilyMonitoring = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchFamilyMembers()
-  }, [])
+    if (user?.user_id) {
+      fetchFamilyMembers()
+    }
+  }, [user?.user_id])
 
   useEffect(() => {
-    if (selectedMember) {
+    if (selectedMember?.user_id) {
       fetchMemberData(selectedMember.user_id)
     }
-  }, [selectedMember])
+  }, [selectedMember?.user_id])
 
   const fetchFamilyMembers = async () => {
     try {
       setLoading(true)
-      // For demo purposes, get all patients as potential family members
-      const response = await usersApi.getAll()
-      const patients = response.data.users.filter((u) => u.role === ROLE.BENH_NHAN)
+      const response = await familyApi.getPatients(user.user_id)
+
+      const patients = (response.data || []).map((item) => ({
+        user_id: item.patient?.user_id,
+        name: item.patient?.name || "Không rõ",
+        email: item.patient?.email || "-",
+        is_active: item.status === "accepted",
+      }))
+
       setFamilyMembers(patients)
+
       if (patients.length > 0) {
         setSelectedMember(patients[0])
+      } else {
+        setSelectedMember(null)
+        setMemberReadings([])
+        setMemberAlerts([])
       }
     } catch (error) {
       console.error("Lỗi lấy danh sách người thân:", error)
@@ -43,26 +58,22 @@ const FamilyMonitoring = () => {
 
   const fetchMemberData = async (memberId) => {
     try {
-      // Fetch readings
-      const readingsResponse = await readingsApi.getHistory(memberId, { limit: 10 })
-      setMemberReadings(readingsResponse.data.readings)
+      if (!memberId) return
 
-      // Fetch alerts
+      const readingsResponse = await readingsApi.getHistory(memberId, { limit: 10 })
+      setMemberReadings(readingsResponse.data?.readings || [])
+
       const alertsResponse = await alertsApi.getByUser(memberId)
-      setMemberAlerts((alertsResponse.data.alerts || []).slice(0, 5))
+      setMemberAlerts((alertsResponse.data?.alerts || []).slice(0, 5))
     } catch (error) {
       console.error("Lỗi lấy dữ liệu người thân:", error)
       toast.error("Không thể tải dữ liệu người thân")
     }
   }
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("vi-VN")
-  }
+  const formatDate = (dateString) => new Date(dateString).toLocaleString("vi-VN")
 
-  const getLatestReading = () => {
-    return memberReadings.length > 0 ? memberReadings[0] : null
-  }
+  const latestReading = memberReadings.length > 0 ? memberReadings[0] : null
 
   if (loading) {
     return (
@@ -76,8 +87,6 @@ const FamilyMonitoring = () => {
     )
   }
 
-  const latestReading = getLatestReading()
-
   return (
     <div className="container py-4">
       <div className="row">
@@ -90,8 +99,7 @@ const FamilyMonitoring = () => {
       </div>
 
       <div className="row g-4">
-        {/* Family Members List */}
-        <div className="col-md-3">
+        <div className="col-md-4">
           <div className="card border-0 shadow-sm">
             <div className="card-header bg-white border-0">
               <h5 className="card-title mb-0">
@@ -105,19 +113,16 @@ const FamilyMonitoring = () => {
                   {familyMembers.map((member) => (
                     <button
                       key={member.user_id}
-                      className={`list-group-item list-group-item-action ${selectedMember?.user_id === member.user_id ? "active" : ""
-                        }`}
+                      className={`list-group-item list-group-item-action ${
+                        selectedMember?.user_id === member.user_id ? "active" : ""
+                      }`}
                       onClick={() => setSelectedMember(member)}
                     >
                       <div className="d-flex align-items-center">
-                        <div className="avatar-circle bg-primary text-white me-3">
-                          {member.name.charAt(0).toUpperCase()}
-                        </div>
+                        <div className="avatar-circle bg-primary text-white me-3">{member.name.charAt(0).toUpperCase()}</div>
                         <div>
                           <h6 className="mb-1">{member.name}</h6>
-                          <small
-                            className={selectedMember?.user_id === member.user_id ? "text-white-50" : "text-muted"}
-                          >
+                          <small className={selectedMember?.user_id === member.user_id ? "text-white-50" : "text-muted"}>
                             {member.is_active ? "Hoạt động" : "Ngưng"}
                           </small>
                         </div>
@@ -132,22 +137,36 @@ const FamilyMonitoring = () => {
               )}
             </div>
           </div>
+
+          <div className="mt-4">
+            <RecentAlertsPanel
+              title="Cảnh báo gần nhất"
+              subtitle="Theo dõi cảnh báo mới nhất của người thân được chọn."
+              alerts={memberAlerts}
+              isAlertDisabled={() => false}
+              getAlertTitle={(alert) => getAlertTypeLabel(alert.alert_type)}
+              getAlertStatus={(alert) =>
+                alert?.resolved
+                  ? { label: "Đã xử lý", variant: "is-resolved" }
+                  : { label: "Mới", variant: "is-pending" }
+              }
+              getAlertTimestamp={(alert) => alert.timestamp}
+              formatDate={formatDate}
+              getAlertHint={() => ""}
+              emptyText="Không có cảnh báo"
+            />
+          </div>
         </div>
 
-        {/* Member Details */}
-        <div className="col-md-9">
+        <div className="col-md-8">
           {selectedMember ? (
             <>
-              {/* Member Info */}
               <div className="card border-0 shadow-sm mb-4">
                 <div className="card-body">
                   <div className="row align-items-center">
                     <div className="col-md-8">
                       <div className="d-flex align-items-center">
-                        <div
-                          className="avatar-circle bg-primary text-white me-3"
-                          style={{ width: "60px", height: "60px" }}
-                        >
+                        <div className="avatar-circle bg-primary text-white me-3" style={{ width: "60px", height: "60px" }}>
                           <span className="fs-4">{selectedMember.name.charAt(0).toUpperCase()}</span>
                         </div>
                         <div>
@@ -179,8 +198,7 @@ const FamilyMonitoring = () => {
               </div>
 
               <div className="row g-4">
-                {/* ECG Chart */}
-                <div className="col-md-8">
+                <div className="col-12">
                   <div className="card border-0 shadow-sm">
                     <div className="card-header bg-white border-0">
                       <h5 className="card-title mb-0">
@@ -200,44 +218,8 @@ const FamilyMonitoring = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Alerts */}
-                <div className="col-md-4">
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-header bg-white border-0">
-                      <h5 className="card-title mb-0">
-                        <i className="fas fa-exclamation-triangle me-2 text-warning"></i>
-                        Cảnh báo gần nhất
-                      </h5>
-                    </div>
-                    <div className="card-body">
-                      {memberAlerts.length > 0 ? (
-                        <div className="list-group list-group-flush">
-                          {memberAlerts.map((alert) => (
-                            <div key={alert.alert_id} className="list-group-item px-0 border-0">
-                              <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                  <h6 className="mb-1 text-danger">{alert.alert_type}</h6>
-                                  <p className="mb-1 text-muted small">{alert.message}</p>
-                                  <small className="text-muted">{formatDate(alert.timestamp)}</small>
-                                </div>
-                                {!alert.resolved && <span className="badge bg-danger">Mới</span>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-4">
-                          <i className="fas fa-check-circle fa-3x text-success mb-3"></i>
-                          <p className="text-muted">Không có cảnh báo</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              {/* Recent Readings */}
               <div className="row mt-4">
                 <div className="col-12">
                   <div className="card border-0 shadow-sm">
@@ -264,12 +246,13 @@ const FamilyMonitoring = () => {
                                   <td>{formatDate(reading.timestamp)}</td>
                                   <td>
                                     <span
-                                      className={`fw-bold ${reading.heart_rate < 60
-                                        ? "text-warning"
-                                        : reading.heart_rate > 100
+                                      className={`fw-bold ${
+                                        reading.heart_rate < 60
+                                          ? "text-warning"
+                                          : reading.heart_rate > 100
                                           ? "text-danger"
                                           : "text-success"
-                                        }`}
+                                      }`}
                                     >
                                       {reading.heart_rate} BPM
                                     </span>

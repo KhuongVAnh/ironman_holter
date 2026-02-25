@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "../../contexts/AuthContext"
 import { toast } from "react-toastify"
-import ECGChart from "./ECGChart"
 import { readingsApi } from "../../services/api"
+import ReadingDetailModal from "../shared/ReadingDetailModal"
 
 const PatientHistory = () => {
   const { user } = useAuth()
@@ -12,6 +12,7 @@ const PatientHistory = () => {
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [selectedReadingId, setSelectedReadingId] = useState(null)
   const itemsPerPage = 20
 
   useEffect(() => {
@@ -23,8 +24,11 @@ const PatientHistory = () => {
       setLoading(true)
       const offset = (currentPage - 1) * itemsPerPage
       const response = await readingsApi.getHistory(user.user_id, { limit: itemsPerPage, offset })
-      setReadings(response.data.readings)
-      setTotalPages(Math.ceil(response.data.total / itemsPerPage) || 1)
+      const list = response.data?.readings || []
+      const total = response.data?.total ?? list.length
+
+      setReadings(list)
+      setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)))
     } catch (error) {
       console.error("Lỗi lấy lịch sử:", error)
       toast.error("Không thể tải lịch sử dữ liệu")
@@ -33,9 +37,7 @@ const PatientHistory = () => {
     }
   }
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("vi-VN")
-  }
+  const formatDate = (dateString) => new Date(dateString).toLocaleString("vi-VN")
 
   const getHeartRateClass = (heartRate) => {
     if (heartRate < 60) return "text-warning"
@@ -43,13 +45,11 @@ const PatientHistory = () => {
     return "text-success"
   }
 
-  const getStatusBadge = (ai_result) => {
-    return (
-      ai_result == "Normal" ?
-        <span className="badge bg-success">{`${ai_result}`}</span>
-        :
-        <span className="badge bg-danger">{`${ai_result}`}</span>
-    )
+  const getStatusBadge = (aiResult) => {
+    if (aiResult === "Normal") {
+      return <span className="badge bg-success">{aiResult}</span>
+    }
+    return <span className="badge bg-danger">{aiResult}</span>
   }
 
   if (loading) {
@@ -111,13 +111,13 @@ const PatientHistory = () => {
                             </td>
                             <td>{getStatusBadge(reading.ai_result)}</td>
                             <td>
-                              <small className="text-muted">{reading.Device?.serial_number || "N/A"}</small>
+                              <small className="text-muted">{reading.device?.serial_number || reading.Device?.serial_number || "N/A"}</small>
                             </td>
                             <td>
                               <button
+                                type="button"
                                 className="btn btn-sm btn-outline-info"
-                                data-bs-toggle="modal"
-                                data-bs-target={`#modal-${reading.reading_id}`}
+                                onClick={() => setSelectedReadingId(reading.reading_id)}
                               >
                                 <i className="fas fa-eye"></i>
                               </button>
@@ -128,7 +128,6 @@ const PatientHistory = () => {
                     </table>
                   </div>
 
-                  {/* Pagination */}
                   {totalPages > 1 && (
                     <nav className="mt-4">
                       <ul className="pagination justify-content-center">
@@ -173,75 +172,11 @@ const PatientHistory = () => {
         </div>
       </div>
 
-      {/* Modals for ECG details */}
-      {/* Modals for ECG details */}
-      {readings.map((reading) => (
-        <div key={reading.reading_id} className="modal fade" id={`modal-${reading.reading_id}`} tabIndex="-1">
-          <div className="modal-dialog modal-xl"> {/* mở rộng hơn để hiển thị biểu đồ đẹp */}
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">
-                  <i className="fas fa-wave-square text-primary me-2"></i>
-                  Chi tiết ECG - {formatDate(reading.timestamp)}
-                </h5>
-                <button type="button" className="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-
-              <div className="modal-body">
-                {/* Thông tin tóm tắt */}
-                <div className="row mb-3">
-                  <div className="col-md-6">
-                    <strong>Nhịp tim:</strong>{" "}
-                    <span className={getHeartRateClass(reading.heart_rate)}>
-                      {reading.heart_rate} BPM
-                    </span>
-                  </div>
-                  <div className="col-md-6">
-                    <strong>Dự đoán của AI:</strong> {getStatusBadge(reading.ai_result)}
-                  </div>
-                </div>
-
-                {/* Đồ thị ECG */}
-                <div className="border rounded p-3 bg-light">
-                  <h6 className="text-muted mb-3">
-                    <i className="fas fa-chart-line me-2 text-danger"></i>
-                    Đồ thị tín hiệu ECG
-                  </h6>
-
-                  {reading.ecg_signal ? (
-                    <ECGChart
-                      data={(() => {
-                        try {
-                          const parsed =
-                            typeof reading.ecg_signal === "string"
-                              ? JSON.parse(reading.ecg_signal)
-                              : reading.ecg_signal
-                          return Array.isArray(parsed) ? parsed : []
-                        } catch (err) {
-                          console.error("❌ Lỗi parse ECG:", err)
-                          return []
-                        }
-                      })()}
-                    />
-                  ) : (
-                    <div className="text-center py-4">
-                      <i className="fas fa-exclamation-circle text-warning fa-2x mb-2"></i>
-                      <p className="text-muted mb-0">Không có dữ liệu ECG để hiển thị</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
-                  Đóng
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
-
+      <ReadingDetailModal
+        show={Boolean(selectedReadingId)}
+        readingId={selectedReadingId}
+        onHide={() => setSelectedReadingId(null)}
+      />
     </div>
   )
 }
