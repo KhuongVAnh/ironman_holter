@@ -1,47 +1,302 @@
-// Controller xu ly telemetry, du lieu ECG va lich su chi so tim mach.
+﻿// Controller xu ly telemetry, du lieu ECG va lich su chi so tim mach.
+const fs = require("fs")
+const path = require("path")
 const prisma = require("../prismaClient")
 const { AccessRole, AccessStatus, NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("../services/socketEmitService")
 const { createNotification } = require("../services/notificationService")
+const { predictFromReading } = require("../services/ecgCnnService")
+const { resolveAiCodeFromLabel, getAiLabelFromCode } = require("../strings/ecgAiStrings")
 
-// Ham xu ly tao du lieu ECG gia lap theo nhip tim va tan so lay mau.
-const generateFakeECGData = (duration = 10, sampleRate = 250, heartRate = 75) => {
-  const data = []
-  const samples = sampleRate * duration
-  const beatInterval = 60 / heartRate
+const BASELINE_SAMPLE_RATE = 250
+const BASELINE_READING_SECONDS = 5
+const BASELINE_SEGMENT_SECONDS = 0.5
+const BASELINE_SEGMENT_LENGTH = Math.floor(BASELINE_SAMPLE_RATE * BASELINE_SEGMENT_SECONDS)
+const BASELINE_TOTAL_SAMPLES = BASELINE_SAMPLE_RATE * BASELINE_READING_SECONDS
+const BASELINE_SEGMENTS_PER_READING = 5
+const BASELINE_SLICE_START = 30000
+const BASELINE_SLICE_END = 59000
+const NORMAL_BASELINE_LABELS = new Set(["N", "Q"])
 
-  for (let i = 0; i < samples; i++) {
-    const t = i / sampleRate
-    const beatPhase = (t % beatInterval) / beatInterval
+let cachedBaselineSegmentPool = null
 
-    let signal = 0
+// Hàm xử lý dựng đường dẫn tuyệt đối vào thư mục model_CNN.
+const resolveModelCnnPath = (...parts) => path.resolve(__dirname, "..", "model_CNN", ...parts)
 
-    if (beatPhase >= 0.05 && beatPhase < 0.20) {
-      const pPhase = (beatPhase - 0.05) / 0.15
-      signal += 0.15 * Math.sin(pPhase * Math.PI)
-    } else if (beatPhase >= 0.25 && beatPhase < 0.35) {
-      const qrsPhase = (beatPhase - 0.25) / 0.10
-      if (qrsPhase < 0.2) signal -= 0.25 * Math.sin(qrsPhase * 5 * Math.PI)
-      else if (qrsPhase < 0.6) signal += 1.2 * Math.sin((qrsPhase - 0.2) * 5 * Math.PI)
-      else signal -= 0.35 * Math.sin((qrsPhase - 0.6) * 5 * Math.PI)
-    } else if (beatPhase >= 0.45 && beatPhase < 0.70) {
-      const tPhase = (beatPhase - 0.45) / 0.25
-      signal += 0.35 * Math.sin(tPhase * Math.PI)
-    }
+// Hàm xử lý đọc JSON từ đĩa và parse an toàn.
+const readJsonFile = (filePath) => {
+  const raw = fs.readFileSync(filePath, "utf8")
+  return JSON.parse(raw)
+}
 
-    signal += 0.05 * Math.sin(2 * Math.PI * 0.5 * t)
-    signal += (Math.random() - 0.5) * 0.03
+// Hàm xử lý lấy path readings theo tên file hiện có trong thư mục model_CNN/ecg.
+const resolveReadingsJsonPath = () => {
+  const candidates = [
+    resolveModelCnnPath("ecg", "readings_with_id.json"),
+    resolveModelCnnPath("ecg", "reading_with_id.json"),
+  ]
+  const existingPath = candidates.find((candidate) => fs.existsSync(candidate))
+  if (!existingPath) {
+    throw new Error("Khong tim thay file readings_with_id.json hoac reading_with_id.json trong model_CNN/ecg")
+  }
+  return existingPath
+}
 
-    data.push(Math.round(signal * 1000) / 1000)
+// Hàm xử lý tải và cache pool segment baseline để tạo dữ liệu fake ổn định.
+const getBaselineSegmentPool = () => {
+  if (Array.isArray(cachedBaselineSegmentPool) && cachedBaselineSegmentPool.length > 0) {
+    return cachedBaselineSegmentPool
   }
 
+  const baselinePath = resolveModelCnnPath("baseline_p0_t05.json")
+  if (!fs.existsSync(baselinePath)) {
+    throw new Error("Khong tim thay file baseline_p0_t05.json trong model_CNN")
+  }
+  const baselineRows = readJsonFile(baselinePath)
+
+  if (!Array.isArray(baselineRows) || baselineRows.length === 0) {
+    throw new Error("Du lieu baseline_p0_t05.json khong hop le hoac rong")
+  }
+
+  const readingsPath = resolveReadingsJsonPath()
+  const readingsPayload = readJsonFile(readingsPath)
+  if (!Array.isArray(readingsPayload) || readingsPayload.length === 0) {
+    throw new Error("Du lieu readings json khong hop le hoac rong")
+  }
+
+  const allSignal = readingsPayload
+    .flatMap((record) => (Array.isArray(record?.reading) ? record.reading : []))
+    .map((value) => Number(value))
+    .filter(Number.isFinite)
+
+  if (allSignal.length <= BASELINE_SLICE_START) {
+    throw new Error("Tong so mau ECG khong du de cat doan baseline [30000:59000]")
+  }
+
+  const slicedSignal = allSignal.slice(BASELINE_SLICE_START, BASELINE_SLICE_END)
+  const segmentPool = baselineRows
+    .map((row) => {
+      const start = Number.parseInt(row?.segment_start, 10)
+      const end = Number.parseInt(row?.segment_end, 10)
+      if (!Number.isInteger(start) || !Number.isInteger(end)) return null
+      const segment = slicedSignal.slice(start, end)
+      if (segment.length !== BASELINE_SEGMENT_LENGTH) return null
+      const label = String(row?.label || "").trim().toUpperCase()
+      return {
+        values: segment,
+        label: label || "N",
+        isAbnormal: label ? !NORMAL_BASELINE_LABELS.has(label) : false,
+      }
+    })
+    .filter(Boolean)
+
+  if (segmentPool.length === 0) {
+    throw new Error("Khong trich xuat duoc segment hop le tu baseline de tao fake reading")
+  }
+
+  cachedBaselineSegmentPool = segmentPool
+  return cachedBaselineSegmentPool
+}
+
+// Hàm xử lý tạo fake reading 5 giây từ 5 segment baseline và khoảng lặng 0.5 giây.
+const generateFakeECGData = () => {
+  const segmentPool = getBaselineSegmentPool()
+  const abnormalPool = segmentPool.filter((item) => item.isAbnormal)
+  const selectedSegments = []
+
+  if (abnormalPool.length > 0) {
+    const randomAbnormalIndex = Math.floor(Math.random() * abnormalPool.length)
+    selectedSegments.push(abnormalPool[randomAbnormalIndex])
+  }
+
+  while (selectedSegments.length < BASELINE_SEGMENTS_PER_READING) {
+    const randomIndex = Math.floor(Math.random() * segmentPool.length)
+    selectedSegments.push(segmentPool[randomIndex])
+  }
+
+  for (let i = selectedSegments.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const temp = selectedSegments[i]
+    selectedSegments[i] = selectedSegments[j]
+    selectedSegments[j] = temp
+  }
+
+  const data = []
+  for (const segment of selectedSegments) {
+    data.push(...segment.values)
+    data.push(...new Array(BASELINE_SEGMENT_LENGTH).fill(0))
+  }
+
+  if (data.length > BASELINE_TOTAL_SAMPLES) {
+    return data.slice(0, BASELINE_TOTAL_SAMPLES)
+  }
+  if (data.length < BASELINE_TOTAL_SAMPLES) {
+    data.push(...new Array(BASELINE_TOTAL_SAMPLES - data.length).fill(0))
+  }
   return data
 }
 
-// Ham xu ly mo phong phan loai AI tren tin hieu ECG.
-function mockAIClassifier(ecgSignal) {
-  const results = ["Normal", "AFIB", "Ngoại tâm thu", "Nhịp nhanh", "Nhịp chậm"]
-  return results[Math.floor(Math.random() * results.length)]
+const FALLBACK_AI_RESULT = "Bình thường"
+
+// Hàm xử lý chuẩn hóa tín hiệu ECG về mảng số hợp lệ để lưu và suy luận.
+const normalizeEcgSignal = (input) => {
+  let value = input
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value)
+    } catch (error) {
+      return []
+    }
+  }
+
+  if (!Array.isArray(value)) return []
+  return value.map((item) => Number(item)).filter(Number.isFinite)
+}
+
+// Hàm xử lý chuẩn hóa chuỗi tóm tắt kết quả AI để lưu trong reading.ai_result.
+const toAiResultSummary = (aiResult) => {
+  const summary = String(aiResult?.ai_result_summary || "").trim()
+  return summary || FALLBACK_AI_RESULT
+}
+
+// Hàm xử lý gọi service AI và trả về kết quả segment-level an toàn cho controller.
+const inferReadingWithAI = async (ecgSignal, context) => {
+  try {
+    const aiResult = await predictFromReading(ecgSignal)
+    if (!aiResult || aiResult.skipped) {
+      console.warn("[AI_INFER_SKIP]", {
+        context,
+        reason: aiResult?.reason || "UNKNOWN",
+        infer_ms: aiResult?.infer_ms ?? null,
+      })
+      return {
+        aiResultSummary: FALLBACK_AI_RESULT,
+        abnormalDetected: false,
+        abnormalGroups: [],
+        segmentPredictions: [],
+        aiMeta: aiResult || null,
+      }
+    }
+
+    const aiResultSummary = toAiResultSummary(aiResult)
+    const abnormalGroups = Array.isArray(aiResult.abnormal_groups) ? aiResult.abnormal_groups : []
+    const segmentPredictions = Array.isArray(aiResult.segment_predictions)
+      ? aiResult.segment_predictions
+      : []
+    const abnormalDetected = abnormalGroups.length > 0
+
+    console.log("[AI_INFER_OK]", {
+      context,
+      ai_result_summary: aiResultSummary,
+      abnormal_detected: abnormalDetected,
+      abnormal_group_count: abnormalGroups.length,
+      infer_ms: aiResult.infer_ms ?? null,
+      beat_count: aiResult.beat_count ?? null,
+    })
+
+    return {
+      aiResultSummary,
+      abnormalDetected,
+      abnormalGroups,
+      segmentPredictions,
+      aiMeta: aiResult,
+    }
+  } catch (error) {
+    console.error("[AI_INFER_ERROR]", {
+      context,
+      message: error?.message || "UNKNOWN",
+    })
+    return {
+      aiResultSummary: FALLBACK_AI_RESULT,
+      abnormalDetected: false,
+      abnormalGroups: [],
+      segmentPredictions: [],
+      aiMeta: null,
+    }
+  }
+}
+
+// Hàm xử lý lấy nhãn cảnh báo để lưu alert_type từ dữ liệu nhóm segment bất thường.
+const getAlertTypeFromGroup = (group) => {
+  const labelText = String(group?.label_text || "").trim()
+  const labelCode = String(group?.label_code || "").trim()
+  return labelText || labelCode || "Bat thuong"
+}
+
+// Hàm xử lý tạo nội dung message cảnh báo từ một nhóm segment bất thường.
+const buildAlertMessageFromGroup = (group, heartRate) => {
+  const alertType = getAlertTypeFromGroup(group)
+  const startSample = Number(group?.start_sample)
+  const endSample = Number(group?.end_sample)
+  const segmentCount = Number(group?.segment_count || 1)
+  return `Phát hiện ${alertType} tại đoạn mẫu ${startSample}-${endSample} (${segmentCount} segment). Nhịp tim ${heartRate} bpm`
+}
+
+// Hàm xử lý tạo nhiều alert từ danh sách nhóm segment bất thường của một reading.
+const createGroupedAlerts = async (userId, readingId, heartRate, abnormalGroups) => {
+  const createOps = abnormalGroups.map((group) =>
+    prisma.alert.create({
+      data: {
+        user_id: userId,
+        reading_id: readingId,
+        alert_type: getAlertTypeFromGroup(group),
+        message: buildAlertMessageFromGroup(group, heartRate),
+        segment_start_sample: Number.isInteger(Number(group.start_sample))
+          ? Number(group.start_sample)
+          : null,
+        segment_end_sample: Number.isInteger(Number(group.end_sample))
+          ? Number(group.end_sample)
+          : null,
+      },
+    })
+  )
+  return prisma.$transaction(createOps)
+}
+
+// Hàm xử lý emit một event alert dạng gộp cho toàn bộ alert của cùng một reading.
+const emitAggregatedAlertEvent = (io, recipients, payload) => {
+  emitToUsers(io, recipients, "alert", payload)
+}
+
+// Hàm xử lý tạo notification cảnh báo dạng gộp cho một reading có nhiều alert con.
+const createAggregatedAlertNotification = async ({
+  actorId,
+  recipients,
+  io,
+  userId,
+  readingId,
+  serialNumber,
+  aiResultSummary,
+  createdAlerts,
+}) => {
+  if (!Array.isArray(createdAlerts) || createdAlerts.length === 0) return
+
+  const summaryMessage = `Phát hiện ${createdAlerts.length} cảnh báo bất thường (${aiResultSummary})`
+  await createNotification({
+    type: NotificationType.ALERT,
+    title: "Canh bao suc khoe",
+    message: summaryMessage,
+    actorId,
+    entityType: "alert",
+    entityId: createdAlerts[0].alert_id,
+    payload: {
+      user_id: userId,
+      reading_id: readingId,
+      serial_number: serialNumber || null,
+      abnormal_count: createdAlerts.length,
+      ai_result_summary: aiResultSummary,
+      alerts: createdAlerts.map((alert) => ({
+        alert_id: alert.alert_id,
+        alert_type: alert.alert_type,
+        message: alert.message,
+        segment_start_sample: alert.segment_start_sample,
+        segment_end_sample: alert.segment_end_sample,
+        timestamp: alert.timestamp,
+      })),
+    },
+    recipientUserIds: recipients,
+    io,
+  })
 }
 
 // Ham xu ly chuan hoa device_id ve so nguyen hop le.
@@ -81,11 +336,15 @@ const createFakeReading = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy thiết bị" })
     }
 
-    const heart_rate = Math.floor(Math.random() * (120 - 60 + 1)) + 60
+    const heart_rate = 60
     const ecg_signal = generateFakeECGData()
 
-    const aiResult = mockAIClassifier(ecg_signal)
-    const abnormal_detected = aiResult !== "Normal"
+    const { aiResultSummary, abnormalDetected, abnormalGroups, aiMeta } = await inferReadingWithAI(
+      ecg_signal,
+      "createFakeReading"
+    )
+    void aiMeta
+    const abnormal_detected = abnormalDetected
 
     const reading = await prisma.reading.create({
       data: {
@@ -93,7 +352,7 @@ const createFakeReading = async (req, res) => {
         heart_rate,
         ecg_signal: JSON.stringify(ecg_signal),
         abnormal_detected,
-        ai_result: aiResult,
+        ai_result: aiResultSummary,
         timestamp: new Date(),
       },
     })
@@ -107,46 +366,48 @@ const createFakeReading = async (req, res) => {
       heart_rate,
       ecg_signal,
       abnormal_detected,
-      ai_result: aiResult,
+      ai_result: aiResultSummary,
       timestamp: reading.timestamp,
     })
 
     if (abnormal_detected) {
-      const alertType = aiResult
-      const message = `Phát hiện dấu hiệu của ${alertType}: Nhịp tim ${heart_rate} bpm`
+      const createdAlerts = await createGroupedAlerts(
+        device.user_id,
+        reading.reading_id,
+        heart_rate,
+        abnormalGroups
+      )
 
-      const createdAlert = await prisma.alert.create({
-        data: {
-          user_id: device.user_id,
-          reading_id: reading.reading_id,
-          alert_type: alertType,
-          message,
-        },
-      })
-
-      emitToUsers(io, recipients, "alert", {
-        alert_id: createdAlert.alert_id,
-        user_id: device.user_id,
+      const message = `Phát hiện ${createdAlerts.length} cảnh báo bất thường (${aiResultSummary})`
+      emitAggregatedAlertEvent(io, recipients, {
         reading_id: reading.reading_id,
-        alert_type: alertType,
+        user_id: device.user_id,
+        abnormal_count: createdAlerts.length,
+        ai_result_summary: aiResultSummary,
+        alert_type: createdAlerts[0]?.alert_type || null,
         message,
-        timestamp: createdAlert.timestamp,
+        timestamp: reading.timestamp,
+        alerts: createdAlerts.map((alert) => ({
+          alert_id: alert.alert_id,
+          user_id: alert.user_id,
+          reading_id: alert.reading_id,
+          alert_type: alert.alert_type,
+          message: alert.message,
+          segment_start_sample: alert.segment_start_sample,
+          segment_end_sample: alert.segment_end_sample,
+          timestamp: alert.timestamp,
+        })),
       })
 
-      await createNotification({
-        type: NotificationType.ALERT,
-        title: "Canh bao suc khoe",
-        message,
+      await createAggregatedAlertNotification({
         actorId: req.user?.user_id,
-        entityType: "alert",
-        entityId: createdAlert.alert_id,
-        payload: {
-          user_id: device.user_id,
-          alert_type: alertType,
-          reading_id: createdAlert.reading_id,
-        },
-        recipientUserIds: recipients,
+        recipients,
         io,
+        userId: device.user_id,
+        readingId: reading.reading_id,
+        serialNumber: null,
+        aiResultSummary,
+        createdAlerts,
       })
     }
 
@@ -243,9 +504,14 @@ const receiveTelemetry = async (req, res) => {
       return res.status(404).json({ message: "Khong tim thay thiet bi" })
     }
 
-    const ecg = ecg_signal || fakeECGSignal()
-    const aiResult = mockAIClassifier(ecg)
-    const abnormal_detected = aiResult !== "Normal"
+    const normalizedEcg = normalizeEcgSignal(ecg_signal)
+    const ecg = normalizedEcg.length > 0 ? normalizedEcg : fakeECGSignal()
+    const { aiResultSummary, abnormalDetected, abnormalGroups, aiMeta } = await inferReadingWithAI(
+      ecg,
+      "receiveTelemetry"
+    )
+    void aiMeta
+    const abnormal_detected = abnormalDetected
 
     const reading = await prisma.reading.create({
       data: {
@@ -253,7 +519,7 @@ const receiveTelemetry = async (req, res) => {
         heart_rate: heart_rate || Math.floor(Math.random() * 60) + 60,
         ecg_signal: JSON.stringify(ecg),
         abnormal_detected,
-        ai_result: aiResult,
+        ai_result: aiResultSummary,
         timestamp: new Date(),
       },
     })
@@ -293,47 +559,49 @@ const receiveTelemetry = async (req, res) => {
       serial_number: device.serial_number,
       heart_rate: reading.heart_rate,
       ecg_signal: mergedECG,
+      abnormal_detected: reading.abnormal_detected,
       ai_result: reading.ai_result,
       timestamp: reading.timestamp,
     })
 
     if (abnormal_detected) {
-      const alertType = aiResult
-      const message = `Phat hien dau hieu cua ${alertType}: Nhip tim ${reading.heart_rate} bpm`
+      const createdAlerts = await createGroupedAlerts(
+        device.user_id,
+        reading.reading_id,
+        reading.heart_rate,
+        abnormalGroups
+      )
 
-      const createdAlert = await prisma.alert.create({
-        data: {
-          user_id: device.user_id,
-          reading_id: reading.reading_id,
-          alert_type: alertType,
-          message,
-        },
-      })
-
-      emitToUsers(io, recipients, "alert", {
-        alert_id: createdAlert.alert_id,
-        user_id: device.user_id,
+      const message = `Phat hien ${createdAlerts.length} canh bao bat thuong (${aiResultSummary})`
+      emitAggregatedAlertEvent(io, recipients, {
         reading_id: reading.reading_id,
-        alert_type: alertType,
+        user_id: device.user_id,
+        abnormal_count: createdAlerts.length,
+        ai_result_summary: aiResultSummary,
+        alert_type: createdAlerts[0]?.alert_type || null,
         message,
-        timestamp: createdAlert.timestamp,
+        timestamp: reading.timestamp,
+        alerts: createdAlerts.map((alert) => ({
+          alert_id: alert.alert_id,
+          user_id: alert.user_id,
+          reading_id: alert.reading_id,
+          alert_type: alert.alert_type,
+          message: alert.message,
+          segment_start_sample: alert.segment_start_sample,
+          segment_end_sample: alert.segment_end_sample,
+          timestamp: alert.timestamp,
+        })),
       })
 
-      await createNotification({
-        type: NotificationType.ALERT,
-        title: "Canh bao suc khoe",
-        message,
+      await createAggregatedAlertNotification({
         actorId: null,
-        entityType: "alert",
-        entityId: createdAlert.alert_id,
-        payload: {
-          user_id: device.user_id,
-          alert_type: alertType,
-          serial_number: device.serial_number,
-          reading_id: reading.reading_id,
-        },
-        recipientUserIds: recipients,
+        recipients,
         io,
+        userId: device.user_id,
+        readingId: reading.reading_id,
+        serialNumber: device.serial_number,
+        aiResultSummary,
+        createdAlerts,
       })
     }
 
@@ -370,6 +638,24 @@ const getReadingDetail = async (req, res) => {
             },
           },
         },
+        alerts: {
+          where: {
+            segment_start_sample: { not: null },
+            segment_end_sample: { not: null },
+          },
+          orderBy: [
+            { segment_start_sample: "asc" },
+            { timestamp: "asc" },
+          ],
+          select: {
+            alert_id: true,
+            alert_type: true,
+            segment_start_sample: true,
+            segment_end_sample: true,
+            timestamp: true,
+            resolved: true,
+          },
+        },
       },
     })
 
@@ -379,20 +665,40 @@ const getReadingDetail = async (req, res) => {
 
     const patientId = reading.device.user_id
     if (requesterId !== patientId) {
-      const doctorAccess = await prisma.accessPermission.findFirst({
+      const viewerAccess = await prisma.accessPermission.findFirst({
         where: {
           patient_id: patientId,
           viewer_id: requesterId,
-          role: AccessRole.BAC_SI,
+          role: { in: [AccessRole.BAC_SI, AccessRole.GIA_DINH] },
           status: AccessStatus.accepted,
         },
         select: { permission_id: true },
       })
 
-      if (!doctorAccess) {
+      if (!viewerAccess) {
         return res.status(403).json({ message: "Ban khong co quyen xem reading nay" })
       }
     }
+
+    const mappedAlerts = reading.alerts
+      .map((alert) => {
+        const labelCode = resolveAiCodeFromLabel(alert.alert_type)
+        const labelText = getAiLabelFromCode(labelCode || alert.alert_type)
+        return {
+          alert_id: alert.alert_id,
+          alert_type: alert.alert_type,
+          label_code: labelCode,
+          label_text: labelText,
+          segment_start_sample: alert.segment_start_sample,
+          segment_end_sample: alert.segment_end_sample,
+          timestamp: alert.timestamp,
+          resolved: alert.resolved,
+        }
+      })
+      .filter((alert) =>
+        Number.isInteger(Number(alert.segment_start_sample)) &&
+        Number.isInteger(Number(alert.segment_end_sample))
+      )
 
     return res.json({
       reading: {
@@ -407,6 +713,7 @@ const getReadingDetail = async (req, res) => {
           serial_number: reading.device.serial_number,
         },
         patient: reading.device.user,
+        alerts: mappedAlerts,
       },
     })
   } catch (error) {

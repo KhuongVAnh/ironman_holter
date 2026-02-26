@@ -1,5 +1,11 @@
 const path = require("path")
-require("dotenv").config({ path: path.resolve(__dirname, "../.env") })
+const dotenv = require("dotenv")
+
+// Quy tac uu tien env:
+// 1) server/.env la nguon chinh
+// 2) root .env chi bo sung key con thieu (khong override key da co)
+dotenv.config({ path: path.resolve(__dirname, ".env") })
+dotenv.config({ path: path.resolve(__dirname, "../.env"), override: false })
 const express = require("express")
 const cors = require("cors")
 const helmet = require("helmet")

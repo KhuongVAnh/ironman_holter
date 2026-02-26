@@ -6,6 +6,7 @@ import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import ECGChart from "../patient/ECGChart"
 import { alertsApi, readingsApi, reportsApi, doctorApi } from "../../services/api"
+import ReadingDetailModal from "../shared/ReadingDetailModal"
 
 const PatientDetail = () => {
   const { user } = useAuth()
@@ -17,6 +18,7 @@ const PatientDetail = () => {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
   const [reportForm, setReportForm] = useState({ summary: "" })
+  const [selectedReadingId, setSelectedReadingId] = useState(null)
 
   useEffect(() => {
     if (user?.user_id) fetchPatientData()
@@ -83,6 +85,14 @@ const PatientDetail = () => {
 
   const getLatestReading = () => {
     return readings.length > 0 ? readings[0] : null
+  }
+
+  const handleOpenReadingDetail = (alert) => {
+    if (!alert?.reading_id) {
+      toast.warning("Cảnh báo này không có reading để xem")
+      return
+    }
+    setSelectedReadingId(alert.reading_id)
   }
 
   if (loading) {
@@ -321,20 +331,30 @@ const PatientDetail = () => {
                   <div className="row g-3">
                     {alerts.map((alert) => (
                       <div key={alert.alert_id} className="col-md-6">
-                        <div className="card border-start border-3 border-danger">
+                        <button
+                          type="button"
+                          className="alert-clickable-card card border-start border-3 border-danger"
+                          onClick={() => handleOpenReadingDetail(alert)}
+                          disabled={!alert.reading_id}
+                        >
                           <div className="card-body">
                             <div className="d-flex justify-content-between align-items-start mb-2">
-                              <h6 className="card-title">{alert.alert_type}</h6>
-                              {alert.resolved ? (
-                                <span className="badge bg-success">Đã xử lý</span>
-                              ) : (
-                                <span className="badge bg-danger">Chưa xử lý</span>
-                              )}
+                              <h6 className="card-title mb-0">{alert.alert_type}</h6>
+                              <div className="d-flex align-items-center gap-2">
+                                {!alert.reading_id && (
+                                  <span className="badge bg-secondary">Không có reading</span>
+                                )}
+                                {alert.resolved ? (
+                                  <span className="badge bg-success">Đã xử lý</span>
+                                ) : (
+                                  <span className="badge bg-danger">Chưa xử lý</span>
+                                )}
+                              </div>
                             </div>
                             <p className="card-text text-muted">{alert.message}</p>
                             <small className="text-muted">{formatDate(alert.timestamp)}</small>
                           </div>
-                        </div>
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -380,6 +400,12 @@ const PatientDetail = () => {
           )}
         </div>
       </div>
+
+      <ReadingDetailModal
+        show={Boolean(selectedReadingId)}
+        readingId={selectedReadingId}
+        onHide={() => setSelectedReadingId(null)}
+      />
     </div>
   )
 }

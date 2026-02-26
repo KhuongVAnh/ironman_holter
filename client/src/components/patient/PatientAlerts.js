@@ -1,16 +1,83 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useAuth } from "../../contexts/AuthContext"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "react-toastify"
+import { useAuth } from "../../contexts/AuthContext"
 import { alertsApi } from "../../services/api"
-import { ALERT_TYPE, ROLE } from "../../services/string"
+import ReadingDetailModal from "../shared/ReadingDetailModal"
+
+const SEVERITY_META = {
+  high: {
+    key: "high",
+    title: "Nguy cơ cao",
+    subtitle: "Cần theo dõi và trao đổi với bác sĩ sớm.",
+    icon: "fas fa-triangle-exclamation",
+    className: "alert-severity-high",
+  },
+  medium: {
+    key: "medium",
+    title: "Trung bình",
+    subtitle: "Nên theo dõi nhịp tim sát trong ngày.",
+    icon: "fas fa-wave-square",
+    className: "alert-severity-medium",
+  },
+  low: {
+    key: "low",
+    title: "Thấp",
+    subtitle: "Tiếp tục theo dõi định kỳ.",
+    icon: "fas fa-circle-check",
+    className: "alert-severity-low",
+  },
+}
+
+const FILTER_ITEMS = [
+  { key: "all", label: "Tất cả" },
+  { key: "unresolved", label: "Chưa xử lý" },
+  { key: "resolved", label: "Đã xử lý" },
+]
+
+const normalizeText = (value = "") =>
+  String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+
+const getAlertSeverity = (alertType) => {
+  const normalized = normalizeText(alertType)
+  if (
+    normalized.includes("afib") ||
+    normalized.includes("rung nhi") ||
+    normalized.includes("ngung tim") ||
+    normalized.includes("ngung tho") ||
+    normalized.includes("critical")
+  ) {
+    return "high"
+  }
+  if (normalized.includes("nhip nhanh") || normalized.includes("nhip cham")) {
+    return "medium"
+  }
+  return "low"
+}
+
+const getAlertTypeLabel = (alertType) => {
+  const normalized = normalizeText(alertType)
+  if (normalized.includes("afib") || normalized.includes("rung nhi")) return "AFIB"
+  if (normalized.includes("nhip nhanh")) return "Nhịp nhanh"
+  if (normalized.includes("nhip cham")) return "Nhịp chậm"
+  if (normalized.includes("ngoai tam thu")) return "Ngoại tâm thu"
+  if (normalized.includes("binh thuong") || normalized.includes("normal")) return "Bình thường"
+  return alertType || "Cảnh báo"
+}
+
+const formatDate = (dateString) => new Date(dateString).toLocaleString("vi-VN")
 
 const PatientAlerts = () => {
   const { user } = useAuth()
   const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState("all") // all, resolved, unresolved
+  const [filter, setFilter] = useState("all")
+  const [selectedReadingId, setSelectedReadingId] = useState(null)
 
   useEffect(() => {
     if (!user?.user_id) {
@@ -36,42 +103,29 @@ const PatientAlerts = () => {
     }
   }
 
-  const formatDate = (dateString) => new Date(dateString).toLocaleString("vi-VN")
-
-  const getAlertIcon = (alertType) => {
-    switch ((alertType || "").toLowerCase()) {
-      case ALERT_TYPE.NHIP_NHANH:
-        return "fas fa-arrow-up text-primary"
-      case ALERT_TYPE.NHIP_CHAM:
-        return "fas fa-arrow-down text-primary"
-      case ALERT_TYPE.RUNG_NHI:
-        return "fas fa-heart-crack text-danger"
-      case ALERT_TYPE.NGOAI_TAM_THU:
-        return "fas fa-bolt text-warning"
-      case ALERT_TYPE.NORMAL:
-      case ALERT_TYPE.BINH_THUONG:
-        return "fas fa-check-circle text-success"
-      default:
-        return "fas fa-heartbeat text-danger"
+  const groupedAlerts = useMemo(() => {
+    const groups = { high: [], medium: [], low: [] }
+    for (const alert of alerts) {
+      groups[getAlertSeverity(alert.alert_type)].push(alert)
     }
-  }
+    return groups
+  }, [alerts])
 
-  const getAlertColor = (alertType) => {
-    switch ((alertType || "").toLowerCase()) {
-      case ALERT_TYPE.NHIP_NHANH:
-        return "border-secondary"
-      case ALERT_TYPE.RUNG_NHI:
-        return "border-danger"
-      case ALERT_TYPE.NGOAI_TAM_THU:
-        return "border-warning"
-      case ALERT_TYPE.NHIP_CHAM:
-        return "border-secondary"
-      case ALERT_TYPE.NORMAL:
-      case ALERT_TYPE.BINH_THUONG:
-        return "border-success"
-      default:
-        return "border-danger"
+  const summary = useMemo(
+    () => ({
+      total: alerts.length,
+      unresolved: alerts.filter((item) => !item.resolved).length,
+      resolved: alerts.filter((item) => item.resolved).length,
+    }),
+    [alerts]
+  )
+
+  const handleViewReading = (alert) => {
+    if (!alert?.reading_id) {
+      toast.warning("Cảnh báo này không có reading tương ứng để xem đồ thị")
+      return
     }
+    setSelectedReadingId(alert.reading_id)
   }
 
   if (loading) {
@@ -88,125 +142,127 @@ const PatientAlerts = () => {
 
   return (
     <div className="container py-4">
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 mb-0">
-          <i className="fas fa-exclamation-triangle me-2 text-warning"></i>
-          Cảnh báo sức khỏe
-        </h1>
+      <div className="alert-page-header mb-4">
+        <div>
+          <h1 className="h3 mb-1">
+            <i className="fas fa-triangle-exclamation me-2 text-warning"></i>
+            Cảnh báo sức khỏe
+          </h1>
+          <p className="alert-page-subtitle mb-0">
+            Theo dõi cảnh báo theo mức độ để ưu tiên xử lý và mở nhanh đồ thị ECG liên quan.
+          </p>
+        </div>
         <button className="btn btn-outline-primary" onClick={fetchAlerts}>
-          <i className="fas fa-sync-alt me-1"></i>Làm mới
+          <i className="fas fa-rotate-right me-2"></i>
+          Làm mới
         </button>
       </div>
 
-      {/* Filter buttons */}
-      <div className="btn-group mb-4" role="group">
-        <button
-          type="button"
-          className={`btn ${filter === "all" ? "btn-primary" : "btn-outline-primary"}`}
-          onClick={() => setFilter("all")}
-        >
-          Tất cả
-        </button>
-        <button
-          type="button"
-          className={`btn ${filter === "unresolved" ? "btn-primary" : "btn-outline-primary"}`}
-          onClick={() => setFilter("unresolved")}
-        >
-          Chưa xử lý
-        </button>
-        <button
-          type="button"
-          className={`btn ${filter === "resolved" ? "btn-primary" : "btn-outline-primary"}`}
-          onClick={() => setFilter("resolved")}
-        >
-          Đã xử lý
-        </button>
+      <div className="alert-summary-strip mb-4">
+        <div className="alert-summary-item">
+          <span className="alert-summary-label">Tổng cảnh báo</span>
+          <span className="alert-summary-value">{summary.total}</span>
+        </div>
+        <div className="alert-summary-item">
+          <span className="alert-summary-label">Chưa xử lý</span>
+          <span className="alert-summary-value text-danger">{summary.unresolved}</span>
+        </div>
+        <div className="alert-summary-item">
+          <span className="alert-summary-label">Đã xử lý</span>
+          <span className="alert-summary-value text-success">{summary.resolved}</span>
+        </div>
       </div>
 
-      {/* Alerts list */}
-      {alerts.length > 0 ? (
-        <div className="row g-3">
-          {alerts.map((alert) => (
-            <div key={alert.alert_id} className="col-md-6 col-lg-4">
-              <div className={`card h-100 border-start border-3 ${getAlertColor(alert.alert_type)}`}>
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                    <div className="d-flex align-items-center">
-                      <i className={`${getAlertIcon(alert.alert_type)} me-2`}></i>
-                      <h6 className="card-title mb-0">{alert.alert_type}</h6>
-                    </div>
-                    {alert.resolved ? (
-                      <span className="badge bg-success">Đã xử lý</span>
-                    ) : (
-                      <span className="badge bg-danger">Chưa xử lý</span>
-                    )}
-                  </div>
-
-                  <p className="card-text text-muted mb-3">{alert.message}</p>
-
-                  <div className="d-flex justify-content-between align-items-center">
-                    <small className="text-muted">{formatDate(alert.timestamp)}</small>
-
-                    {/* 👇 Thay nút xử lý bằng dòng thông báo */}
-                    {!alert.resolved && (
-                      <span className="text-secondary small fst-italic">
-                        ⏳ Đang chờ {ROLE.BAC_SI} xử lý...
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+      <div className="alert-filter-row mb-4">
+        <div className="alert-filter-group" role="tablist" aria-label="Lọc cảnh báo">
+          {FILTER_ITEMS.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`alert-filter-pill ${filter === item.key ? "is-active" : ""}`}
+              onClick={() => setFilter(item.key)}
+            >
+              {item.label}
+            </button>
           ))}
         </div>
-      ) : (
+      </div>
+
+      {alerts.length === 0 ? (
         <div className="card border-0 shadow-sm">
           <div className="card-body text-center py-5">
-            <i className="fas fa-check-circle fa-3x text-success mb-3"></i>
-            <h5 className="text-muted">
+            <i className="fas fa-shield-heart fa-3x text-success mb-3"></i>
+            <h5 className="text-muted mb-2">
               {filter === "all"
-                ? "Không có cảnh báo nào"
+                ? "Hiện chưa có cảnh báo"
                 : filter === "resolved"
                   ? "Không có cảnh báo đã xử lý"
-                  : "Không có cảnh báo chưa xử lý"}
+                  : "Không có cảnh báo chờ xử lý"}
             </h5>
-            <p className="text-muted">
-              {filter === "all"
-                ? "Tuyệt vời! Sức khỏe tim mạch của bạn đang ổn định."
-                : "Hãy kiểm tra các bộ lọc khác để xem cảnh báo."}
-            </p>
+            <p className="text-muted mb-0">Dữ liệu cảnh báo sẽ xuất hiện tại đây khi có biến động nhịp tim.</p>
           </div>
         </div>
+      ) : (
+        Object.keys(SEVERITY_META).map((severityKey) => {
+          const items = groupedAlerts[severityKey]
+          if (!items?.length) return null
+
+          const meta = SEVERITY_META[severityKey]
+          return (
+            <section key={severityKey} className="alert-group-section mb-4">
+              <div className="alert-group-header mb-3">
+                <div>
+                  <h2 className="alert-group-title mb-1">
+                    <i className={`${meta.icon} me-2`}></i>
+                    {meta.title}
+                    <span className="alert-group-count">{items.length}</span>
+                  </h2>
+                  <p className="alert-group-subtitle mb-0">{meta.subtitle}</p>
+                </div>
+              </div>
+              <div className="row g-3">
+                {items.map((alert) => {
+                  const hasReading = Boolean(alert.reading_id)
+                  return (
+                    <div key={alert.alert_id} className="col-12 col-lg-6">
+                      <button
+                        type="button"
+                        className={`alert-clinical-card ${meta.className} ${!hasReading ? "alert-card-disabled" : ""}`}
+                        onClick={() => handleViewReading(alert)}
+                        disabled={!hasReading}
+                        title={hasReading ? "Nhấn để xem đồ thị ECG" : "Không có reading tương ứng"}
+                      >
+                        <div className="alert-card-head">
+                          <div className="alert-card-type">{getAlertTypeLabel(alert.alert_type)}</div>
+                          <span className={`alert-status-chip ${alert.resolved ? "is-resolved" : "is-pending"}`}>
+                            {alert.resolved ? "Đã xử lý" : "Chưa xử lý"}
+                          </span>
+                        </div>
+                        <p className="alert-card-message">{alert.message}</p>
+                        <div className="alert-meta-row">
+                          <span>
+                            <i className="far fa-clock me-1"></i>
+                            {formatDate(alert.timestamp)}
+                          </span>
+                          <span className="alert-action-hint">
+                            {hasReading ? "Nhấn để xem đồ thị ECG" : "Không có reading"}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })
       )}
 
-      {/* Statistics */}
-      <div className="card bg-light border-0 mt-4">
-        <div className="card-body">
-          <h6 className="card-title">
-            <i className="fas fa-chart-pie me-2 text-info"></i>
-            Thống kê cảnh báo
-          </h6>
-          <div className="row text-center">
-            <div className="col-3 border-end">
-              <h5 className="text-primary mb-1">{alerts.length}</h5>
-              <small className="text-muted">Tổng số</small>
-            </div>
-            <div className="col-3 border-end">
-              <h5 className="text-danger mb-1">{alerts.filter((a) => !a.resolved).length}</h5>
-              <small className="text-muted">Chưa xử lý</small>
-            </div>
-            <div className="col-3 border-end">
-              <h5 className="text-success mb-1">{alerts.filter((a) => a.resolved).length}</h5>
-              <small className="text-muted">Đã xử lý</small>
-            </div>
-            <div className="col-3">
-              <h5 className="text-warning mb-1">{alerts.filter((a) => (a.alert_type || "").includes("nhịp")).length}</h5>
-              <small className="text-muted">Nhịp tim</small>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ReadingDetailModal
+        show={Boolean(selectedReadingId)}
+        readingId={selectedReadingId}
+        onHide={() => setSelectedReadingId(null)}
+      />
     </div>
   )
 }

@@ -105,6 +105,8 @@ model Alert {
   reading_id Int
   alert_type String
   message    String   @db.Text
+  segment_start_sample Int?
+  segment_end_sample   Int?
   timestamp  DateTime @default(now())
   resolved   Boolean  @default(false)
 
