@@ -11,7 +11,8 @@
 // ---------- CẤU HÌNH ----------
 const char *ssid = "Nhan Home";
 const char *password = "nhanhome";
-const char *serverUrl = "http://192.168.1.146:3000/api/telemetry1";
+const char *serverUrl = "http://192.168.1.139:5000/api/readings/telemetry";
+const char *serialNumber = "SN-ECG-0001";
 
 #define ECG_PIN 34
 #define SDN_PIN 25
@@ -217,6 +218,7 @@ inline void floatTo6(char *dst, float v)
 
 size_t buildPayloadToBufferFast_6byte(
     char *buf, size_t bufSize,
+    const char *deviceSerialNumber,
     float *ecg, int ecgCount,
     float *ax, float *ay, float *az,
     float *gx, float *gy, float *gz,
@@ -237,6 +239,9 @@ size_t buildPayloadToBufferFast_6byte(
   char num[8]; // "xx.xx\0" tối đa 7 ký tự
 
   WRITE("{");
+  WRITE("\"serial_number\":\"");
+  WRITE(deviceSerialNumber ? deviceSerialNumber : "");
+  WRITE("\",");
 
   // ---------- ECG ----------
   WRITE("\"ecg_signal\":[");
@@ -370,6 +375,7 @@ void SenderTask(void *param)
     // build JSON vào buffer PSRAM đã cấp phát
     size_t len = buildPayloadToBufferFast_6byte(
         payloadBuf, bufSize,
+        serialNumber,
         ecg, NUM_SAMPLES,
         ax, ay, az,
         gx, gy, gz,
