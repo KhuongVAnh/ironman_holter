@@ -6,6 +6,7 @@ const { AccessRole, AccessStatus, NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("../services/socketEmitService")
 const { createNotification } = require("../services/notificationService")
 const { predictFromReading } = require("../services/ecgCnnService")
+const { resolveAiCodeFromLabel, getAiLabelFromCode } = require("../strings/ecgAiStrings")
 
 const BASELINE_SAMPLE_RATE = 250
 const BASELINE_READING_SECONDS = 5
@@ -637,6 +638,24 @@ const getReadingDetail = async (req, res) => {
             },
           },
         },
+        alerts: {
+          where: {
+            segment_start_sample: { not: null },
+            segment_end_sample: { not: null },
+          },
+          orderBy: [
+            { segment_start_sample: "asc" },
+            { timestamp: "asc" },
+          ],
+          select: {
+            alert_id: true,
+            alert_type: true,
+            segment_start_sample: true,
+            segment_end_sample: true,
+            timestamp: true,
+            resolved: true,
+          },
+        },
       },
     })
 
@@ -661,6 +680,26 @@ const getReadingDetail = async (req, res) => {
       }
     }
 
+    const mappedAlerts = reading.alerts
+      .map((alert) => {
+        const labelCode = resolveAiCodeFromLabel(alert.alert_type)
+        const labelText = getAiLabelFromCode(labelCode || alert.alert_type)
+        return {
+          alert_id: alert.alert_id,
+          alert_type: alert.alert_type,
+          label_code: labelCode,
+          label_text: labelText,
+          segment_start_sample: alert.segment_start_sample,
+          segment_end_sample: alert.segment_end_sample,
+          timestamp: alert.timestamp,
+          resolved: alert.resolved,
+        }
+      })
+      .filter((alert) =>
+        Number.isInteger(Number(alert.segment_start_sample)) &&
+        Number.isInteger(Number(alert.segment_end_sample))
+      )
+
     return res.json({
       reading: {
         reading_id: reading.reading_id,
@@ -674,6 +713,7 @@ const getReadingDetail = async (req, res) => {
           serial_number: reading.device.serial_number,
         },
         patient: reading.device.user,
+        alerts: mappedAlerts,
       },
     })
   } catch (error) {
