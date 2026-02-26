@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
 import io from "socket.io-client"
+import { API_BASE_URL } from "../../config/env"
 import { useAuth } from "../../contexts/AuthContext"
 import { alertsApi, familyApi } from "../../services/api"
 import { ACCESS_STATUS } from "../../services/string"
@@ -71,7 +72,7 @@ const FamilyDashboard = () => {
   }
 
   useEffect(() => {
-    const socketClient = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
+    const socketClient = io(API_BASE_URL)
 
     socketClient.on("connect", () => {
       socketClient.emit("join-user-room", user.user_id)

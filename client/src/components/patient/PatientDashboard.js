@@ -1,8 +1,9 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import { toast } from "react-toastify"
 import io from "socket.io-client"
+import { API_BASE_URL } from "../../config/env"
 import { useAuth } from "../../contexts/AuthContext"
 import { accessApi, alertsApi, devicesApi, readingsApi } from "../../services/api"
 import { ACCESS_ROLE, ACCESS_STATUS } from "../../services/string"
@@ -24,7 +25,7 @@ const PatientDashboard = () => {
   const [selectedReadingId, setSelectedReadingId] = useState(null)
 
   useEffect(() => {
-    const socketClient = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
+    const socketClient = io(API_BASE_URL)
 
     socketClient.on("connect", () => {
       setIsConnected(true)
