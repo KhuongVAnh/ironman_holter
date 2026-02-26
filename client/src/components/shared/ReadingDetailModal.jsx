@@ -5,6 +5,7 @@ import { Modal, Button, Spinner, Alert } from "react-bootstrap"
 import { toast } from "react-toastify"
 import ECGChart from "../patient/ECGChart"
 import { readingsApi } from "../../services/api"
+import { formatAiResultForDisplay, isAbnormalAiResultText } from "../../strings/ecgAiStrings"
 
 const normalizeEcgSignal = (signal) => {
   if (Array.isArray(signal)) return signal
@@ -60,6 +61,14 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
   }, [show, readingId])
 
   const ecgSignal = useMemo(() => normalizeEcgSignal(reading?.ecg_signal), [reading?.ecg_signal])
+  const aiResultDisplay = useMemo(
+    () => formatAiResultForDisplay(reading?.ai_result),
+    [reading?.ai_result]
+  )
+  const aiAbnormal = useMemo(
+    () => isAbnormalAiResultText(reading?.ai_result, reading?.abnormal_detected),
+    [reading?.ai_result, reading?.abnormal_detected]
+  )
 
   const formatDate = (value) => {
     if (!value) return "-"
@@ -88,8 +97,8 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
                   <p className="mb-2"><strong>Reading ID:</strong> {reading.reading_id}</p>
                   <p className="mb-2"><strong>Thời gian:</strong> {formatDate(reading.timestamp)}</p>
                   <p className="mb-2"><strong>Nhịp tim:</strong> {reading.heart_rate} BPM</p>
-                  <p className="mb-2"><strong>Kết quả AI:</strong> {reading.ai_result || "-"}</p>
-                  <p className="mb-2"><strong>Trạng thái:</strong> {reading.abnormal_detected ? "Bất thường" : "Bình thường"}</p>
+                  <p className="mb-2"><strong>Kết quả AI:</strong> {aiResultDisplay}</p>
+                  <p className="mb-2"><strong>Trạng thái:</strong> {aiAbnormal ? "Bất thường" : "Bình thường"}</p>
                   <p className="mb-2"><strong>Serial:</strong> {reading.device?.serial_number || "-"}</p>
                   <p className="mb-1"><strong>Bệnh nhân:</strong> {reading.patient?.name || "-"}</p>
                   <small className="text-muted">{reading.patient?.email || ""}</small>

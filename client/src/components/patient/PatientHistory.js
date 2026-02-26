@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "../../contexts/AuthContext"
 import { toast } from "react-toastify"
 import { readingsApi } from "../../services/api"
+import { formatAiResultForDisplay, isAbnormalAiResultText } from "../../strings/ecgAiStrings"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
 
 const PatientHistory = () => {
@@ -45,11 +46,10 @@ const PatientHistory = () => {
     return "text-success"
   }
 
-  const getStatusBadge = (aiResult) => {
-    if (aiResult === "Normal") {
-      return <span className="badge bg-success">{aiResult}</span>
-    }
-    return <span className="badge bg-danger">{aiResult}</span>
+  const getStatusBadge = (reading) => {
+    const displayText = formatAiResultForDisplay(reading?.ai_result)
+    const isAbnormal = isAbnormalAiResultText(reading?.ai_result, reading?.abnormal_detected)
+    return <span className={`badge ${isAbnormal ? "bg-danger" : "bg-success"}`}>{displayText}</span>
   }
 
   if (loading) {
@@ -109,7 +109,7 @@ const PatientHistory = () => {
                                 {reading.heart_rate}
                               </span>
                             </td>
-                            <td>{getStatusBadge(reading.ai_result)}</td>
+                            <td>{getStatusBadge(reading)}</td>
                             <td>
                               <small className="text-muted">{reading.device?.serial_number || reading.Device?.serial_number || "N/A"}</small>
                             </td>
