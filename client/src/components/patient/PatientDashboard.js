@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react"
 import { toast } from "react-toastify"
 import io from "socket.io-client"
+import { API_BASE_URL } from "../../config/env"
 import { useAuth } from "../../contexts/AuthContext"
 import { accessApi, alertsApi, devicesApi, readingsApi } from "../../services/api"
 import { ACCESS_ROLE, ACCESS_STATUS } from "../../services/string"
+import { formatAiResultForDisplay, isAbnormalAiResultText } from "../../strings/ecgAiStrings"
 import ECGChart from "./ECGChart"
 import useECGStream from "./useECGStream"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
@@ -23,7 +25,7 @@ const PatientDashboard = () => {
   const [selectedReadingId, setSelectedReadingId] = useState(null)
 
   useEffect(() => {
-    const socketClient = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
+    const socketClient = io(API_BASE_URL)
 
     socketClient.on("connect", () => {
       setIsConnected(true)
@@ -42,13 +44,18 @@ const PatientDashboard = () => {
         setRawEcgData(data.ecg_signal)
       }
 
+      const aiResultText = String(data.ai_result || "").trim()
+      const isAbnormal = isAbnormalAiResultText(aiResultText, data.abnormal_detected)
+      const displayAiResult = formatAiResultForDisplay(aiResultText)
+
       setAiResult({
-        result: "Bình thường",
+        result: displayAiResult,
         time: data.timestamp,
         hr: data.heart_rate,
+        abnormal: isAbnormal,
       })
 
-      if (data.abnormal_detected) {
+      if (isAbnormal) {
         toast.warning(`Phát hiện bất thường: ${data.heart_rate} bpm`)
       }
     }
@@ -124,13 +131,14 @@ const PatientDashboard = () => {
     }
   }
 
-  const getHeartRateStatus = () => {
-    if (currentHeartRate < 60) return { status: "Nhịp chậm", color: "text-warning" }
-    if (currentHeartRate > 100) return { status: "Nhịp nhanh", color: "text-danger" }
-    return { status: "Bình thường", color: "text-success" }
+  const getAiStatus = () => {
+    if (!aiResult) return { status: "Đang phân tích", color: "text-secondary" }
+    return aiResult.abnormal
+      ? { status: "Bất thường", color: "text-danger" }
+      : { status: "Bình thường", color: "text-success" }
   }
 
-  const heartRateStatus = getHeartRateStatus()
+  const aiStatus = getAiStatus()
 
   const handleOpenReadingDetail = (alert) => {
     if (!alert?.reading_id) {
@@ -172,8 +180,8 @@ const PatientDashboard = () => {
               </div>
               <h2 className="display-4 fw-bold mb-2">{currentHeartRate}</h2>
               <p className="text-muted mb-2">BPM</p>
-              <span className={`badge fs-6 ${heartRateStatus.color.replace("text-", "bg-")}`}>
-                {heartRateStatus.status}
+              <span className={`badge fs-6 ${aiStatus.color.replace("text-", "bg-")}`}>
+                {aiStatus.status}
               </span>
 
               <div className="mt-4">

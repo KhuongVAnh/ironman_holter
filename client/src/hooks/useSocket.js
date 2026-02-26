@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react"
 import io from "socket.io-client"
+import { API_BASE_URL } from "../config/env"
 import { toast } from "react-toastify"
-import { ROLE } from "../services/string"
 
 const useSocket = (userId, userRole) => {
   const socketRef = useRef(null)
@@ -11,28 +11,24 @@ const useSocket = (userId, userRole) => {
   useEffect(() => {
     if (!userId) return
 
-    // Kết nối Socket.IO
-    socketRef.current = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
+    socketRef.current = io(API_BASE_URL)
 
     const socket = socketRef.current
 
-    // Xử lý kết nối
     socket.on("connect", () => {
-      console.log("Đã kết nối Socket.IO:", socket.id)
+      console.log("\u0110\u00e3 k\u1ebft n\u1ed1i Socket.IO:", socket.id)
 
-      // Join các room cần thiết
       socket.emit("join-user-room", userId)
       socket.emit("join-role-room", userRole)
     })
 
-    // Xử lý trạng thái kết nối
     socket.on("connection-status", (data) => {
       if (data.status === "connected") {
-        toast.success("Kết nối real-time thành công")
+        toast.success("K\u1ebft n\u1ed1i real-time th\u00e0nh c\u00f4ng")
       }
     })
 
-    // Event chưa được sử dụng trong flow hiện tại.
+    // Event chua duoc su dung trong flow hien tai.
     /*
     socket.on("new-alert", (alertData) => {
       toast.warning(`Cảnh báo: ${alertData.message}`, {
@@ -40,11 +36,9 @@ const useSocket = (userId, userRole) => {
         position: "top-center",
       })
 
-      // Trigger custom event để các component khác có thể lắng nghe
       window.dispatchEvent(new CustomEvent("newAlert", { detail: alertData }))
     })
 
-    // Xử lý cảnh báo bệnh nhân (cho bác sĩ)
     socket.on("patient-alert", (alertData) => {
       if (userRole === ROLE.BAC_SI) {
         toast.error(`Cảnh báo bệnh nhân: ${alertData.message}`, {
@@ -56,7 +50,6 @@ const useSocket = (userId, userRole) => {
       }
     })
 
-    // Xử lý cảnh báo gia đình
     socket.on("family-alert", (alertData) => {
       if (userRole === ROLE.GIA_DINH) {
         toast.warning(`Cảnh báo người thân: ${alertData.message}`, {
@@ -68,7 +61,6 @@ const useSocket = (userId, userRole) => {
       }
     })
 
-    // Xử lý cảnh báo khẩn cấp
     socket.on("emergency-alert", (alertData) => {
       toast.error(`🚨 KHẨN CẤP: ${alertData.message}`, {
         autoClose: false,
@@ -79,13 +71,11 @@ const useSocket = (userId, userRole) => {
       window.dispatchEvent(new CustomEvent("emergencyAlert", { detail: alertData }))
     })
 
-    // Xử lý tin nhắn chat mới
     socket.on("new-chat-message", (messageData) => {
       window.dispatchEvent(new CustomEvent("newChatMessage", { detail: messageData }))
     })
     */
 
-    // Xử lý tin nhắn direct chat bác sĩ - bệnh nhân
     const handleDirectMessageNew = (messageData) => {
       window.dispatchEvent(new CustomEvent("directChatMessage", { detail: messageData }))
     }
@@ -93,31 +83,28 @@ const useSocket = (userId, userRole) => {
 
     const handleNotificationNew = (notification) => {
       const title = notification?.title ? `${notification.title}: ` : ""
-      const body = notification?.message || "Bạn có thông báo mới"
+      const body = notification?.message || "B\u1ea1n c\u00f3 th\u00f4ng b\u00e1o m\u1edbi"
       toast.info(`${title}${body}`, { autoClose: 4000 })
       window.dispatchEvent(new CustomEvent("appNotificationNew", { detail: notification }))
     }
     socket.on("notification:new", handleNotificationNew)
 
-    // Event chưa có consumer hoặc chưa có emitter trong flow hiện tại.
+    // Event chua co consumer hoac chua co emitter trong flow hien tai.
     /*
     socket.on("direct-message:read", (payload) => {
       window.dispatchEvent(new CustomEvent("directChatRead", { detail: payload }))
     })
 
-    // Xử lý thông báo hệ thống
     socket.on("system-notification", (notification) => {
       toast.info(notification.message, {
         autoClose: 5000,
       })
     })
 
-    // Xử lý cập nhật trạng thái thiết bị
     socket.on("device-status-update", (deviceData) => {
       window.dispatchEvent(new CustomEvent("deviceStatusUpdate", { detail: deviceData }))
     })
 
-    // Xử lý thống kê admin (chỉ cho admin)
     socket.on("admin-stats-update", (stats) => {
       if (userRole === ROLE.ADMIN) {
         window.dispatchEvent(new CustomEvent("adminStatsUpdate", { detail: stats }))
@@ -125,21 +112,18 @@ const useSocket = (userId, userRole) => {
     })
     */
 
-    // Xử lý lỗi kết nối
     socket.on("connect_error", (error) => {
-      console.error("Lỗi kết nối Socket.IO:", error)
-      toast.error("Mất kết nối real-time. Đang thử kết nối lại...")
+      console.error("L\u1ed7i k\u1ebft n\u1ed1i Socket.IO:", error)
+      toast.error("M\u1ea5t k\u1ebft n\u1ed1i real-time. \u0110ang th\u1eed k\u1ebft n\u1ed1i l\u1ea1i...")
     })
 
     socket.on("disconnect", (reason) => {
-      console.log("Ngắt kết nối Socket.IO:", reason)
+      console.log("Ng\u1eaft k\u1ebft n\u1ed1i Socket.IO:", reason)
       if (reason === "io server disconnect") {
-        // Server ngắt kết nối, thử kết nối lại
         socket.connect()
       }
     })
 
-    // Cleanup khi component unmount
     return () => {
       if (socketRef.current) {
         socketRef.current.off("direct-message:new", handleDirectMessageNew)
@@ -150,7 +134,7 @@ const useSocket = (userId, userRole) => {
     }
   }, [userId, userRole])
 
-  // Utility event chưa được sử dụng trong flow hiện tại.
+  // Utility event chua duoc su dung trong flow hien tai.
   /*
   const emitEvent = (eventName, data) => {
     if (socketRef.current) {
@@ -191,12 +175,6 @@ const useSocket = (userId, userRole) => {
 
   return {
     socket: socketRef.current,
-    // emitEvent,
-    // requestECGData,
-    // stopECGStream,
-    // sendChatMessage,
-    // sendEmergencyAlert,
-    // joinDeviceRoom,
   }
 }
 

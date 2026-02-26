@@ -1,0 +1,15 @@
+﻿{
+  "fs": 250,
+  "half_window": 62,
+  "segment_len": 125,
+  "lowcut": 0.5,
+  "highcut": 40,
+  "filter_order": 4,
+  "rpeak_min_distance_sec": 0.3,
+  "rpeak_min_height": 0.3,
+  "classes": ["F", "N", "Q", "S", "V"],
+  "scaler_mean": -0.24596690238561122,
+  "scaler_scale": 0.5644256588195321,
+  "scaler_is_placeholder": false,
+  "notes": "Training-exported preprocessing config for Node inference."
+}

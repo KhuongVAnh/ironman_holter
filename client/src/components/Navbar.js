@@ -1,15 +1,16 @@
-﻿"use client"
+"use client"
 import { useEffect, useState } from "react"
 import { NavLink, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { toast } from "react-toastify"
 import io from "socket.io-client"
+import { API_BASE_URL } from "../config/env"
 import { accessApi } from "../services/api"
 import { ROLE, getDashboardPath } from "../services/string"
 import NotificationBell from "./notifications/NotificationBell"
 import "../styles/customNav.css"
 
-const socket = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
+const socket = io(API_BASE_URL)
 
 const Navbar = () => {
   const { user, logout } = useAuth()

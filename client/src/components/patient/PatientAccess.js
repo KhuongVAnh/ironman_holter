@@ -5,10 +5,11 @@ import { Card, Button, Form, Table, Badge } from "react-bootstrap"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import io from "socket.io-client"
+import { API_BASE_URL } from "../../config/env"
 import { accessApi } from "../../services/api"
 import { ACCESS_ROLE, ACCESS_STATUS } from "../../services/string"
 
-const socket = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:4000")
+const socket = io(API_BASE_URL)
 
 const PatientAccess = () => {
     const { user } = useAuth() // ⚡ chỉ cần user, token interceptor tự thêm rồi
