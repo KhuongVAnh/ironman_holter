@@ -21,9 +21,15 @@ const getAlertRecipientIds = async (patientId) => {
 // Ham xu ly tao canh bao moi cho benh nhan.
 const createAlert = async (req, res) => {
   try {
-    const { user_id, reading_id, alert_type, message } = req.body
+    const { user_id, reading_id, alert_type, message, segment_start_sample, segment_end_sample } = req.body
     const userId = Number.parseInt(user_id, 10)
     const readingId = Number.parseInt(reading_id, 10)
+    const segmentStartSample = Number.isInteger(Number(segment_start_sample))
+      ? Number(segment_start_sample)
+      : null
+    const segmentEndSample = Number.isInteger(Number(segment_end_sample))
+      ? Number(segment_end_sample)
+      : null
 
     if (!Number.isInteger(userId)) {
       return res.status(400).json({ message: "user_id la bat buoc va phai hop le" })
@@ -65,18 +71,33 @@ const createAlert = async (req, res) => {
         reading_id: readingId,
         alert_type,
         message,
+        segment_start_sample: segmentStartSample,
+        segment_end_sample: segmentEndSample,
       },
     })
 
     const io = req.app.get("io")
     const recipients = await getAlertRecipientIds(userId)
     emitToUsers(io, recipients, "alert", {
-      alert_id: alert.alert_id,
-      user_id: userId,
       reading_id: readingId,
+      user_id: userId,
+      abnormal_count: 1,
+      ai_result_summary: alert_type,
       alert_type,
       message,
       timestamp: alert.timestamp,
+      alerts: [
+        {
+          alert_id: alert.alert_id,
+          user_id: userId,
+          reading_id: readingId,
+          alert_type,
+          message,
+          segment_start_sample: alert.segment_start_sample,
+          segment_end_sample: alert.segment_end_sample,
+          timestamp: alert.timestamp,
+        },
+      ],
     })
 
     await createNotification({
@@ -88,8 +109,19 @@ const createAlert = async (req, res) => {
       entityId: alert.alert_id,
       payload: {
         user_id: userId,
-        alert_type,
         reading_id: alert.reading_id,
+        abnormal_count: 1,
+        ai_result_summary: alert_type,
+        alerts: [
+          {
+            alert_id: alert.alert_id,
+            alert_type,
+            message,
+            segment_start_sample: alert.segment_start_sample,
+            segment_end_sample: alert.segment_end_sample,
+            timestamp: alert.timestamp,
+          },
+        ],
       },
       recipientUserIds: recipients,
       io,
