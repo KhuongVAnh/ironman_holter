@@ -17,15 +17,15 @@
   "devDependencies": {
     "@vitejs/plugin-react": "latest",
     "jsdom": "latest",
+    "serve": "^14.2.5",
     "vite": "latest",
     "vitest": "latest"
   },
   "scripts": {
     "dev": "vite",
-    "start": "vite preview --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "test": "vitest --passWithNoTests"
+    "preview": "vite preview",
+    "start": "serve -s dist -l $PORT"
   },
   "browserslist": {
     "production": [
