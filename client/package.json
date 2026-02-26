@@ -22,9 +22,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "start": "vite",
+    "start": "vite preview --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --host 0.0.0.0",
     "test": "vitest --passWithNoTests"
   },
   "browserslist": {

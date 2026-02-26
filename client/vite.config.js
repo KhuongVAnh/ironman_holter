@@ -8,6 +8,11 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
   },
+  preview: {
+    host: "0.0.0.0",
+    port: Number(process.env.PORT) || 4173,
+    strictPort: true,
+  },
   esbuild: {
     loader: "jsx",
     include: /src\/.*\.[jt]sx?$/,
