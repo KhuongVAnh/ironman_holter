@@ -2,6 +2,12 @@ const fs = require("fs")
 const path = require("path")
 const tf = require("@tensorflow/tfjs")
 const Fili = require("fili")
+const {
+  ECG_AI_CLASS_CODES,
+  ECG_AI_SUMMARY_ORDER,
+  isNormalAiCode,
+  getAiLabelFromCode,
+} = require("../strings/ecgAiStrings")
 
 /**
  * ecgCnnService
@@ -15,16 +21,13 @@ const Fili = require("fili")
  *
  * Ý tưởng triển khai:
  * 1) initModel(): load preprocess config + label map + model và warmup.
- * 2) predictFromReading(): validate input, preprocess, infer beat-level, majority vote reading-level.
+ * 2) predictFromReading(): validate input, preprocess, infer beat-level, gom nhóm bất thường theo segment liên tiếp.
  * 3) Fallback theo reason code (AI_DISABLED, SHORT_SIGNAL, NO_PEAK, ...), trả về object chuẩn.
  *
  * Lưu ý:
  * - N và Q được xem là bình thường, các class còn lại là bất thường.
  * - Service này chỉ cung cấp logic infer; wiring vào controller thuộc phase P3.
  */
-const NORMAL_CODES = new Set(["N", "Q"])
-const DEFAULT_LABEL_CODES = ["F", "N", "Q", "S", "V"]
-
 let model = null
 let preprocessConfig = null
 let labelMap = {}
@@ -219,6 +222,139 @@ const detectPeaks = (signal, minHeight, minDistance) => {
   return peaks
 }
 
+// Cắt tín hiệu đã lọc thành nhiều segment quanh từng peak theo cửa sổ cấu hình.
+const extractSegmentsFromPeaks = (filteredSignal, peaks, halfWindow, segmentLength) => {
+  const segments = []
+  for (let segmentIndex = 0; segmentIndex < peaks.length; segmentIndex += 1) {
+    const peakIndex = peaks[segmentIndex]
+    const start = peakIndex - halfWindow
+    const end = peakIndex + halfWindow + 1
+    if (start < 0 || end > filteredSignal.length) continue
+
+    const values = filteredSignal.slice(start, end)
+    if (values.length !== segmentLength) continue
+
+    segments.push({
+      segment_index: segmentIndex,
+      peak_sample: peakIndex,
+      start_sample: start,
+      end_sample: end,
+      values,
+    })
+  }
+  return segments
+}
+
+// Chuyển danh sách segment thành mảng phẳng để tạo tensor batch cho model.
+const flattenSegmentsToModelInput = (segments, segmentLength, scalerMean, scalerScale) => {
+  const flat = new Float32Array(segments.length * segmentLength)
+  for (let beatIndex = 0; beatIndex < segments.length; beatIndex += 1) {
+    const values = segments[beatIndex].values
+    for (let i = 0; i < segmentLength; i += 1) {
+      flat[beatIndex * segmentLength + i] = (Number(values[i]) - scalerMean) / scalerScale
+    }
+  }
+  return flat
+}
+
+// Trích xuất danh sách nhãn dự đoán theo từng segment từ xác suất model trả về.
+const buildSegmentPredictions = (segments, probabilities, classes) => {
+  const predictions = []
+  for (let i = 0; i < segments.length; i += 1) {
+    const row = Array.isArray(probabilities[i]) ? probabilities[i] : []
+    let bestIndex = 0
+    for (let j = 1; j < row.length; j += 1) {
+      if (row[j] > row[bestIndex]) {
+        bestIndex = j
+      }
+    }
+
+    const labelCode = classes[bestIndex] || "Q"
+    const confidence = Number((row[bestIndex] || 0).toFixed(6))
+    predictions.push({
+      segment_index: segments[i].segment_index,
+      peak_sample: segments[i].peak_sample,
+      start_sample: segments[i].start_sample,
+      end_sample: segments[i].end_sample,
+      label_code: labelCode,
+      label_text: labelTextFromCode(labelCode),
+      confidence,
+      abnormal: !isNormalAiCode(labelCode),
+    })
+  }
+  return predictions
+}
+
+// Gộp các segment bất thường liên tiếp cùng lớp thành một nhóm cảnh báo duy nhất.
+const groupContiguousAbnormalSegments = (segmentPredictions) => {
+  const groups = []
+  for (const prediction of segmentPredictions) {
+    if (!prediction.abnormal) continue
+
+    const lastGroup = groups[groups.length - 1]
+    const isContiguousSameClass =
+      lastGroup &&
+      lastGroup.label_code === prediction.label_code &&
+      prediction.segment_index === lastGroup.last_segment_index + 1
+
+    if (isContiguousSameClass) {
+      lastGroup.end_sample = prediction.end_sample
+      lastGroup.segment_count += 1
+      lastGroup.last_segment_index = prediction.segment_index
+      continue
+    }
+
+    groups.push({
+      label_code: prediction.label_code,
+      label_text: prediction.label_text,
+      start_sample: prediction.start_sample,
+      end_sample: prediction.end_sample,
+      segment_count: 1,
+      first_segment_index: prediction.segment_index,
+      last_segment_index: prediction.segment_index,
+    })
+  }
+
+  return groups.map((group) => ({
+    label_code: group.label_code,
+    label_text: group.label_text,
+    start_sample: group.start_sample,
+    end_sample: group.end_sample,
+    segment_count: group.segment_count,
+  }))
+}
+
+// Tạo chuỗi tóm tắt số lượng segment bất thường theo từng lớp.
+const buildAiResultSummary = (segmentPredictions) => {
+  const counts = new Map()
+  for (const prediction of segmentPredictions) {
+    if (!prediction.abnormal) continue
+    counts.set(prediction.label_code, (counts.get(prediction.label_code) || 0) + 1)
+  }
+
+  if (counts.size === 0) return "Bình thường"
+
+  const unorderedCodes = Array.from(counts.keys()).filter((code) => !isNormalAiCode(code))
+  const orderedCodes = [
+    ...ECG_AI_SUMMARY_ORDER.filter((code) => unorderedCodes.includes(code)),
+    ...unorderedCodes
+      .filter((code) => !ECG_AI_SUMMARY_ORDER.includes(code))
+      .sort((a, b) => a.localeCompare(b)),
+  ]
+
+  return orderedCodes.map((code) => `${getAiLabelFromCode(code)}:${counts.get(code)}`).join(", ")
+}
+
+// Chọn nhãn đại diện cho reading để giữ tương thích field cũ label_code/label_text/confidence.
+const pickPrimaryPrediction = (segmentPredictions) => {
+  if (!Array.isArray(segmentPredictions) || segmentPredictions.length === 0) {
+    return null
+  }
+
+  const firstAbnormal = segmentPredictions.find((item) => item.abnormal)
+  return firstAbnormal || segmentPredictions[0]
+}
+
 // ===== Nhóm helper normalize input/output =====
 
 // Chuyển input reading về mảng số hợp lệ để phục vụ preprocessing.
@@ -247,7 +383,8 @@ const toNumericArray = (input) => {
 // Map label code của model sang label text hiển thị.
 const labelTextFromCode = (labelCode) => {
   if (!labelCode) return null
-  return labelMap?.[labelCode] || labelCode
+  const configuredLabel = String(labelMap?.[labelCode] || "").trim()
+  return configuredLabel || getAiLabelFromCode(labelCode)
 }
 
 // Tạo kết quả skip chuẩn hóa khi không thể infer AI (giữ contract output ổn định).
@@ -257,8 +394,11 @@ const makeSkipResult = (reason, inferMs, options = {}) => {
     label_code: labelCode,
     label_text: labelTextFromCode(labelCode),
     confidence: null,
-    abnormal_detected: labelCode ? !NORMAL_CODES.has(labelCode) : false,
+    abnormal_detected: labelCode ? !isNormalAiCode(labelCode) : false,
     beat_count: Number.isInteger(options.beatCount) ? options.beatCount : 0,
+    segment_predictions: Array.isArray(options.segmentPredictions) ? options.segmentPredictions : [],
+    abnormal_groups: Array.isArray(options.abnormalGroups) ? options.abnormalGroups : [],
+    ai_result_summary: typeof options.aiResultSummary === "string" ? options.aiResultSummary : "Bình thường",
     skipped: true,
     reason,
     infer_ms: inferMs,
@@ -323,7 +463,7 @@ const initModel = async () => {
   return initPromise
 }
 
-// Suy luận reading-level từ ecg_signal: preprocess -> infer -> majority vote -> map output.
+// Suy luận reading-level từ ecg_signal: preprocess -> infer beat-level -> gộp nhóm bất thường -> map output.
 const predictFromReading = async (ecgSignal) => {
   const startedAt = Date.now()
 
@@ -349,9 +489,11 @@ const predictFromReading = async (ecgSignal) => {
   }
 
   try {
+    // Lọc thông dải để làm sạch tín hiệu trước khi phát hiện peak.
     const coeffs = buildBandpassCoefficients(preprocessConfig)
     const filteredSignal = applyBandpass(signal, coeffs)
 
+    // Phát hiện peak theo cấu hình để xác định tâm mỗi segment.
     const minDistance = Math.max(
       1,
       Math.round(
@@ -365,18 +507,9 @@ const predictFromReading = async (ecgSignal) => {
       minDistance
     )
 
+    // Trích xuất segment 0,5s quanh từng peak.
     const halfWindow = Number(preprocessConfig.half_window)
-    const segments = []
-    for (const peakIndex of peaks) {
-      const start = peakIndex - halfWindow
-      const end = peakIndex + halfWindow + 1
-      if (start < 0 || end > filteredSignal.length) continue
-      const segment = filteredSignal.slice(start, end)
-      if (segment.length === segmentLength) {
-        segments.push(segment)
-      }
-    }
-
+    const segments = extractSegmentsFromPeaks(filteredSignal, peaks, halfWindow, segmentLength)
     if (segments.length === 0) {
       return makeSkipResult("NO_PEAK", Date.now() - startedAt, { labelCode: "Q" })
     }
@@ -384,57 +517,43 @@ const predictFromReading = async (ecgSignal) => {
     const scalerMean = Number(preprocessConfig.scaler_mean)
     const scalerScale = Number(preprocessConfig.scaler_scale)
 
+    // Chuẩn hóa từng segment rồi nạp vào tensor batch [số segment, 125, 1].
     const beatCount = segments.length
-    const flat = new Float32Array(beatCount * segmentLength)
-    for (let beatIndex = 0; beatIndex < beatCount; beatIndex += 1) {
-      const seg = segments[beatIndex]
-      for (let i = 0; i < segmentLength; i += 1) {
-        flat[beatIndex * segmentLength + i] = (Number(seg[i]) - scalerMean) / scalerScale
-      }
-    }
-
+    const flat = flattenSegmentsToModelInput(segments, segmentLength, scalerMean, scalerScale)
     const inputTensor = tf.tensor3d(flat, [beatCount, segmentLength, 1], "float32")
     let outputTensor = model.predict(inputTensor)
     if (Array.isArray(outputTensor)) {
       outputTensor = outputTensor[0]
     }
 
+    // Chuyển tensor xác suất sang mảng JS rồi giải phóng bộ nhớ.
     const probabilities = outputTensor.arraySync()
     inputTensor.dispose()
     outputTensor.dispose()
 
     const classes = Array.isArray(preprocessConfig.classes)
       ? preprocessConfig.classes
-      : DEFAULT_LABEL_CODES
+      : ECG_AI_CLASS_CODES
 
-    const voteCount = new Array(classes.length).fill(0)
-    for (const beatProbabilities of probabilities) {
-      let bestIndex = 0
-      for (let i = 1; i < beatProbabilities.length; i += 1) {
-        if (beatProbabilities[i] > beatProbabilities[bestIndex]) {
-          bestIndex = i
-        }
-      }
-      voteCount[bestIndex] += 1
-    }
-
-    let winnerIndex = 0
-    for (let i = 1; i < voteCount.length; i += 1) {
-      if (voteCount[i] > voteCount[winnerIndex]) {
-        winnerIndex = i
-      }
-    }
-
-    const labelCode = classes[winnerIndex] || "Q"
-    const winnerConfidence =
-      probabilities.reduce((sum, row) => sum + (row[winnerIndex] || 0), 0) / beatCount
+    // Tạo dự đoán theo từng segment, sau đó gộp nhóm bất thường liên tiếp cùng lớp.
+    const segmentPredictions = buildSegmentPredictions(segments, probabilities, classes)
+    const abnormalGroups = groupContiguousAbnormalSegments(segmentPredictions)
+    const aiResultSummary = buildAiResultSummary(segmentPredictions)
+    const primaryPrediction = pickPrimaryPrediction(segmentPredictions)
+    const labelCode = primaryPrediction?.label_code || "Q"
+    const labelText = primaryPrediction?.label_text || labelTextFromCode(labelCode)
+    const primaryConfidence =
+      typeof primaryPrediction?.confidence === "number" ? primaryPrediction.confidence : null
 
     return {
       label_code: labelCode,
-      label_text: labelTextFromCode(labelCode),
-      confidence: Number(winnerConfidence.toFixed(6)),
-      abnormal_detected: !NORMAL_CODES.has(labelCode),
+      label_text: labelText,
+      confidence: primaryConfidence,
+      abnormal_detected: abnormalGroups.length > 0,
       beat_count: beatCount,
+      segment_predictions: segmentPredictions,
+      abnormal_groups: abnormalGroups,
+      ai_result_summary: aiResultSummary,
       skipped: false,
       reason: null,
       infer_ms: Date.now() - startedAt,
@@ -475,7 +594,7 @@ const predictBeatSegmentsForTest = async (segmentsInput) => {
   const segmentLength = Number(preprocessConfig.segment_len)
   const classes = Array.isArray(preprocessConfig.classes)
     ? preprocessConfig.classes
-    : DEFAULT_LABEL_CODES
+    : ECG_AI_CLASS_CODES
   const scalerMean = Number(preprocessConfig.scaler_mean)
   const scalerScale = Number(preprocessConfig.scaler_scale)
 
