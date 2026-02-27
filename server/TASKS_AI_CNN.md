@@ -179,21 +179,21 @@
 - Depends on: `P3-T05`.
 
 ### P4 - Fallback + logging + guardrails
-- [ ] `P4-T01` Thêm fallback nếu AI infer lỗi.
+- [x] `P4-T01` Thêm fallback nếu AI infer lỗi.
 - Mục đích: không làm fail nghiệp vụ chính.
 - File chạm tới: `server/services/ecgCnnService.js`, `server/controllers/readingController.js`.
 - Input/Output expected: fallback label mặc định + log warning.
 - Tiêu chí done: simulate lỗi model nhưng API vẫn response hợp lệ.
 - Depends on: `P3-T02`.
 
-- [ ] `P4-T02` Structured log cho AI latency và lỗi.
+- [x] `P4-T02` Structured log cho AI latency và lỗi.
 - Mục đích: theo dõi hiệu năng và tỉ lệ fallback.
 - File chạm tới: `server/services/ecgCnnService.js`.
 - Input/Output expected: log fields `ai_infer_ms`, `fallback_reason`.
 - Tiêu chí done: có log trên mỗi infer path.
 - Depends on: `P4-T01`.
 
-- [ ] `P4-T03` Guardrails dữ liệu đầu vào.
+- [x] `P4-T03` Guardrails dữ liệu đầu vào.
 - Mục đích: chống crash khi `ecg_signal` sai định dạng.
 - File chạm tới: `server/services/ecgCnnService.js`.
 - Input/Output expected: validate và sanitize input.
@@ -315,11 +315,14 @@ node scripts/benchmark-ai.js
 - `2026-02-26 03:50` | `P3-T04` | `Extended ecgCnnService output with segment predictions, contiguous abnormal groups, and ai_result_summary` | `No impact` | `local` | `Start P3-T05`.
 - `2026-02-26 03:51` | `P3-T05` | `Implemented grouped alerts per reading and aggregated alert socket/notification payload` | `No impact` | `local` | `Start P3-T06`.
 - `2026-02-26 03:52` | `P3-T06` | `Added Alert schema fields segment_start_sample/segment_end_sample and created SQL migration` | `No impact` | `local` | `Continue P4-T01`.
+- `2026-02-26 13:25` | `P4-T01` | `Applied safe fallback in infer flow so AI errors do not fail main reading workflows` | `No impact` | `local` | `Start P4-T02`.
+- `2026-02-26 13:31` | `P4-T02` | `Standardized AI logs as JSON line with event/reason/infer_ms/context fields in service and controller` | `No impact` | `local` | `Start P4-T03`.
+- `2026-02-26 13:35` | `P4-T03` | `Added input guardrails: sanitize multi-shape payloads, cap samples by AI_MAX_SIGNAL_SAMPLES, skip with reason codes` | `No impact` | `local` | `Move to P5-T01`.
 
 ## Handoff Notes
-- Last completed task: `P3-T03`.
-- Current in-progress: `P4-T01`.
-- Next recommended task: `P4-T01`.
+- Last completed task: `P4-T03`.
+- Current in-progress: `P5-T01`.
+- Next recommended task: `P5-T01`.
 - Known risks:
 - Rủi ro sai lệch preprocessing giữa Python và Node.
 - Rủi ro memory leak nếu không dispose tensor đúng cách.

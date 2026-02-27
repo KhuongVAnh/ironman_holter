@@ -1,156 +1,33 @@
 ﻿// Controller xu ly telemetry, du lieu ECG va lich su chi so tim mach.
-const fs = require("fs")
-const path = require("path")
 const prisma = require("../prismaClient")
 const { AccessRole, AccessStatus, NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("../services/socketEmitService")
 const { createNotification } = require("../services/notificationService")
-const { predictFromReading } = require("../services/ecgCnnService")
+const { predictFromReading, filterReadingSignal } = require("../services/ecgCnnService")
+const {
+  generateFakeECGData,
+  generateFallbackECGSignal,
+} = require("../services/fakeReadingDataService")
+const {
+  normalizeEcgSignal,
+  toHeartRate,
+  deriveHeartRateFromBeatCount,
+} = require("../services/telemetrySignalService")
 const { resolveAiCodeFromLabel, getAiLabelFromCode } = require("../strings/ecgAiStrings")
-
-const BASELINE_SAMPLE_RATE = 250
-const BASELINE_READING_SECONDS = 5
-const BASELINE_SEGMENT_SECONDS = 0.5
-const BASELINE_SEGMENT_LENGTH = Math.floor(BASELINE_SAMPLE_RATE * BASELINE_SEGMENT_SECONDS)
-const BASELINE_TOTAL_SAMPLES = BASELINE_SAMPLE_RATE * BASELINE_READING_SECONDS
-const BASELINE_SEGMENTS_PER_READING = 5
-const BASELINE_SLICE_START = 30000
-const BASELINE_SLICE_END = 59000
-const NORMAL_BASELINE_LABELS = new Set(["N", "Q"])
-
-let cachedBaselineSegmentPool = null
-
-// Hàm xử lý dựng đường dẫn tuyệt đối vào thư mục model_CNN.
-const resolveModelCnnPath = (...parts) => path.resolve(__dirname, "..", "model_CNN", ...parts)
-
-// Hàm xử lý đọc JSON từ đĩa và parse an toàn.
-const readJsonFile = (filePath) => {
-  const raw = fs.readFileSync(filePath, "utf8")
-  return JSON.parse(raw)
-}
-
-// Hàm xử lý lấy path readings theo tên file hiện có trong thư mục model_CNN/ecg.
-const resolveReadingsJsonPath = () => {
-  const candidates = [
-    resolveModelCnnPath("ecg", "readings_with_id.json"),
-    resolveModelCnnPath("ecg", "reading_with_id.json"),
-  ]
-  const existingPath = candidates.find((candidate) => fs.existsSync(candidate))
-  if (!existingPath) {
-    throw new Error("Khong tim thay file readings_with_id.json hoac reading_with_id.json trong model_CNN/ecg")
-  }
-  return existingPath
-}
-
-// Hàm xử lý tải và cache pool segment baseline để tạo dữ liệu fake ổn định.
-const getBaselineSegmentPool = () => {
-  if (Array.isArray(cachedBaselineSegmentPool) && cachedBaselineSegmentPool.length > 0) {
-    return cachedBaselineSegmentPool
-  }
-
-  const baselinePath = resolveModelCnnPath("baseline_p0_t05.json")
-  if (!fs.existsSync(baselinePath)) {
-    throw new Error("Khong tim thay file baseline_p0_t05.json trong model_CNN")
-  }
-  const baselineRows = readJsonFile(baselinePath)
-
-  if (!Array.isArray(baselineRows) || baselineRows.length === 0) {
-    throw new Error("Du lieu baseline_p0_t05.json khong hop le hoac rong")
-  }
-
-  const readingsPath = resolveReadingsJsonPath()
-  const readingsPayload = readJsonFile(readingsPath)
-  if (!Array.isArray(readingsPayload) || readingsPayload.length === 0) {
-    throw new Error("Du lieu readings json khong hop le hoac rong")
-  }
-
-  const allSignal = readingsPayload
-    .flatMap((record) => (Array.isArray(record?.reading) ? record.reading : []))
-    .map((value) => Number(value))
-    .filter(Number.isFinite)
-
-  if (allSignal.length <= BASELINE_SLICE_START) {
-    throw new Error("Tong so mau ECG khong du de cat doan baseline [30000:59000]")
-  }
-
-  const slicedSignal = allSignal.slice(BASELINE_SLICE_START, BASELINE_SLICE_END)
-  const segmentPool = baselineRows
-    .map((row) => {
-      const start = Number.parseInt(row?.segment_start, 10)
-      const end = Number.parseInt(row?.segment_end, 10)
-      if (!Number.isInteger(start) || !Number.isInteger(end)) return null
-      const segment = slicedSignal.slice(start, end)
-      if (segment.length !== BASELINE_SEGMENT_LENGTH) return null
-      const label = String(row?.label || "").trim().toUpperCase()
-      return {
-        values: segment,
-        label: label || "N",
-        isAbnormal: label ? !NORMAL_BASELINE_LABELS.has(label) : false,
-      }
-    })
-    .filter(Boolean)
-
-  if (segmentPool.length === 0) {
-    throw new Error("Khong trich xuat duoc segment hop le tu baseline de tao fake reading")
-  }
-
-  cachedBaselineSegmentPool = segmentPool
-  return cachedBaselineSegmentPool
-}
-
-// Hàm xử lý tạo fake reading 5 giây từ 5 segment baseline và khoảng lặng 0.5 giây.
-const generateFakeECGData = () => {
-  const segmentPool = getBaselineSegmentPool()
-  const abnormalPool = segmentPool.filter((item) => item.isAbnormal)
-  const selectedSegments = []
-
-  if (abnormalPool.length > 0) {
-    const randomAbnormalIndex = Math.floor(Math.random() * abnormalPool.length)
-    selectedSegments.push(abnormalPool[randomAbnormalIndex])
-  }
-
-  while (selectedSegments.length < BASELINE_SEGMENTS_PER_READING) {
-    const randomIndex = Math.floor(Math.random() * segmentPool.length)
-    selectedSegments.push(segmentPool[randomIndex])
-  }
-
-  for (let i = selectedSegments.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    const temp = selectedSegments[i]
-    selectedSegments[i] = selectedSegments[j]
-    selectedSegments[j] = temp
-  }
-
-  const data = []
-  for (const segment of selectedSegments) {
-    data.push(...segment.values)
-    data.push(...new Array(BASELINE_SEGMENT_LENGTH).fill(0))
-  }
-
-  if (data.length > BASELINE_TOTAL_SAMPLES) {
-    return data.slice(0, BASELINE_TOTAL_SAMPLES)
-  }
-  if (data.length < BASELINE_TOTAL_SAMPLES) {
-    data.push(...new Array(BASELINE_TOTAL_SAMPLES - data.length).fill(0))
-  }
-  return data
-}
 
 const FALLBACK_AI_RESULT = "Bình thường"
 
-// Hàm xử lý chuẩn hóa tín hiệu ECG về mảng số hợp lệ để lưu và suy luận.
-const normalizeEcgSignal = (input) => {
-  let value = input
-  if (typeof value === "string") {
-    try {
-      value = JSON.parse(value)
-    } catch (error) {
-      return []
-    }
-  }
-
-  if (!Array.isArray(value)) return []
-  return value.map((item) => Number(item)).filter(Number.isFinite)
+// Hàm ghi log JSON line cho luồng AI ở controller để dễ truy vết theo ngữ cảnh nghiệp vụ.
+const logAiControllerEvent = (event, payload = {}) => {
+  const normalizedEvent = String(event || "AI_INFER_EVENT").trim() || "AI_INFER_EVENT"
+  console.log(
+    JSON.stringify({
+      event: normalizedEvent,
+      timestamp: new Date().toISOString(),
+      source: "readingController",
+      ...payload,
+    })
+  )
 }
 
 // Hàm xử lý chuẩn hóa chuỗi tóm tắt kết quả AI để lưu trong reading.ai_result.
@@ -162,12 +39,17 @@ const toAiResultSummary = (aiResult) => {
 // Hàm xử lý gọi service AI và trả về kết quả segment-level an toàn cho controller.
 const inferReadingWithAI = async (ecgSignal, context) => {
   try {
-    const aiResult = await predictFromReading(ecgSignal)
+    const aiResult = await predictFromReading(ecgSignal, { context })
     if (!aiResult || aiResult.skipped) {
-      console.warn("[AI_INFER_SKIP]", {
+      logAiControllerEvent("AI_INFER_SKIP", {
         context,
         reason: aiResult?.reason || "UNKNOWN",
         infer_ms: aiResult?.infer_ms ?? null,
+        input_len: aiResult?.input_len ?? 0,
+        beat_count: aiResult?.beat_count ?? 0,
+        abnormal_group_count: 0,
+        ai_result_summary: FALLBACK_AI_RESULT,
+        fallback_applied: true,
       })
       return {
         aiResultSummary: FALLBACK_AI_RESULT,
@@ -185,13 +67,16 @@ const inferReadingWithAI = async (ecgSignal, context) => {
       : []
     const abnormalDetected = abnormalGroups.length > 0
 
-    console.log("[AI_INFER_OK]", {
+    logAiControllerEvent("AI_INFER_OK", {
       context,
+      reason: null,
       ai_result_summary: aiResultSummary,
-      abnormal_detected: abnormalDetected,
-      abnormal_group_count: abnormalGroups.length,
       infer_ms: aiResult.infer_ms ?? null,
+      input_len: aiResult.input_len ?? 0,
       beat_count: aiResult.beat_count ?? null,
+      abnormal_group_count: abnormalGroups.length,
+      fallback_applied: false,
+      abnormal_detected: abnormalDetected,
     })
 
     return {
@@ -202,8 +87,15 @@ const inferReadingWithAI = async (ecgSignal, context) => {
       aiMeta: aiResult,
     }
   } catch (error) {
-    console.error("[AI_INFER_ERROR]", {
+    logAiControllerEvent("AI_INFER_ERROR", {
       context,
+      reason: "INFER_ERROR",
+      infer_ms: null,
+      input_len: 0,
+      beat_count: 0,
+      abnormal_group_count: 0,
+      ai_result_summary: FALLBACK_AI_RESULT,
+      fallback_applied: true,
       message: error?.message || "UNKNOWN",
     })
     return {
@@ -214,6 +106,28 @@ const inferReadingWithAI = async (ecgSignal, context) => {
       aiMeta: null,
     }
   }
+}
+
+// Hàm lọc tín hiệu để lưu DB; nếu lọc lỗi thì fallback về tín hiệu gốc nhưng không làm fail nghiệp vụ.
+const filterSignalForStorage = (ecgSignal, context) => {
+  const filteredResult = filterReadingSignal(ecgSignal, { context })
+  if (filteredResult?.skipped) {
+    logAiControllerEvent("AI_FILTER_SKIP", {
+      context,
+      reason: filteredResult.reason || "UNKNOWN",
+      input_len: filteredResult.input_len ?? 0,
+      fallback_applied: true,
+    })
+  }
+
+  const filteredSignal = Array.isArray(filteredResult?.filtered_signal)
+    ? filteredResult.filtered_signal
+    : []
+  if (filteredSignal.length > 0) {
+    return filteredSignal
+  }
+
+  return Array.isArray(ecgSignal) ? ecgSignal : []
 }
 
 // Hàm xử lý lấy nhãn cảnh báo để lưu alert_type từ dữ liệu nhóm segment bất thường.
@@ -337,10 +251,11 @@ const createFakeReading = async (req, res) => {
     }
 
     const heart_rate = 60
-    const ecg_signal = generateFakeECGData()
+    const raw_ecg_signal = generateFakeECGData()
+    const ecg_signal = filterSignalForStorage(raw_ecg_signal, "createFakeReading:store")
 
     const { aiResultSummary, abnormalDetected, abnormalGroups, aiMeta } = await inferReadingWithAI(
-      ecg_signal,
+      raw_ecg_signal,
       "createFakeReading"
     )
     void aiMeta
@@ -473,24 +388,12 @@ const getUserReadingHistory = async (req, res) => {
   }
 }
 
-// Ham xu ly tao mang ECG gia lap khi thiet bi khong gui du lieu.
-function fakeECGSignal(length = 100) {
-  const arr = []
-  for (let i = 0; i < length; i++) {
-    const t = i / 10
-    const noise = (Math.random() - 0.5) * 0.2
-    arr.push(Math.sin(t) + noise)
-  }
-  return arr
-}
-
 // Ham xu ly nhan telemetry tu thiet bi qua serial.
 const receiveTelemetry = async (req, res) => {
   try {
     const { heart_rate, ecg_signal } = req.body
     const serialNumber = String(req.body?.serial_number ?? req.body?.serial ?? "").trim()
     const io = req.app.get("io")
-
     if (!serialNumber) {
       return res.status(400).json({ message: "serial_number la bat buoc" })
     }
@@ -505,18 +408,22 @@ const receiveTelemetry = async (req, res) => {
     }
 
     const normalizedEcg = normalizeEcgSignal(ecg_signal)
-    const ecg = normalizedEcg.length > 0 ? normalizedEcg : fakeECGSignal()
+    const rawEcg = normalizedEcg.length > 0 ? normalizedEcg : generateFallbackECGSignal()
+    const ecg = filterSignalForStorage(rawEcg, "receiveTelemetry:store")
     const { aiResultSummary, abnormalDetected, abnormalGroups, aiMeta } = await inferReadingWithAI(
-      ecg,
+      rawEcg,
       "receiveTelemetry"
     )
     void aiMeta
     const abnormal_detected = abnormalDetected
+    const providedHeartRate = toHeartRate(heart_rate)
+    const derivedHeartRate = deriveHeartRateFromBeatCount(aiMeta?.beat_count, rawEcg.length)
+    const resolvedHeartRate = providedHeartRate ?? derivedHeartRate ?? 0
 
     const reading = await prisma.reading.create({
       data: {
         device_id: device.device_id,
-        heart_rate: heart_rate || Math.floor(Math.random() * 60) + 60,
+        heart_rate: resolvedHeartRate,
         ecg_signal: JSON.stringify(ecg),
         abnormal_detected,
         ai_result: aiResultSummary,
