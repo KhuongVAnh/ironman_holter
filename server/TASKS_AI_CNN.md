@@ -201,28 +201,28 @@
 - Depends on: `P2-T03`.
 
 ### P5 - Test parity Python vs Node + regression
-- [ ] `P5-T01` Golden set parity test.
+- [x] `P5-T01` Golden set parity test.
 - Mục đích: đảm bảo kết quả Node gần với baseline Python.
 - File chạm tới: test script hoặc docs local.
 - Input/Output expected: bảng so sánh label/confidence.
 - Tiêu chí done: parity đạt ngưỡng chấp nhận đã định.
 - Depends on: `P4-T03`.
 
-- [ ] `P5-T02` Regression test alert/socket/notification.
+- [x] `P5-T02` Regression test alert/socket/notification.
 - Mục đích: đảm bảo realtime không vỡ.
 - File chạm tới: test checklist/manual test docs.
 - Input/Output expected: alert emit đúng, notification đúng.
 - Tiêu chí done: không có broadcast sai user, không sai contract event.
 - Depends on: `P3-T02`.
 
-- [ ] `P5-T03` Frontend sanity check.
+- [x] `P5-T03` Frontend sanity check.
 - Mục đích: xác nhận UI đọc được `ai_result` mới.
 - File chạm tới: manual checklist.
 - Input/Output expected: dashboard hiển thị cảnh báo bình thường.
 - Tiêu chí done: không crash màn Patient/Doctor/Family.
 - Depends on: `P5-T02`.
 
-- [ ] `P5-T04` Regression multi-alert cho cùng một reading.
+- [x] `P5-T04` Regression multi-alert cho cùng một reading.
 - Mục đích: xác nhận flow mới tạo nhiều alert con nhưng emit/notification vẫn gộp một sự kiện.
 - File chạm tới: checklist/manual test docs.
 - Input/Output expected: DB có nhiều alert theo segment group, socket `alert` chỉ một payload gộp.
@@ -318,11 +318,15 @@ node scripts/benchmark-ai.js
 - `2026-02-26 13:25` | `P4-T01` | `Applied safe fallback in infer flow so AI errors do not fail main reading workflows` | `No impact` | `local` | `Start P4-T02`.
 - `2026-02-26 13:31` | `P4-T02` | `Standardized AI logs as JSON line with event/reason/infer_ms/context fields in service and controller` | `No impact` | `local` | `Start P4-T03`.
 - `2026-02-26 13:35` | `P4-T03` | `Added input guardrails: sanitize multi-shape payloads, cap samples by AI_MAX_SIGNAL_SAMPLES, skip with reason codes` | `No impact` | `local` | `Move to P5-T01`.
+- `2026-02-27 07:05` | `P5-T01` | `Added parity gate script + report output and verified PASS (96.67%, MAE 0.013823)` | `No impact` | `local` | `Start P5-T02`.
+- `2026-02-27 07:08` | `P5-T02` | `Added realtime smoke script and socket/notification checklist; verified PASS on abnormal telemetry path` | `No impact` | `local` | `Start P5-T03`.
+- `2026-02-27 07:12` | `P5-T03` | `Added frontend sanity checklist and verified client build PASS` | `No impact` | `local` | `Start P5-T04`.
+- `2026-02-27 07:11` | `P5-T04` | `Added multi-alert regression script + checklist; verified one reading creates multiple alerts with aggregated notification payload` | `No impact` | `local` | `Move to P6-T01`.
 
 ## Handoff Notes
-- Last completed task: `P4-T03`.
-- Current in-progress: `P5-T01`.
-- Next recommended task: `P5-T01`.
+- Last completed task: `P5-T04`.
+- Current in-progress: `P6-T01`.
+- Next recommended task: `P6-T01`.
 - Known risks:
 - Rủi ro sai lệch preprocessing giữa Python và Node.
 - Rủi ro memory leak nếu không dispose tensor đúng cách.

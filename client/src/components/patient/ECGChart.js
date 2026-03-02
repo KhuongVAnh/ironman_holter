@@ -214,8 +214,8 @@ const ECGChart = ({ data = [], highlights = [], sampleRate = DEFAULT_SAMPLE_RATE
           },
         },
         y: {
-          min: -1.5,
-          max: 1.5,
+          min: -2,
+          max: 2,
           title: {
             display: true,
             text: "Biên độ (mV)",

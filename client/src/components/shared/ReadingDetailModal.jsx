@@ -146,7 +146,7 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
           </Alert>
         ) : reading ? (
           <div className="row g-3">
-            <div className="col-md-4">
+            <div className="col-md-3">
               <div className="card border-0 bg-light h-100">
                 <div className="card-body">
                   <p className="mb-2"><strong>Reading ID:</strong> {reading.reading_id}</p>
@@ -160,7 +160,7 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
                 </div>
               </div>
             </div>
-            <div className="col-md-8">
+            <div className="col-md-9">
               <div className="card border-0 shadow-sm">
                 <div className="card-body">
                   <div className="row g-3">

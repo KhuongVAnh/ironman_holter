@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "Ironman Holter - Hệ thống theo dõi tim mạch liên tục - Backend",
   "main": "server.js",
-  "engines": {
-    "node": ">=20 <21",
-    "npm": ">=10"
-  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
