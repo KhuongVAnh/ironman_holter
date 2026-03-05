@@ -6,13 +6,8 @@ const { createNotification } = require("../services/notificationService")
 const { predictFromReading, filterReadingSignal } = require("../services/ecgCnnService")
 const {
   generateFakeECGData,
-  generateFallbackECGSignal,
 } = require("../services/fakeReadingDataService")
-const {
-  normalizeEcgSignal,
-  toHeartRate,
-  deriveHeartRateFromBeatCount,
-} = require("../services/telemetrySignalService")
+const { ingestTelemetry } = require("../services/telemetryIngestService")
 const { resolveAiCodeFromLabel, getAiLabelFromCode } = require("../strings/ecgAiStrings")
 
 const FALLBACK_AI_RESULT = "Bình thường"
@@ -388,137 +383,26 @@ const getUserReadingHistory = async (req, res) => {
   }
 }
 
-// Ham xu ly nhan telemetry tu thiet bi qua serial.
+// Hàm xử lý nhận telemetry từ thiết bị qua serial và chuyển vào ingest service dùng chung.
 const receiveTelemetry = async (req, res) => {
   try {
-    const { heart_rate, ecg_signal } = req.body
-    const serialNumber = String(req.body?.serial_number ?? req.body?.serial ?? "").trim()
-    const io = req.app.get("io")
-    if (!serialNumber) {
-      return res.status(400).json({ message: "serial_number la bat buoc" })
-    }
-
-    const device = await prisma.device.findUnique({
-      where: { serial_number: serialNumber },
-      select: { device_id: true, user_id: true, serial_number: true },
+    const ingestResult = await ingestTelemetry(req.body, {
+      source: "http",
+      io: req.app.get("io"),
+      actorId: null,
     })
 
-    if (!device) {
-      return res.status(404).json({ message: "Khong tim thay thiet bi" })
-    }
-
-    const normalizedEcg = normalizeEcgSignal(ecg_signal)
-    const rawEcg = normalizedEcg.length > 0 ? normalizedEcg : generateFallbackECGSignal()
-    const ecg = filterSignalForStorage(rawEcg, "receiveTelemetry:store")
-    const { aiResultSummary, abnormalDetected, abnormalGroups, aiMeta } = await inferReadingWithAI(
-      rawEcg,
-      "receiveTelemetry"
-    )
-    void aiMeta
-    const abnormal_detected = abnormalDetected
-    const providedHeartRate = toHeartRate(heart_rate)
-    const derivedHeartRate = deriveHeartRateFromBeatCount(aiMeta?.beat_count, rawEcg.length)
-    const resolvedHeartRate = providedHeartRate ?? derivedHeartRate ?? 0
-
-    const reading = await prisma.reading.create({
-      data: {
-        device_id: device.device_id,
-        heart_rate: resolvedHeartRate,
-        ecg_signal: JSON.stringify(ecg),
-        abnormal_detected,
-        ai_result: aiResultSummary,
-        timestamp: new Date(),
-      },
-    })
-
-    const previousReadings = await prisma.reading.findMany({
-      where: { device_id: reading.device_id },
-      orderBy: { timestamp: "desc" },
-      skip: 1,
-      take: 1,
-    })
-
-    const previousReading = previousReadings[0]
-
-    let mergedECG = ecg
-    if (previousReading) {
-      let prevEcg = previousReading.ecg_signal || []
-      if (typeof prevEcg === "string") {
-        try {
-          prevEcg = JSON.parse(prevEcg)
-        } catch (error) {
-          prevEcg = []
-        }
-      }
-      if (!Array.isArray(prevEcg)) {
-        prevEcg = []
-      }
-      mergedECG = [...prevEcg, ...ecg]
-      if (mergedECG.length > 2500) mergedECG = mergedECG.slice(-2500)
-    }
-
-    const recipients = await getPatientRecipientIds(device.user_id)
-
-    emitToUsers(io, recipients, "reading-update", {
-      reading_id: reading.reading_id,
-      device_id: reading.device_id,
-      user_id: device.user_id,
-      serial_number: device.serial_number,
-      heart_rate: reading.heart_rate,
-      ecg_signal: mergedECG,
-      abnormal_detected: reading.abnormal_detected,
-      ai_result: reading.ai_result,
-      timestamp: reading.timestamp,
-    })
-
-    if (abnormal_detected) {
-      const createdAlerts = await createGroupedAlerts(
-        device.user_id,
-        reading.reading_id,
-        reading.heart_rate,
-        abnormalGroups
-      )
-
-      const message = `Phat hien ${createdAlerts.length} canh bao bat thuong (${aiResultSummary})`
-      emitAggregatedAlertEvent(io, recipients, {
-        reading_id: reading.reading_id,
-        user_id: device.user_id,
-        abnormal_count: createdAlerts.length,
-        ai_result_summary: aiResultSummary,
-        alert_type: createdAlerts[0]?.alert_type || null,
-        message,
-        timestamp: reading.timestamp,
-        alerts: createdAlerts.map((alert) => ({
-          alert_id: alert.alert_id,
-          user_id: alert.user_id,
-          reading_id: alert.reading_id,
-          alert_type: alert.alert_type,
-          message: alert.message,
-          segment_start_sample: alert.segment_start_sample,
-          segment_end_sample: alert.segment_end_sample,
-          timestamp: alert.timestamp,
-        })),
-      })
-
-      await createAggregatedAlertNotification({
-        actorId: null,
-        recipients,
-        io,
-        userId: device.user_id,
-        readingId: reading.reading_id,
-        serialNumber: device.serial_number,
-        aiResultSummary,
-        createdAlerts,
-      })
+    if (!ingestResult.ok) {
+      return res.status(ingestResult.statusCode).json({ message: ingestResult.message })
     }
 
     return res.status(201).json({
       message: "Telemetry data received",
-      data: reading,
+      data: ingestResult.reading,
     })
   } catch (error) {
     console.error("Error receiving telemetry:", error)
-    return res.status(500).json({ error: "Failed to receive telemetry" })
+    return res.status(500).json({ message: "Failed to receive telemetry" })
   }
 }
 
