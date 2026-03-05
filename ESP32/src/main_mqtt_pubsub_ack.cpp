@@ -1,4 +1,4 @@
-#include <Arduino.h>
+﻿#include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
@@ -17,7 +17,7 @@ static const char *MQTT_PASSWORD = "Vanh080105";
 static const char *MQTT_CLIENT_ID = "esp32-holter-pubsub";
 static const char *SERIAL_NUMBER = "SN-ECG-0001";
 
-static const int SAMPLE_RATE_ECG = 10;
+static const int SAMPLE_RATE_ECG = 250;
 static const int BATCH_DURATION_SEC = 5;
 static const int NUM_SAMPLES = SAMPLE_RATE_ECG * BATCH_DURATION_SEC;
 
@@ -226,7 +226,7 @@ void buildTelemetryJsonStream(
   jsonWriteUnsigned(w, static_cast<uint64_t>(MPU_SAMPLE_RATE));
   w.write(",\"duration\":", sizeof(",\"duration\":") - 1);
   jsonWriteUnsigned(w, static_cast<uint64_t>(BATCH_DURATION_SEC));
-  w.write("}}", 3);
+  w.write("}}", 2);
 }
 
 // Tính chính xác độ dài JSON để truyền cho beginPublish().
@@ -614,8 +614,8 @@ void setup() {
 // Hàm loop chính không chạy mqttClient.loop() để đảm bảo thread-safe.
 // Toàn bộ việc xử lý MQTT (loop + ACK) chỉ diễn ra trong senderTask / waitAppAck().
 void loop() {
-  delay(100);
+  // Loop chính không làm gì cả, xóa đi để tiết kiệm RAM
+  vTaskDelete(NULL);
 }
-
 
 
