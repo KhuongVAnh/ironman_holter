@@ -1,0 +1,30 @@
+.custom-navbar {
+  background: linear-gradient(90deg, #0066ff, #0099ff);
+}
+
+.custom-link {
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+
+.custom-link:hover {
+  color: #fff !important;
+  transform: translateY(-1px);
+}
+
+.custom-link.active {
+  font-weight: 600;
+  color: #ffe082 !important; /* vàng nhạt highlight */
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  color: #0066ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}

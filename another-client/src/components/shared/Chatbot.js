@@ -1,0 +1,144 @@
+﻿import { useEffect, useRef, useState } from "react"
+import { toast } from "react-toastify"
+import { chatApi } from "../../services/api"
+import { ROLE } from "../../services/string"
+
+const Chatbot = ({ userId, userRole }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+  const [messages, setMessages] = useState([])
+  const [inputMessage, setInputMessage] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const messagesEndRef = useRef(null)
+
+  useEffect(() => {
+    if (isOpen && userId) loadChatHistory()
+  }, [isOpen, userId])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  const loadChatHistory = async () => {
+    try {
+      const response = await chatApi.getHistory()
+      const history = response.data.history || []
+      setMessages(history.map((chat) => ({ id: `${chat.role}-${chat.chat_id}`, text: chat.message, sender: chat.role, timestamp: new Date(chat.timestamp) })))
+    } catch (error) {
+      console.error("Loi tai lich su chat:", error)
+    }
+  }
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return
+    const content = inputMessage
+    setMessages((prev) => [...prev, { id: `user-${Date.now()}`, text: content, sender: "user", timestamp: new Date() }])
+    setInputMessage("")
+    setIsLoading(true)
+    try {
+      const response = await chatApi.send(content)
+      setMessages((prev) => [...prev, { id: `bot-${Date.now()}`, text: response.data.response, sender: "bot", timestamp: new Date() }])
+    } catch (error) {
+      console.error("Loi gui tin nhan:", error)
+      toast.error("Khong the gui tin nhan. Vui long thu lai.")
+      setMessages((prev) => [...prev, { id: `bot-error-${Date.now()}`, text: "Xin loi, toi dang gap su co ky thuat. Vui long thu lai sau.", sender: "bot", timestamp: new Date() }])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleKeyPress = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault()
+      sendMessage()
+    }
+  }
+
+  const clearChat = () => setMessages([])
+
+  const getWelcomeMessage = () => {
+    switch (userRole) {
+      case ROLE.BENH_NHAN:
+        return "Xin chao. Toi co the giai thich cac chi so ECG, trang thai canh bao va cac thong tin tim mach co ban."
+      case ROLE.BAC_SI:
+        return "Xin chao bac si. Toi co the ho tro tom tat ECG, nhan dien canh bao va tra cuu thong tin y khoa nen tang."
+      case ROLE.GIA_DINH:
+        return "Xin chao. Toi co the giai thich tinh trang suc khoe cua nguoi than va cac canh bao lien quan."
+      case ROLE.ADMIN:
+        return "Xin chao admin. Toi co the ho tro giai thich so lieu va su kien van hanh he thong."
+      default:
+        return "Xin chao. Toi la tro ly AI Ironman Holter."
+    }
+  }
+
+  const formatTime = (timestamp) => new Date(timestamp).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+
+  return (
+    <>
+      <div className="fixed bottom-5 right-5 z-40">
+        <button type="button" className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-600 text-xl text-white shadow-float transition hover:scale-105" onClick={() => setIsOpen((prev) => !prev)}>
+          <i className={`fas ${isOpen ? "fa-xmark" : "fa-robot"}`}></i>
+        </button>
+      </div>
+
+      {isOpen ? (
+        <div className="fixed bottom-24 right-5 z-40 flex h-[520px] w-[400px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[30px] border border-surface-line bg-white shadow-panel">
+          <div className="flex items-center justify-between bg-brand-600 px-5 py-4 text-white">
+            <div>
+              <p className="text-sm font-bold">Tro ly AI Ironman</p>
+              <p className="text-xs text-white/75">Ho tro tim mach 24/7</p>
+            </div>
+            <div className="relative">
+              <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10" onClick={() => setShowMenu((prev) => !prev)}>
+                <i className="fas fa-ellipsis"></i>
+              </button>
+              {showMenu ? (
+                <div className="absolute right-0 top-12 w-52 rounded-2xl border border-surface-line bg-white p-2 text-sm text-ink-700 shadow-soft">
+                  <button type="button" className="flex w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-surface" onClick={() => { clearChat(); setShowMenu(false) }}>
+                    <i className="fas fa-trash"></i>
+                    Xoa cuoc tro chuyen
+                  </button>
+                  <button type="button" className="flex w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-surface" onClick={() => { setIsOpen(false); setShowMenu(false) }}>
+                    <i className="fas fa-xmark"></i>
+                    Dong chat
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex-1 space-y-4 overflow-y-auto bg-surface px-4 py-4">
+            {messages.length === 0 ? <div className="rounded-[24px] border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">{getWelcomeMessage()}</div> : null}
+            {messages.map((message) => (
+              <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[82%] rounded-[24px] px-4 py-3 text-sm shadow-soft ${message.sender === "user" ? "bg-brand-600 text-white" : "bg-white text-ink-800"}`}>
+                  {message.sender === "bot" ? <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-600">AI</div> : null}
+                  <div className="whitespace-pre-wrap">{message.text}</div>
+                  <div className={`mt-2 text-[11px] ${message.sender === "user" ? "text-white/70" : "text-ink-500"}`}>{formatTime(message.timestamp)}</div>
+                </div>
+              </div>
+            ))}
+            {isLoading ? (
+              <div className="flex justify-start">
+                <div className="rounded-[24px] bg-white px-4 py-3 shadow-soft">
+                  <div className="flex items-center gap-2 text-sm text-ink-600"><div className="spinner-border spinner-border-sm"></div>Dang suy nghi...</div>
+                </div>
+              </div>
+            ) : null}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="border-t border-surface-line bg-white p-4">
+            <div className="input-group">
+              <textarea className="form-control min-h-[52px]" placeholder="Nhap cau hoi ve tim mach..." value={inputMessage} onChange={(event) => setInputMessage(event.target.value)} onKeyDown={handleKeyPress} disabled={isLoading} />
+              <button type="button" className="btn btn-primary" onClick={sendMessage} disabled={!inputMessage.trim() || isLoading}><i className="fas fa-paper-plane"></i></button>
+            </div>
+            <p className="mt-2 text-xs text-ink-500">Nhan Enter de gui, Shift+Enter de xuong dong.</p>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+export default Chatbot
