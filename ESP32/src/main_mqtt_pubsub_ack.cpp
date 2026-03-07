@@ -18,8 +18,8 @@
  */
 
 // Cấu hình Wi-Fi và MQTT.
-static const char *WIFI_SSID = "Nhan Home";
-static const char *WIFI_PASSWORD = "nhanhome";
+static const char *WIFI_SSID = "Thai";
+static const char *WIFI_PASSWORD = "0366330886";
 static const char *MQTT_BROKER_HOST = "7fca0eea573545b996b5e3b23e7e5613.s1.eu.hivemq.cloud";
 static const int MQTT_BROKER_PORT = 8883;
 static const char *MQTT_USERNAME = "iron-holter";
@@ -43,14 +43,15 @@ static const uint8_t MAX_RETRY = 3;
 // Dung lượng hàng đợi retry trong RAM.
 static const uint8_t RETRY_QUEUE_CAPACITY = 8;
 // Kích thước chunk ghi xuống socket TLS mỗi lần flush.
-static const size_t MQTT_STREAM_CHUNK_SIZE = 768;
+static const size_t MQTT_STREAM_CHUNK_SIZE = 500;
 
 Adafruit_MPU6050 mpu;
 WiFiClientSecure secureClient;
 PubSubClient mqttClient(secureClient);
 
 // Mỗi phần tử trong queue đại diện một batch cần gửi lại.
-struct RetryItem {
+struct RetryItem
+{
   String messageId;
   bool useBufferA;
   bool inUse;
@@ -95,7 +96,8 @@ const float a1 = -1.8478f, a2 = 0.9446f;
 // ---------------------------------------------------------------------------
 
 // Writer đếm độ dài JSON mà không cấp phát bộ nhớ.
-struct JsonLengthCounter {
+struct JsonLengthCounter
+{
   size_t total;
   JsonLengthCounter() : total(0) {}
   // Chỉ cộng độ dài, không ghi thật ra mạng.
@@ -104,71 +106,110 @@ struct JsonLengthCounter {
 };
 
 // Writer ghi trực tiếp từng chunk ra PubSubClient (streaming MQTT).
-struct JsonMqttWriter {
+struct JsonMqttWriter
+{
   PubSubClient &client;
   bool ok;
   char chunk[MQTT_STREAM_CHUNK_SIZE];
   size_t pending;
+  size_t totalWritten;
+  size_t lastChunkRequested;
+  size_t lastChunkWritten;
 
-  JsonMqttWriter(PubSubClient &c) : client(c), ok(true), pending(0) {}
+  JsonMqttWriter(PubSubClient &c)
+      : client(c), ok(true), pending(0), totalWritten(0), lastChunkRequested(0), lastChunkWritten(0) {} // constructor khởi tạo
 
   // Đẩy phần dữ liệu đang pending xuống socket TLS.
   // Trả false nếu ghi không đủ byte (lỗi mạng hoặc lỗi client).
-  bool flush() {
-    if (!ok) return false;
-    if (pending == 0) return true;
-    size_t written = client.write(reinterpret_cast<const uint8_t *>(chunk), pending);
-    if (written != pending) {
-      ok = false;
+  bool flush()
+  {
+    if (!ok)
       return false;
+    if (pending == 0)
+      return true;
+
+    size_t offset = 0;
+    uint32_t startAt = millis();
+
+    while (offset < pending)
+    {
+      size_t written = client.write(
+          reinterpret_cast<const uint8_t *>(chunk + offset),
+          pending - offset); // trong trường hợp mạng kém, không đảm bảo write toàn độ được chunk, vì vậy cần loop
+
+      totalWritten += written;
+      offset += written;
+
+      if (written == 0)
+      {
+        if (!client.connected() || millis() - startAt > 2000)
+        {
+          ok = false;
+          return false;
+        }
+        delay(1);
+      }
     }
+
     pending = 0;
     return true;
   }
 
   // Ghi chuỗi bất kỳ vào chunk nội bộ.
   // Khi chunk đầy sẽ tự flush để giảm số lần write nhỏ xuống socket.
-  void write(const char *s, size_t len) {
-    if (!ok) return;
+  void write(const char *s, size_t len)
+  { // ghi len byte từ chuỗi s vào chunk
+    if (!ok)
+      return;
     size_t offset = 0;
-    while (offset < len && ok) {
-      size_t space = MQTT_STREAM_CHUNK_SIZE - pending;
-      if (space == 0) {
+    while (offset < len && ok)
+    {
+      size_t space = MQTT_STREAM_CHUNK_SIZE - pending; // không gian còn lại của chunk
+      if (space == 0)
+      { // chunk đã đầy thì đẩy xuống socket
         flush();
         space = MQTT_STREAM_CHUNK_SIZE - pending;
       }
       size_t copyLen = len - offset;
-      if (copyLen > space) copyLen = space;
-      memcpy(chunk + pending, s + offset, copyLen);
+      if (copyLen > space)
+        copyLen = space;
+      memcpy(chunk + pending, s + offset, copyLen); // copy copyLen byte từ s+offset vào chunk+pending
       pending += copyLen;
       offset += copyLen;
     }
   }
 
   // Ghi 1 ký tự bằng cùng cơ chế chunk.
-  void writeChar(char c) {
+  void writeChar(char c)
+  {
     write(&c, 1);
   }
 };
 
 // Ghi số nguyên không dấu ra JSON (dạng thập phân) dùng chung cho cả 2 writer.
 template <typename Writer>
-void jsonWriteUnsigned(Writer &w, uint64_t value) {
+void jsonWriteUnsigned(Writer &w, uint64_t value)
+{
   char buf[21];
   int idx = 0;
 
   // Chuyển số sang chuỗi thập phân thủ công để tránh cấp phát động.
-  if (value == 0) {
+  if (value == 0)
+  {
     buf[idx++] = '0';
-  } else {
+  }
+  else
+  {
     char tmp[21];
     int t = 0;
-    while (value > 0 && t < 21) {
+    while (value > 0 && t < 21)
+    {
       uint8_t digit = static_cast<uint8_t>(value % 10ULL);
       tmp[t++] = static_cast<char>('0' + digit);
       value /= 10ULL;
     }
-    while (t > 0) {
+    while (t > 0)
+    {
       buf[idx++] = tmp[--t];
     }
   }
@@ -177,13 +218,15 @@ void jsonWriteUnsigned(Writer &w, uint64_t value) {
 
 // Ghi số thực ra JSON với 4 chữ số phần thập phân, không có khoảng trắng đầu.
 template <typename Writer>
-void jsonWriteFloat(Writer &w, float value) {
+void jsonWriteFloat(Writer &w, float value)
+{
   char numberBuf[20];
   // Giữ 4 chữ số thập phân để cân bằng giữa độ chính xác và kích thước payload.
-  dtostrf(value, 0, 4, numberBuf);
+  dtostrf(value, 0, 4, numberBuf); // dtostrf(value, width, precision, buffer), width = số ký tự tối thiểu mà chuỗi phải có, nếu ko đủ chèn dấu cách vào đầu cho đủ
 
   char *start = numberBuf;
-  while (*start == ' ') {
+  while (*start == ' ')
+  {
     start++;
   }
   size_t len = strlen(start);
@@ -195,13 +238,13 @@ void jsonWriteFloat(Writer &w, float value) {
 // dùng chung một giá trị thời gian, tránh lệch payload length.
 template <typename Writer>
 void buildTelemetryJsonStream(
-  Writer &w,
-  const String &messageId,
-  uint64_t sentAt,
-  float *ecg,
-  float *ax, float *ay, float *az,
-  float *gx, float *gy, float *gz
-) {
+    Writer &w,
+    const String &messageId,
+    uint64_t sentAt,
+    float *ecg,
+    float *ax, float *ay, float *az,
+    float *gx, float *gy, float *gz)
+{
   // Header metadata: định danh message + thiết bị + thời điểm gửi.
   w.write("{", 1);
   w.write("\"message_id\":\"", sizeof("\"message_id\":\"") - 1);
@@ -213,9 +256,11 @@ void buildTelemetryJsonStream(
 
   // Dữ liệu ECG của batch 5 giây.
   w.write(",\"ecg_signal\":[", sizeof(",\"ecg_signal\":[") - 1);
-  for (int i = 0; i < NUM_SAMPLES; i++) {
+  for (int i = 0; i < NUM_SAMPLES; i++)
+  {
     jsonWriteFloat(w, ecg[i]);
-    if (i < NUM_SAMPLES - 1) {
+    if (i < NUM_SAMPLES - 1)
+    {
       w.writeChar(',');
     }
   }
@@ -223,23 +268,29 @@ void buildTelemetryJsonStream(
 
   // Dữ liệu gia tốc 3 trục.
   w.write(",\"accel\":{\"x\":[", sizeof(",\"accel\":{\"x\":[") - 1);
-  for (int i = 0; i < MPU_NUM_SAMPLES; i++) {
+  for (int i = 0; i < MPU_NUM_SAMPLES; i++)
+  {
     jsonWriteFloat(w, ax[i]);
-    if (i < MPU_NUM_SAMPLES - 1) {
+    if (i < MPU_NUM_SAMPLES - 1)
+    {
       w.writeChar(',');
     }
   }
   w.write("],\"y\":[", sizeof("],\"y\":[") - 1);
-  for (int i = 0; i < MPU_NUM_SAMPLES; i++) {
+  for (int i = 0; i < MPU_NUM_SAMPLES; i++)
+  {
     jsonWriteFloat(w, ay[i]);
-    if (i < MPU_NUM_SAMPLES - 1) {
+    if (i < MPU_NUM_SAMPLES - 1)
+    {
       w.writeChar(',');
     }
   }
   w.write("],\"z\":[", sizeof("],\"z\":[") - 1);
-  for (int i = 0; i < MPU_NUM_SAMPLES; i++) {
+  for (int i = 0; i < MPU_NUM_SAMPLES; i++)
+  {
     jsonWriteFloat(w, az[i]);
-    if (i < MPU_NUM_SAMPLES - 1) {
+    if (i < MPU_NUM_SAMPLES - 1)
+    {
       w.writeChar(',');
     }
   }
@@ -247,23 +298,29 @@ void buildTelemetryJsonStream(
 
   // Dữ liệu con quay 3 trục.
   w.write(",\"gyro\":{\"x\":[", sizeof(",\"gyro\":{\"x\":[") - 1);
-  for (int i = 0; i < MPU_NUM_SAMPLES; i++) {
+  for (int i = 0; i < MPU_NUM_SAMPLES; i++)
+  {
     jsonWriteFloat(w, gx[i]);
-    if (i < MPU_NUM_SAMPLES - 1) {
+    if (i < MPU_NUM_SAMPLES - 1)
+    {
       w.writeChar(',');
     }
   }
   w.write("],\"y\":[", sizeof("],\"y\":[") - 1);
-  for (int i = 0; i < MPU_NUM_SAMPLES; i++) {
+  for (int i = 0; i < MPU_NUM_SAMPLES; i++)
+  {
     jsonWriteFloat(w, gy[i]);
-    if (i < MPU_NUM_SAMPLES - 1) {
+    if (i < MPU_NUM_SAMPLES - 1)
+    {
       w.writeChar(',');
     }
   }
   w.write("],\"z\":[", sizeof("],\"z\":[") - 1);
-  for (int i = 0; i < MPU_NUM_SAMPLES; i++) {
+  for (int i = 0; i < MPU_NUM_SAMPLES; i++)
+  {
     jsonWriteFloat(w, gz[i]);
-    if (i < MPU_NUM_SAMPLES - 1) {
+    if (i < MPU_NUM_SAMPLES - 1)
+    {
       w.writeChar(',');
     }
   }
@@ -281,12 +338,12 @@ void buildTelemetryJsonStream(
 
 // Tính chính xác độ dài JSON để truyền cho beginPublish().
 size_t calcPayloadLength(
-  const String &messageId,
-  uint64_t sentAt,
-  float *ecg,
-  float *ax, float *ay, float *az,
-  float *gx, float *gy, float *gz
-) {
+    const String &messageId,
+    uint64_t sentAt,
+    float *ecg,
+    float *ax, float *ay, float *az,
+    float *gx, float *gy, float *gz)
+{
   // beginPublish cần payload length chính xác, nên phải đếm trước 1 lượt.
   JsonLengthCounter counter;
   buildTelemetryJsonStream(counter, messageId, sentAt, ecg, ax, ay, az, gx, gy, gz);
@@ -294,29 +351,32 @@ size_t calcPayloadLength(
 }
 
 // Hàm tạo topic uplink theo serial thiết bị.
-String topicUplink() {
+String topicUplink()
+{
   // Chuẩn topic đã khóa trong backend migration plan.
   return String("devices/") + SERIAL_NUMBER + "/telemetry";
 }
 
 // Hàm tạo topic ACK ứng dụng để nhận phản hồi ingest từ backend.
-String topicAck() {
+String topicAck()
+{
   return String("devices/") + SERIAL_NUMBER + "/ack";
 }
 
 // Stream JSON trực tiếp ra MQTT (không tạo String payload lớn trên heap).
 bool streamTelemetryJson(
-  const String &messageId,
-  uint64_t sentAt,
-  float *ecg,
-  float *ax, float *ay, float *az,
-  float *gx, float *gy, float *gz
-) {
+    const String &messageId,
+    uint64_t sentAt,
+    float *ecg,
+    float *ax, float *ay, float *az,
+    float *gx, float *gy, float *gz)
+{
   // B1: Đếm chính xác payload length.
   const size_t payloadLen = calcPayloadLength(messageId, sentAt, ecg, ax, ay, az, gx, gy, gz);
 
   // B2: Mở gói MQTT kiểu streaming.
-  if (!mqttClient.beginPublish(topicUplink().c_str(), static_cast<unsigned int>(payloadLen), false)) {
+  if (!mqttClient.beginPublish(topicUplink().c_str(), static_cast<unsigned int>(payloadLen), false))
+  {
     Serial.printf("⚠️ beginPublish thất bại cho message_id=%s\n", messageId.c_str());
     return false;
   }
@@ -324,50 +384,76 @@ bool streamTelemetryJson(
   // B3: Stream JSON từng phần, không giữ payload lớn trên heap.
   JsonMqttWriter writer(mqttClient);
   buildTelemetryJsonStream(writer, messageId, sentAt, ecg, ax, ay, az, gx, gy, gz);
-  // Flush phần còn tồn trong chunk.
-  writer.flush();
+  // Flush phần còn tồn trong chunk. Nếu ghi thiếu byte thì dừng ngay, không endPublish.
+  bool okFlush = writer.flush();
+  if (!okFlush || !writer.ok)
+  {
+    Serial.printf("⚠️ MQTT short write cho message_id=%s | expected_len=%u | written_len=%u | last_chunk_requested=%u | last_chunk_written=%u\n",
+                  messageId.c_str(),
+                  static_cast<unsigned int>(payloadLen),
+                  static_cast<unsigned int>(writer.totalWritten),
+                  static_cast<unsigned int>(writer.lastChunkRequested),
+                  static_cast<unsigned int>(writer.lastChunkWritten));
+    return false;
+  }
 
   // B4: Kết thúc publish.
   bool okEnd = mqttClient.endPublish();
-  if (!writer.ok || !okEnd) {
-    Serial.printf("⚠️ endPublish hoặc ghi MQTT thất bại cho message_id=%s\n", messageId.c_str());
-  } else {
-    Serial.printf("✅ Đã gửi payload MQTT tới broker (message_id=%s, length=%u)\n",
-                  messageId.c_str(), static_cast<unsigned int>(payloadLen));
+  if (!okEnd)
+  {
+    Serial.printf("⚠️ endPublish thất bại cho message_id=%s | expected_len=%u | written_len=%u\n",
+                  messageId.c_str(),
+                  static_cast<unsigned int>(payloadLen),
+                  static_cast<unsigned int>(writer.totalWritten));
   }
-  return writer.ok && okEnd;
+  else
+  {
+    Serial.printf("✅ Đã gửi payload MQTT tới broker (message_id=%s, length=%u, written=%u)\n",
+                  messageId.c_str(),
+                  static_cast<unsigned int>(payloadLen),
+                  static_cast<unsigned int>(writer.totalWritten));
+  }
+  return okEnd;
 }
 
 // Hàm tạo message_id duy nhất theo serial + millis + counter.
-String makeMessageId() {
+String makeMessageId()
+{
   // message_id duy nhất theo thiết bị để truy vết từng batch.
   messageCounter += 1;
   return String(SERIAL_NUMBER) + "-" + String(millis()) + "-" + String(messageCounter);
 }
 
 // Hàm tách chuỗi JSON field dạng "key":"value" cho payload ACK đơn giản.
-bool extractJsonStringField(const String &jsonText, const char *key, String &outValue) {
+bool extractJsonStringField(const String &jsonText, const char *key, String &outValue)
+{
   const String pattern = String("\"") + key + "\":\"";
   const int start = jsonText.indexOf(pattern);
-  if (start < 0) return false;
+  if (start < 0)
+    return false;
   const int valueStart = start + pattern.length();
   const int valueEnd = jsonText.indexOf('"', valueStart);
-  if (valueEnd < 0) return false;
+  if (valueEnd < 0)
+    return false;
   outValue = jsonText.substring(valueStart, valueEnd);
   return true;
 }
 
 // Hàm tách chuỗi JSON field dạng "key":true/false cho payload ACK đơn giản.
-bool extractJsonBoolField(const String &jsonText, const char *key, bool &outValue) {
+bool extractJsonBoolField(const String &jsonText, const char *key, bool &outValue)
+{
   const String pattern = String("\"") + key + "\":";
   const int start = jsonText.indexOf(pattern);
-  if (start < 0) return false;
+  if (start < 0)
+    return false;
   const int valueStart = start + pattern.length();
-  if (jsonText.startsWith("true", valueStart)) {
+  if (jsonText.startsWith("true", valueStart))
+  {
     outValue = true;
     return true;
   }
-  if (jsonText.startsWith("false", valueStart)) {
+  if (jsonText.startsWith("false", valueStart))
+  {
     outValue = false;
     return true;
   }
@@ -375,12 +461,15 @@ bool extractJsonBoolField(const String &jsonText, const char *key, bool &outValu
 }
 
 // Hàm cập nhật trạng thái ACK khi nhận được message trên topic ACK của thiết bị.
-void updateAckState(const String &jsonText) {
+void updateAckState(const String &jsonText)
+{
   String messageId;
   String status;
   bool duplicate = false;
-  if (!extractJsonStringField(jsonText, "message_id", messageId)) return;
-  if (!extractJsonStringField(jsonText, "status", status)) return;
+  if (!extractJsonStringField(jsonText, "message_id", messageId))
+    return;
+  if (!extractJsonStringField(jsonText, "status", status))
+    return;
   extractJsonBoolField(jsonText, "duplicate", duplicate);
 
   ackMessageId = messageId;
@@ -390,12 +479,15 @@ void updateAckState(const String &jsonText) {
 }
 
 // Hàm callback MQTT để nhận ACK ứng dụng từ server.
-void mqttCallback(char *topic, byte *payload, unsigned int length) {
-  if (String(topic) != topicAck()) return;
+void mqttCallback(char *topic, byte *payload, unsigned int length)
+{
+  if (String(topic) != topicAck())
+    return;
 
   String payloadText;
   payloadText.reserve(length);
-  for (unsigned int i = 0; i < length; i++) {
+  for (unsigned int i = 0; i < length; i++)
+  {
     payloadText += static_cast<char>(payload[i]);
   }
   Serial.printf("📥 Nhận ACK raw: %s\n", payloadText.c_str());
@@ -403,22 +495,27 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
 }
 
 // Hàm chờ ACK ứng dụng đúng message_id trong tối đa timeoutMs.
-bool waitAppAck(const String &messageId, uint32_t timeoutMs) {
+bool waitAppAck(const String &messageId, uint32_t timeoutMs)
+{
   ackReceived = false;
   ackMessageId = "";
   ackStatus = "";
   ackDuplicate = false;
 
   const uint32_t waitStart = millis();
-  while (millis() - waitStart < timeoutMs) {
+  while (millis() - waitStart < timeoutMs)
+  {
     mqttClient.loop();
-    if (ackReceived) {
+    if (ackReceived)
+    {
       ackReceived = false;
-      if (ackMessageId != messageId) {
+      if (ackMessageId != messageId)
+      {
         // Bỏ ACK không khớp message hiện tại.
         continue;
       }
-      if (ackStatus == "ok") {
+      if (ackStatus == "ok")
+      {
         Serial.printf("✅ ACK OK cho message_id=%s (duplicate=%s)\n",
                       messageId.c_str(), ackDuplicate ? "true" : "false");
         return true;
@@ -434,21 +531,25 @@ bool waitAppAck(const String &messageId, uint32_t timeoutMs) {
 }
 
 // Hàm thêm batch vào hàng đợi retry theo cơ chế FIFO.
-void enqueueRetry(const String &messageId, bool useBufferAForBatch) {
-  if (retryCount >= RETRY_QUEUE_CAPACITY) {
+void enqueueRetry(const String &messageId, bool useBufferAForBatch)
+{
+  if (retryCount >= RETRY_QUEUE_CAPACITY)
+  {
     // Queue đầy: bỏ phần tử cũ nhất để nhường chỗ cho batch mới.
     retryQueue[retryHead].inUse = false;
     retryHead = (retryHead + 1) % RETRY_QUEUE_CAPACITY;
     retryCount -= 1;
   }
-  retryQueue[retryTail] = { messageId, useBufferAForBatch, true };
+  retryQueue[retryTail] = {messageId, useBufferAForBatch, true};
   retryTail = (retryTail + 1) % RETRY_QUEUE_CAPACITY;
   retryCount += 1;
 }
 
 // Hàm lấy một phần tử từ queue retry theo thứ tự vào trước ra trước.
-bool dequeueRetry(RetryItem &outItem) {
-  if (retryCount == 0) return false;
+bool dequeueRetry(RetryItem &outItem)
+{
+  if (retryCount == 0)
+    return false;
   outItem = retryQueue[retryHead];
   retryQueue[retryHead].inUse = false;
   retryHead = (retryHead + 1) % RETRY_QUEUE_CAPACITY;
@@ -457,7 +558,8 @@ bool dequeueRetry(RetryItem &outItem) {
 }
 
 // Hàm lọc notch 50Hz để giảm nhiễu lưới điện trên kênh ECG.
-float notchFilter(float x) {
+float notchFilter(float x)
+{
   // Lọc notch 50Hz theo dạng IIR bậc 2.
   float y = b0 * x + b1 * x1_ + b2 * x2_ - a1 * y1_ - a2 * y2_;
   x2_ = x1_;
@@ -468,11 +570,13 @@ float notchFilter(float x) {
 }
 
 // Hàm kết nối Wi-Fi và đợi đến khi có mạng.
-void connectWifi() {
+void connectWifi()
+{
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("WiFi connecting");
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
     Serial.print(".");
   }
@@ -480,18 +584,23 @@ void connectWifi() {
 }
 
 // Hàm đảm bảo kết nối MQTT hoạt động trước khi publish telemetry.
-bool ensureMqttConnected() {
+bool ensureMqttConnected()
+{
   // Nếu đang connected thì không reconnect để tránh tốn TLS handshake.
-  if (mqttClient.connected()) return true;
+  if (mqttClient.connected())
+    return true;
   const uint32_t startAt = millis();
-  while (!mqttClient.connected() && millis() - startAt < 10000) {
-    if (WiFi.status() != WL_CONNECTED) {
+  while (!mqttClient.connected() && millis() - startAt < 10000)
+  {
+    if (WiFi.status() != WL_CONNECTED)
+    {
       connectWifi();
     }
 
     // Connect có username/password theo cấu hình broker cloud.
     bool ok = mqttClient.connect(MQTT_CLIENT_ID, MQTT_USERNAME, MQTT_PASSWORD);
-    if (ok) {
+    if (ok)
+    {
       mqttClient.subscribe(topicAck().c_str(), 1);
       Serial.println("MQTT connected");
       return true;
@@ -506,21 +615,23 @@ bool ensureMqttConnected() {
 }
 
 // Hàm publish telemetry một lần rồi chờ ACK theo timeout cấu hình.
-bool publishSingleAttemptWithAck(const String &messageId, bool useBufferAForBatch, uint8_t attemptNo) {
+bool publishSingleAttemptWithAck(const String &messageId, bool useBufferAForBatch, uint8_t attemptNo)
+{
   // Chọn buffer dữ liệu tương ứng với batch cần gửi (A hoặc B).
   float *ecg = useBufferAForBatch ? ecgBufA : ecgBufB;
-  float *ax  = useBufferAForBatch ? accelX_A : accelX_B;
-  float *ay  = useBufferAForBatch ? accelY_A : accelY_B;
-  float *az  = useBufferAForBatch ? accelZ_A : accelZ_B;
-  float *gx  = useBufferAForBatch ? gyroX_A  : gyroX_B;
-  float *gy  = useBufferAForBatch ? gyroY_A  : gyroY_B;
-  float *gz  = useBufferAForBatch ? gyroZ_A  : gyroZ_B;
+  float *ax = useBufferAForBatch ? accelX_A : accelX_B;
+  float *ay = useBufferAForBatch ? accelY_A : accelY_B;
+  float *az = useBufferAForBatch ? accelZ_A : accelZ_B;
+  float *gx = useBufferAForBatch ? gyroX_A : gyroX_B;
+  float *gy = useBufferAForBatch ? gyroY_A : gyroY_B;
+  float *gz = useBufferAForBatch ? gyroZ_A : gyroZ_B;
 
   // Đo riêng connect_ms để tách nghẽn do reconnect khỏi nghẽn do publish.
   unsigned long connectStartMs = millis();
   bool connected = ensureMqttConnected();
   unsigned long connectDurationMs = millis() - connectStartMs;
-  if (!connected) {
+  if (!connected)
+  {
     Serial.printf("⚠️ Không thể kết nối MQTT để gửi message_id=%s | connect_ms=%lu\n",
                   messageId.c_str(), connectDurationMs);
     return false;
@@ -533,14 +644,18 @@ bool publishSingleAttemptWithAck(const String &messageId, bool useBufferAForBatc
   unsigned long publishDurationMs = millis() - publishStartMs;
   Serial.printf("📊 MQTT timing message_id=%s | attempt=%u | connect_ms=%lu | publish_ms=%lu\n",
                 messageId.c_str(), static_cast<unsigned int>(attemptNo), connectDurationMs, publishDurationMs);
-  if (!published) return false;
+  if (!published)
+    return false;
   return waitAppAck(messageId, ACK_TIMEOUT_MS);
 }
 
 // Hàm retry gửi telemetry tối đa MAX_RETRY lần theo logic ACK ban đầu.
-bool publishWithRetry(const String &messageId, bool useBufferAForBatch) {
-  for (uint8_t attempt = 1; attempt <= MAX_RETRY; attempt++) {
-    if (publishSingleAttemptWithAck(messageId, useBufferAForBatch, attempt)) {
+bool publishWithRetry(const String &messageId, bool useBufferAForBatch)
+{
+  for (uint8_t attempt = 1; attempt <= MAX_RETRY; attempt++)
+  {
+    if (publishSingleAttemptWithAck(messageId, useBufferAForBatch, attempt))
+    {
       return true;
     }
     delay(120);
@@ -549,24 +664,32 @@ bool publishWithRetry(const String &messageId, bool useBufferAForBatch) {
 }
 
 // Hàm thử gửi lại một batch từ queue retry mỗi vòng gửi để tránh nghẽn dài.
-void drainRetryQueue() {
-  if (retryCount == 0) return;
+void drainRetryQueue()
+{
+  if (retryCount == 0)
+    return;
   RetryItem item;
-  if (!dequeueRetry(item)) return;
-  if (!item.inUse) return;
+  if (!dequeueRetry(item))
+    return;
+  if (!item.inUse)
+    return;
 
   bool ok = publishWithRetry(item.messageId, item.useBufferA);
-  if (!ok) {
+  if (!ok)
+  {
     enqueueRetry(item.messageId, item.useBufferA);
     Serial.printf("↩️ Retry queue requeue: %s | queue=%u\n",
                   item.messageId.c_str(), static_cast<unsigned int>(retryCount));
-  } else {
+  }
+  else
+  {
     Serial.printf("✅ Retry queue delivered: %s\n", item.messageId.c_str());
   }
 }
 
 // Hàm thu mẫu ECG + MPU vào double buffer và báo sẵn sàng cho task gửi.
-void sensorTask(void *param) {
+void sensorTask(void *param)
+{
   unsigned long lastECG = micros();
   unsigned long lastMPU = micros();
   int ecgIdx = 0;
@@ -576,34 +699,44 @@ void sensorTask(void *param) {
   const unsigned long ecgInterval = 1000000UL / SAMPLE_RATE_ECG;
   const unsigned long mpuInterval = 1000000UL / MPU_SAMPLE_RATE;
 
-  while (true) {
+  while (true)
+  {
     unsigned long currentMicros = micros();
 
-    if ((currentMicros - lastECG) >= ecgInterval) {
+    if ((currentMicros - lastECG) >= ecgInterval)
+    {
       lastECG += ecgInterval;
-      if (ecgIdx < NUM_SAMPLES) {
+      if (ecgIdx < NUM_SAMPLES)
+      {
         int ecgRaw = analogRead(ECG_PIN);
         float v = ((float)ecgRaw / 4095.0f) * 3.3f - 1.65f;
         v = notchFilter(v);
-        if (useBufferA) ecgBufA[ecgIdx] = v;
-        else ecgBufB[ecgIdx] = v;
+        if (useBufferA)
+          ecgBufA[ecgIdx] = v;
+        else
+          ecgBufB[ecgIdx] = v;
         ecgIdx++;
       }
     }
 
-    if ((currentMicros - lastMPU) >= mpuInterval) {
+    if ((currentMicros - lastMPU) >= mpuInterval)
+    {
       lastMPU += mpuInterval;
-      if (mpuIdx < MPU_NUM_SAMPLES) {
+      if (mpuIdx < MPU_NUM_SAMPLES)
+      {
         sensors_event_t a, g, temp;
         mpu.getEvent(&a, &g, &temp);
-        if (useBufferA) {
+        if (useBufferA)
+        {
           accelX_A[mpuIdx] = a.acceleration.x;
           accelY_A[mpuIdx] = a.acceleration.y;
           accelZ_A[mpuIdx] = a.acceleration.z;
           gyroX_A[mpuIdx] = g.gyro.x;
           gyroY_A[mpuIdx] = g.gyro.y;
           gyroZ_A[mpuIdx] = g.gyro.z;
-        } else {
+        }
+        else
+        {
           accelX_B[mpuIdx] = a.acceleration.x;
           accelY_B[mpuIdx] = a.acceleration.y;
           accelZ_B[mpuIdx] = a.acceleration.z;
@@ -616,7 +749,8 @@ void sensorTask(void *param) {
     }
 
     // Khi đủ 1 batch, đảo buffer và đánh thức senderTask gửi batch vừa đầy.
-    if (ecgIdx >= NUM_SAMPLES && mpuIdx >= MPU_NUM_SAMPLES) {
+    if (ecgIdx >= NUM_SAMPLES && mpuIdx >= MPU_NUM_SAMPLES)
+    {
       useBufferA = !useBufferA;
       ecgIdx = 0;
       mpuIdx = 0;
@@ -626,14 +760,20 @@ void sensorTask(void *param) {
 }
 
 // Hàm gửi telemetry từ buffer đã đầy bằng MQTT + ACK + retry.
-void senderTask(void *param) {
-  while (true) {
+void senderTask(void *param)
+{
+  while (true)
+  {
     // Không block vô hạn để vẫn gọi mqttClient.loop() giữ keepalive MQTT.
-    if (xSemaphoreTake(readySemaphore, pdMS_TO_TICKS(20)) != pdTRUE) {
-      if (mqttClient.connected()) {
+    if (xSemaphoreTake(readySemaphore, pdMS_TO_TICKS(20)) != pdTRUE)
+    {
+      if (mqttClient.connected())
+      {
         // loop() xử lý keepalive/ping để tránh broker ngắt kết nối rỗi.
         mqttClient.loop();
-      } else {
+      }
+      else
+      {
         // Chủ động dựng lại kết nối nếu đã rớt.
         ensureMqttConnected();
       }
@@ -651,11 +791,14 @@ void senderTask(void *param) {
     // Gửi batch theo cơ chế retry ACK chuẩn.
     bool ok = publishWithRetry(messageId, sendA);
     unsigned long sendDurationMs = millis() - sendStartMs;
-    if (!ok) {
+    if (!ok)
+    {
       enqueueRetry(messageId, sendA);
       Serial.printf("⚠️ Publish/ACK fail, đã đưa vào queue: %s | duration_ms=%lu | queue=%u\n",
                     messageId.c_str(), sendDurationMs, static_cast<unsigned int>(retryCount));
-    } else {
+    }
+    else
+    {
       Serial.printf("Publish ok: %s | duration_ms=%lu\n", messageId.c_str(), sendDurationMs);
     }
 
@@ -665,7 +808,8 @@ void senderTask(void *param) {
 }
 
 // Hàm khởi tạo toàn bộ phần cứng và tạo task thu/gửi dữ liệu.
-void setup() {
+void setup()
+{
   Serial.begin(9600);
   analogReadResolution(12);
 
@@ -673,10 +817,12 @@ void setup() {
   digitalWrite(SDN_PIN, LOW);
 
   Wire.setClock(40000);
-  if (!mpu.begin()) {
+  if (!mpu.begin())
+  {
     Serial.println("MPU6050 not found");
-    while (true) delay(100);
-  } 
+    while (true)
+      delay(100);
+  }
   Serial.println("MPU6050 Ready");
   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
@@ -688,7 +834,7 @@ void setup() {
   // Khi production nên dùng CA cert thay vì setInsecure().
   secureClient.setInsecure();
   // Tắt Nagle để giảm trễ với luồng ghi nhiều chunk.
-  secureClient.setNoDelay(true);
+  // secureClient.setNoDelay(true);
   mqttClient.setServer(MQTT_BROKER_HOST, MQTT_BROKER_PORT);
   // Buffer MQTT chỉ cần vừa phải vì payload đã stream dần, không cần chứa toàn bộ JSON.
   mqttClient.setBufferSize(4096);
@@ -702,7 +848,8 @@ void setup() {
 }
 
 // Hàm loop chính không dùng, toàn bộ xử lý nằm trong các FreeRTOS task.
-void loop() {
+void loop()
+{
   // Kiến trúc này dùng FreeRTOS task, loop() không còn nhiệm vụ.
   vTaskDelete(NULL);
 }
