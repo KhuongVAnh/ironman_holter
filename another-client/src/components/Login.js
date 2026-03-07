@@ -1,6 +1,7 @@
-﻿import { useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
+import { API_BASE_URL } from "../config/env"
 import { useAuth } from "../contexts/AuthContext"
 
 const demoAccounts = [
@@ -14,6 +15,20 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    fetch(`${API_BASE_URL}/api/hello`, {
+      method: "GET",
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    }).catch(() => {
+      // Ignore wake-up errors here. The goal is only to warm app + DB before login.
+    })
+
+    return () => controller.abort()
+  }, [])
 
   const handleSubmit = async (event) => {
     event.preventDefault()

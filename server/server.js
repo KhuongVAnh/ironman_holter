@@ -1,9 +1,9 @@
-const path = require("path")
+﻿const path = require("path")
 const dotenv = require("dotenv")
 
-// Quy tắc ưu tiên env:
-// 1) server/.env là nguồn chính.
-// 2) root .env chỉ bổ sung key còn thiếu (không override key đã có).
+// Quy táº¯c Æ°u tiÃªn env:
+// 1) server/.env lÃ  nguá»“n chÃ­nh.
+// 2) root .env chá»‰ bá»• sung key cÃ²n thiáº¿u (khÃ´ng override key Ä‘Ã£ cÃ³).
 dotenv.config({ path: path.resolve(__dirname, ".env") })
 dotenv.config({ path: path.resolve(__dirname, "../.env"), override: false })
 
@@ -46,6 +46,26 @@ app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
+
+// Endpoint wake-up để đánh thức app và database khi platform ngủ.
+app.get("/api/hello", async (_req, res) => {
+  try {
+    await prisma.$queryRawUnsafe("SELECT 1")
+    return res.status(200).json({
+      ok: true,
+      message: "hello",
+      timestamp: new Date().toISOString(),
+    })
+  } catch (error) {
+    logServerEvent("HELLO_DB_WAKE_FAILED", {
+      reason: error?.message || "UNKNOWN",
+    })
+    return res.status(503).json({
+      ok: false,
+      message: "database wake failed",
+    })
+  }
+})
 // Routes
 app.use("/api/auth", require("./routes/auth"))
 app.use("/api/users", require("./routes/users"))
@@ -68,7 +88,7 @@ app.set("socketService", socketService)
 const PORT = process.env.PORT || 4000
 let isShuttingDown = false
 
-// Hàm ghi log JSON line để chuẩn hóa lifecycle của server process.
+// HÃ m ghi log JSON line Ä‘á»ƒ chuáº©n hÃ³a lifecycle cá»§a server process.
 const logServerEvent = (event, payload = {}) => {
   console.log(
     JSON.stringify({
@@ -80,7 +100,7 @@ const logServerEvent = (event, payload = {}) => {
   )
 }
 
-// Hàm chuẩn hóa mã lỗi ingest nội bộ sang error_code ACK đã khóa trong P3.
+// HÃ m chuáº©n hÃ³a mÃ£ lá»—i ingest ná»™i bá»™ sang error_code ACK Ä‘Ã£ khÃ³a trong P3.
 const toAckErrorCode = (ingestCode) => {
   const code = String(ingestCode || "").trim().toUpperCase()
   switch (code) {
@@ -91,7 +111,7 @@ const toAckErrorCode = (ingestCode) => {
   }
 }
 
-// Hàm gửi ACK error nếu xác định được serial từ topic theo quy tắc P3.
+// HÃ m gá»­i ACK error náº¿u xÃ¡c Ä‘á»‹nh Ä‘Æ°á»£c serial tá»« topic theo quy táº¯c P3.
 const ackErrorIfPossible = async ({ topicSerial, messageId, errorCode, message, topic }) => {
   if (!topicSerial) {
     logServerEvent("MQTT_ACK_ERROR_SKIPPED_NO_SERIAL", {
@@ -113,7 +133,7 @@ const ackErrorIfPossible = async ({ topicSerial, messageId, errorCode, message, 
   )
 }
 
-// Hàm đóng tài nguyên an toàn khi server nhận tín hiệu thoát.
+// HÃ m Ä‘Ã³ng tÃ i nguyÃªn an toÃ n khi server nháº­n tÃ­n hiá»‡u thoÃ¡t.
 const shutdownGracefully = async (signal) => {
   if (isShuttingDown) return
   isShuttingDown = true
@@ -147,7 +167,7 @@ const shutdownGracefully = async (signal) => {
   }, 10000).unref()
 }
 
-// Hàm xử lý payload MQTT và chuyển vào ingest service dùng chung với HTTP.
+// HÃ m xá»­ lÃ½ payload MQTT vÃ  chuyá»ƒn vÃ o ingest service dÃ¹ng chung vá»›i HTTP.
 const handleMqttTelemetryMessage = async ({ topic, payloadText, payloadBuffer }) => {
   const topicSerial = extractSerialFromTopic(topic)
   const payloadSize = Number(payloadBuffer?.length || 0)
@@ -321,7 +341,7 @@ const handleMqttTelemetryMessage = async ({ topic, payloadText, payloadBuffer })
   })
 }
 
-// Hàm khởi động backend: DB, MQTT foundation và HTTP server.
+// HÃ m khá»Ÿi Ä‘á»™ng backend: DB, MQTT foundation vÃ  HTTP server.
 const startServer = async () => {
   try {
     await prisma.$connect()
@@ -350,3 +370,4 @@ process.on("SIGINT", () => shutdownGracefully("SIGINT"))
 process.on("SIGTERM", () => shutdownGracefully("SIGTERM"))
 
 startServer()
+

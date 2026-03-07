@@ -1,9 +1,10 @@
 ﻿"use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { toast } from "react-toastify"
+import { API_BASE_URL } from "../config/env"
 
 const demoAccounts = [
   { role: "Bệnh nhân", email: "patient@example.com", password: "123456" },
@@ -19,6 +20,20 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    fetch(`${API_BASE_URL}/api/hello`, {
+      method: "GET",
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    }).catch(() => {
+      // Ignore wake-up errors on login screen. This request is only to wake app + DB.
+    })
+
+    return () => controller.abort()
+  }, [])
 
   const handleChange = (e) => {
     setFormData({
