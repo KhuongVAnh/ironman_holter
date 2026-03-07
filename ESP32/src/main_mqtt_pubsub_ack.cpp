@@ -762,20 +762,43 @@ void sensorTask(void *param)
 // Hàm gửi telemetry từ buffer đã đầy bằng MQTT + ACK + retry.
 void senderTask(void *param)
 {
+  const TickType_t idleWaitTicks = pdMS_TO_TICKS(250);
+  const uint32_t mqttLoopIntervalMs = 200;
+  const uint32_t reconnectIntervalMs = 1000;
+  const uint32_t retryDrainIntervalMs = 750;
+
+  uint32_t lastMqttLoopMs = 0;
+  uint32_t lastReconnectMs = 0;
+  uint32_t lastRetryDrainMs = 0;
+
   while (true)
   {
-    // Không block vô hạn để vẫn gọi mqttClient.loop() giữ keepalive MQTT.
-    if (xSemaphoreTake(readySemaphore, pdMS_TO_TICKS(20)) != pdTRUE)
+    // Block lâu hơn để giảm wake-up CPU vô ích; vẫn thức dậy định kỳ để nuôi keepalive MQTT.
+    if (xSemaphoreTake(readySemaphore, idleWaitTicks) != pdTRUE)
     {
+      const uint32_t nowMs = millis();
+
       if (mqttClient.connected())
       {
-        // loop() xử lý keepalive/ping để tránh broker ngắt kết nối rỗi.
-        mqttClient.loop();
+        // loop() không cần gọi dày 20ms; nhịp 200ms vẫn đủ cho keepalive nhưng tiết kiệm điện hơn.
+        if (nowMs - lastMqttLoopMs >= mqttLoopIntervalMs)
+        {
+          mqttClient.loop();
+          lastMqttLoopMs = nowMs;
+        }
       }
-      else
+      else if (nowMs - lastReconnectMs >= reconnectIntervalMs)
       {
-        // Chủ động dựng lại kết nối nếu đã rớt.
+        // Giãn reconnect để tránh dựng lại TLS quá thường xuyên khi đang rớt mạng.
         ensureMqttConnected();
+        lastReconnectMs = nowMs;
+      }
+
+      // Khi rảnh vẫn drain retry queue theo nhịp vừa phải, không polling liên tục.
+      if (retryCount > 0 && nowMs - lastRetryDrainMs >= retryDrainIntervalMs)
+      {
+        drainRetryQueue();
+        lastRetryDrainMs = nowMs;
       }
       continue;
     }
@@ -804,6 +827,8 @@ void senderTask(void *param)
 
     // Mỗi vòng gửi xong sẽ thử đẩy thêm 1 phần tử từ retry queue.
     drainRetryQueue();
+    lastMqttLoopMs = millis();
+    lastRetryDrainMs = lastMqttLoopMs;
   }
 }
 
@@ -816,7 +841,6 @@ void setup()
   pinMode(SDN_PIN, OUTPUT);
   digitalWrite(SDN_PIN, LOW);
 
-  Wire.setClock(40000);
   if (!mpu.begin())
   {
     Serial.println("MPU6050 not found");
