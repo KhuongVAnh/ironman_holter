@@ -1,4 +1,4 @@
-// Controller xu ly chat AI va chat truc tiep giua benh nhan voi bac si.
+// Controller xử lý chat AI và chat trực tiếp giữa bệnh nhân với bác sĩ.
 const axios = require("axios")
 const { AccessRole, AccessStatus, NotificationType, UserRole } = require("@prisma/client")
 const prisma = require("../prismaClient")
@@ -6,23 +6,23 @@ const { createNotification } = require("../services/notificationService")
 
 const MAX_DIRECT_MESSAGE_LENGTH = 2000
 
-// Ham xu ly chuyen gia tri id ve so nguyen hop le.
+// Hàm xử lý chuyển giá trị id về số nguyên hợp lệ.
 const parseId = (value) => {
   const parsed = Number.parseInt(value, 10)
   return Number.isNaN(parsed) ? null : parsed
 }
 
-// Ham xu ly tao khoa hoi thoai duy nhat cho cap nguoi dung.
+// Hàm xử lý tạo khóa hội thoại duy nhất cho cặp người dùng.
 const getConversationKey = (a, b) => {
   const left = Number(a)
   const right = Number(b)
   return left < right ? `${left}_${right}` : `${right}_${left}`
 }
 
-// Ham xu ly kiem tra role co duoc phep chat truc tiep hay khong.
+// Hàm xử lý kiểm tra role có được phép chat trực tiếp hay không.
 const isDirectChatRole = (role) => role === UserRole.BENH_NHAN || role === UserRole.BAC_SI
 
-// Ham xu ly lay tin nhan moi nhat cua mot cuoc chat truc tiep.
+// Hàm xử lý lấy tin nhắn mới nhất của một cuộc chat trực tiếp.
 const findLastDirectMessage = async (conversationKey) => {
   return prisma.directMessage.findFirst({
     where: { conversation_key: conversationKey },
@@ -30,7 +30,7 @@ const findLastDirectMessage = async (conversationKey) => {
   })
 }
 
-// Ham xu ly dem tin nhan chua doc cho nguoi nhan.
+// Hàm xử lý đếm tin nhắn chưa đọc cho người nhận.
 const countUnreadDirectMessages = async (senderId, receiverId) => {
   return prisma.directMessage.count({
     where: {
@@ -41,7 +41,7 @@ const countUnreadDirectMessages = async (senderId, receiverId) => {
   })
 }
 
-// Ham xu ly kiem tra va xac dinh cap chat bac si - benh nhan hop le.
+// Hàm xử lý kiểm tra và xác định cặp chat bác sĩ - bệnh nhân hợp lệ.
 const resolveDirectPair = async (currentUserId, otherUserId) => {
   if (!currentUserId || !otherUserId) {
     const error = new Error("INVALID_USER")
@@ -125,7 +125,7 @@ const resolveDirectPair = async (currentUserId, otherUserId) => {
   }
 }
 
-// Ham xu ly map ma loi chat truc tiep thanh response HTTP phu hop.
+// Hàm xử lý map mã lỗi chat trực tiếp thành response HTTP phù hợp.
 const mapDirectError = (error, res) => {
   if (error.message === "INVALID_USER") {
     return res.status(400).json({ message: "Thong tin nguoi dung khong hop le" })
@@ -150,7 +150,7 @@ const mapDirectError = (error, res) => {
   return res.status(statusCode).json({ message: "Loi server noi bo" })
 }
 
-// Ham xu ly hoi dap voi tro ly AI.
+// Hàm xử lý hỏi đáp với trợ lý AI.
 const chatWithGemini = async (req, res) => {
   try {
     const { message } = req.body
@@ -219,7 +219,7 @@ const chatWithGemini = async (req, res) => {
   }
 }
 
-// Ham xu ly lay lich su hoi dap voi AI.
+// Hàm xử lý lấy lịch sử hỏi đáp với AI.
 const getChatHistory = async (req, res) => {
   try {
     const user_id = req.user.user_id
@@ -236,7 +236,7 @@ const getChatHistory = async (req, res) => {
   }
 }
 
-// Ham xu ly lay danh sach lien he chat truc tiep.
+// Hàm xử lý lấy danh sách liên hệ chat trực tiếp.
 const getDirectChatContacts = async (req, res) => {
   try {
     const userId = parseId(req.user.user_id)
@@ -332,7 +332,7 @@ const getDirectChatContacts = async (req, res) => {
   }
 }
 
-// Ham xu ly lay lich su tin nhan truc tiep giua hai nguoi dung.
+// Hàm xử lý lấy lịch sử tin nhắn trực tiếp giữa hai người dùng.
 const getDirectMessages = async (req, res) => {
   try {
     const currentUserId = parseId(req.user.user_id)
@@ -365,7 +365,7 @@ const getDirectMessages = async (req, res) => {
   }
 }
 
-// Ham xu ly gui tin nhan truc tiep.
+// Hàm xử lý gửi tin nhắn trực tiếp.
 const sendDirectMessage = async (req, res) => {
   try {
     const senderId = parseId(req.user.user_id)
@@ -424,7 +424,7 @@ const sendDirectMessage = async (req, res) => {
   }
 }
 
-// Ham xu ly danh dau tin nhan truc tiep da doc.
+// Hàm xử lý đánh dấu tin nhắn trực tiếp đã đọc.
 const markDirectMessagesRead = async (req, res) => {
   try {
     const currentUserId = parseId(req.user.user_id)

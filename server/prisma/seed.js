@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
     const j = (v) => JSON.stringify(v);
 
-    // Xoa du lieu theo thu tu de tranh loi FK
+    // Xóa dữ liệu theo thứ tự để tránh lỗi FK
     await prisma.alert.deleteMany();
     await prisma.reading.deleteMany();
     await prisma.device.deleteMany();
@@ -16,13 +16,13 @@ async function main() {
     await prisma.medicalHistory.deleteMany();
     await prisma.user.deleteMany();
 
-    // Hash password mau
+    // Hash password mẫu
     const pwPatient = await hashPass("123456");
     const pwDoctor = await hashPass("123456");
     const pwFamily = await hashPass("123456");
     const pwAdmin = await hashPass("123456");
 
-    // 1) Tao 4 users (benh nhan, bac si, gia dinh, admin)
+    // 1) Tạo 4 users (bệnh nhân, bác sĩ, gia đình, admin)
     const patient = await prisma.user.create({
         data: {
             name: "Nguyen Van A",
@@ -63,7 +63,7 @@ async function main() {
         },
     });
 
-    // 2) Device cho benh nhan
+    // 2) Device cho bệnh nhân
     const device = await prisma.device.create({
         data: {
             user_id: patient.user_id,
@@ -93,7 +93,7 @@ async function main() {
         },
     });
 
-    // 4) Alerts (ca 2 alert deu gan voi reading)
+    // 4) Alerts (cả 2 alert đều gắn với reading)
     await prisma.alert.createMany({
         data: [
             {
@@ -113,7 +113,7 @@ async function main() {
         ],
     });
 
-    // 5) Report: benh nhan co report do bac si tao/duyet
+    // 5) Report: bệnh nhân có report do bác sĩ tạo/duyệt
     await prisma.report.create({
         data: {
             user_id: patient.user_id,
@@ -122,7 +122,7 @@ async function main() {
         },
     });
 
-    // 6) ChatLog: log hoi thoai giua benh nhan va bot
+    // 6) ChatLog: log hội thoại giữa bệnh nhân và bot
     await prisma.chatLog.createMany({
         data: [
             {
@@ -138,7 +138,7 @@ async function main() {
         ],
     });
 
-    // 7) AccessPermission: benh nhan chia se cho bac si + gia dinh
+    // 7) AccessPermission: bệnh nhân chia sẻ cho bác sĩ + gia đình
     await prisma.accessPermission.createMany({
         data: [
             {
@@ -156,7 +156,7 @@ async function main() {
         ],
     });
 
-    // 8) MedicalHistory: 1 record co ai_diagnosis, 1 record co doctor_diagnosis
+    // 8) MedicalHistory: 1 record có ai_diagnosis, 1 record có doctor_diagnosis
     await prisma.medicalHistory.createMany({
         data: [
             {

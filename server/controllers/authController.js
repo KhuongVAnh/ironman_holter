@@ -1,11 +1,11 @@
-// Controller xu ly dang ky, dang nhap va xac thuc thong tin nguoi dung.
+// Controller xử lý đăng ký, đăng nhập và xác thực thông tin người dùng.
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 const prisma = require("../prismaClient")
 const { toPrismaUserRole, fromPrismaUserRole } = require("../utils/enumMappings")
 const {hashPass} = require("../services/authService")
 
-// Ham xu ly tao JWT token cho nguoi dung sau khi xac thuc.
+// Hàm xử lý tạo JWT token cho người dùng sau khi xác thực.
 const generateToken = (user) => {
   return jwt.sign(
     {
@@ -18,7 +18,7 @@ const generateToken = (user) => {
   )
 }
 
-// Ham xu ly dang ky tai khoan moi.
+// Hàm xử lý đăng ký tài khoản mới.
 const register = async (req, res) => {
   try {
     const { name, email, password, role = "bệnh nhân" } = req.body
@@ -57,7 +57,7 @@ const register = async (req, res) => {
   }
 }
 
-// Ham xu ly dang nhap va cap token xac thuc.
+// Hàm xử lý đăng nhập và cấp token xác thực.
 const login = async (req, res) => {
   try {
     const { email, password } = req.body
@@ -94,7 +94,7 @@ const login = async (req, res) => {
   }
 }
 
-// Ham xu ly lay thong tin tai khoan dang dang nhap.
+// Hàm xử lý lấy thông tin tài khoản đang đăng nhập.
 const getMe = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({

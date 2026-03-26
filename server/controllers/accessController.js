@@ -1,4 +1,4 @@
-// Controller xu ly chia se va quan ly quyen truy cap du lieu benh nhan.
+// Controller xử lý chia sẻ và quản lý quyền truy cập dữ liệu bệnh nhân.
 "use strict"
 
 const prisma = require("../prismaClient")
@@ -11,7 +11,7 @@ const {
 const { emitToUsers } = require("../services/socketEmitService")
 const { createNotification } = require("../services/notificationService")
 
-// Ham xu ly gui yeu cau chia se du lieu benh nhan.
+// Hàm xử lý gửi yêu cầu chia sẻ dữ liệu bệnh nhân.
 exports.shareAccess = async (req, res) => {
   try {
     const { viewer_email, role } = req.body
@@ -93,7 +93,7 @@ exports.shareAccess = async (req, res) => {
   }
 }
 
-// Ham xu ly phe duyet hoac tu choi yeu cau truy cap.
+// Hàm xử lý phê duyệt hoặc từ chối yêu cầu truy cập.
 exports.respondAccess = async (req, res) => {
   try {
     const { id } = req.params
@@ -150,7 +150,7 @@ exports.respondAccess = async (req, res) => {
   }
 }
 
-// Ham xu ly lay danh sach quyen truy cap cua benh nhan.
+// Hàm xử lý lấy danh sách quyền truy cập của bệnh nhân.
 exports.listAccess = async (req, res) => {
   try {
     const { patient_id } = req.params
@@ -182,7 +182,7 @@ exports.listAccess = async (req, res) => {
   }
 }
 
-// Ham xu ly thu hoi quyen truy cap da cap.
+// Hàm xử lý thu hồi quyền truy cập đã cấp.
 exports.revokeAccess = async (req, res) => {
   try {
     const { id } = req.params
@@ -222,7 +222,7 @@ exports.revokeAccess = async (req, res) => {
   }
 }
 
-// Ham xu ly lay cac yeu cau truy cap dang cho.
+// Hàm xử lý lấy các yêu cầu truy cập đang chờ.
 exports.getPendingRequests = async (req, res) => {
   try {
     const user_id = Number.parseInt(req.user.user_id, 10)

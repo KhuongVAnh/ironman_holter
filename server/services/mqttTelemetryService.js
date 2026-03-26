@@ -20,7 +20,7 @@ const DEFAULT_DEDUPE_TTL_MS = 600000
 const DEFAULT_DEDUPE_CLEANUP_INTERVAL_MS = 60000
 const DEFAULT_MAX_PAYLOAD_BYTES = 262144
 
-// HÃ m ghi log JSON line thá»‘ng nháº¥t cho toÃ n bá»™ lifecycle MQTT.
+// Hàm ghi log JSON line thống nhất cho toàn bộ vòng đời MQTT.
 const logMqttEvent = (event, payload = {}) => {
   const record = {
     event: String(event || "MQTT_EVENT"),
@@ -31,7 +31,7 @@ const logMqttEvent = (event, payload = {}) => {
   console.log(JSON.stringify(record))
 }
 
-// HÃ m chuyá»ƒn chuá»—i env vá» boolean vá»›i default an toÃ n.
+
 
 // Hàm cắt ngắn payload text để log debug mà không làm phình log.
 const toPayloadPreview = (payloadText, maxLen = 220) => {
@@ -39,6 +39,7 @@ const toPayloadPreview = (payloadText, maxLen = 220) => {
   if (text.length <= maxLen) return text
   return `${text.slice(0, maxLen)}...`
 }
+// Hàm chuyển chuỗi env về boolean với giá trị mặc định an toàn.
 const parseBooleanEnv = (value, defaultValue = false) => {
   if (typeof value === "boolean") return value
   const normalized = String(value || "").trim().toLowerCase()
@@ -46,21 +47,20 @@ const parseBooleanEnv = (value, defaultValue = false) => {
   return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on"
 }
 
-// HÃ m chuyá»ƒn chuá»—i env vá» sá»‘ nguyÃªn vá»›i fallback máº·c Ä‘á»‹nh.
+// Hàm chuyển chuỗi env về số nguyên với fallback mặc định.
 const parseIntEnv = (value, fallback) => {
   const parsed = Number.parseInt(value, 10)
   return Number.isInteger(parsed) ? parsed : fallback
 }
 
-// HÃ m chuáº©n hÃ³a broker URL Ä‘á»ƒ cháº¥p nháº­n cáº£ dáº¡ng hostname thuáº§n vÃ  mqtts://.
+// Hàm chuẩn hóa broker URL để chấp nhận cả dạng hostname thuần và mqtts://.
 const normalizeBrokerUrl = (rawValue) => {
   const value = String(rawValue || "").trim()
   if (!value) return ""
   if (/^mqtts?:\/\//i.test(value)) return value
   return `mqtts://${value}`
 }
-
-// HÃ m Ä‘á»c cáº¥u hÃ¬nh MQTT tá»« env cho backend.
+// Hàm đọc cấu hình MQTT từ env cho backend.
 const resolveMqttConfig = () => {
   const enabled = parseBooleanEnv(process.env.MQTT_ENABLE, false)
   const qos = Math.min(Math.max(parseIntEnv(process.env.MQTT_QOS, 1), 0), 2)
@@ -92,7 +92,7 @@ const resolveMqttConfig = () => {
   }
 }
 
-// HÃ m trÃ­ch xuáº¥t serial tá»« topic dáº¡ng devices/{serial}/telemetry.
+// Hàm trích xuất serial từ topic dạng devices/{serial}/telemetry.
 const extractSerialFromTopic = (topic) => {
   const value = String(topic || "").trim()
   const match = value.match(/^devices\/([^/]+)\/telemetry$/i)
@@ -104,14 +104,14 @@ const extractSerialFromTopic = (topic) => {
   }
 }
 
-// HÃ m táº¡o topic ACK tá»« template theo serial thiáº¿t bá»‹.
+// Hàm tạo topic ACK từ template theo serial thiết bị.
 const buildAckTopic = (serial) => {
   const serialValue = encodeURIComponent(String(serial || "").trim())
   const template = activeConfig?.topicAckTemplate || "devices/{serial}/ack"
   return template.replace("{serial}", serialValue)
 }
 
-// HÃ m táº¡o payload ACK chuáº©n hÃ³a cho cáº£ success/error/duplicate.
+// Hàm tạo payload ACK chuẩn hóa cho cả success/error/duplicate.
 const buildAckPayload = ({
   messageId,
   status,
@@ -139,14 +139,14 @@ const buildAckPayload = ({
   return payload
 }
 
-// HÃ m táº¡o key dedupe theo serial vÃ  message_id.
+// Hàm tạo key dedupe theo serial và message_id.
 const buildDedupeKey = (serial, messageId) => {
   const serialText = String(serial || "").trim()
   const messageText = String(messageId || "").trim()
   return `${serialText}:${messageText}`
 }
 
-// HÃ m dá»n cÃ¡c key dedupe Ä‘Ã£ háº¿t háº¡n Ä‘á»ƒ trÃ¡nh phÃ¬nh bá»™ nhá»›.
+// Hàm dọn các key dedupe đã hết hạn để tránh phình bộ nhớ.
 const pruneExpiredDedupeKeys = () => {
   const now = Date.now()
   let removed = 0
@@ -161,7 +161,7 @@ const pruneExpiredDedupeKeys = () => {
   }
 }
 
-// HÃ m kiá»ƒm tra message cÃ³ bá»‹ trÃ¹ng trong TTL dedupe hay khÃ´ng.
+// Hàm kiểm tra message có bị trùng trong TTL dedupe hay không.
 const isDuplicateMessage = (serial, messageId) => {
   pruneExpiredDedupeKeys()
   const key = buildDedupeKey(serial, messageId)
@@ -170,14 +170,14 @@ const isDuplicateMessage = (serial, messageId) => {
   return expiresAt > Date.now()
 }
 
-// HÃ m Ä‘Ã¡nh dáº¥u message Ä‘Ã£ xá»­ lÃ½ thÃ nh cÃ´ng Ä‘á»ƒ chá»‘ng láº·p dá»¯ liá»‡u QoS1.
+// Hàm đánh dấu message đã xử lý thành công để chống lặp dữ liệu QoS1.
 const markMessageSeen = (serial, messageId) => {
   const ttlMs = Number(activeConfig?.dedupeTtlMs || DEFAULT_DEDUPE_TTL_MS)
   const key = buildDedupeKey(serial, messageId)
   dedupeMap.set(key, Date.now() + Math.max(1, ttlMs))
 }
 
-// HÃ m khá»Ÿi Ä‘á»™ng timer dá»n rÃ¡c dedupe Ä‘á»‹nh ká»³.
+// Hàm khởi động timer dọn rác dedupe định kỳ.
 const startDedupeCleanupTimer = () => {
   if (dedupeCleanupTimer) return
   const intervalMs = Number(activeConfig?.dedupeCleanupIntervalMs || DEFAULT_DEDUPE_CLEANUP_INTERVAL_MS)
@@ -185,31 +185,31 @@ const startDedupeCleanupTimer = () => {
   dedupeCleanupTimer.unref()
 }
 
-// HÃ m dá»«ng timer dá»n rÃ¡c dedupe khi shutdown.
+// Hàm dừng timer dọn rác dedupe khi shutdown.
 const stopDedupeCleanupTimer = () => {
   if (!dedupeCleanupTimer) return
   clearInterval(dedupeCleanupTimer)
   dedupeCleanupTimer = null
 }
 
-// HÃ m tráº£ giá»›i háº¡n kÃ­ch thÆ°á»›c payload MQTT Ä‘á»ƒ layer server guard trÆ°á»›c khi parse.
+// Hàm trả giới hạn kích thước payload MQTT để layer server guard trước khi parse.
 const getMaxPayloadBytes = () => {
   const configured = Number(activeConfig?.maxPayloadBytes)
   if (Number.isFinite(configured) && configured > 0) return configured
   return DEFAULT_MAX_PAYLOAD_BYTES
 }
 
-// HÃ m tráº£ snapshot tráº¡ng thÃ¡i MQTT hiá»‡n táº¡i Ä‘á»ƒ service/controller quan sÃ¡t.
+// Hàm trả snapshot trạng thái MQTT hiện tại để service/controller quan sát.
 const getMqttState = () => ({
   ...mqttState,
 })
 
-// HÃ m Ä‘Äƒng kÃ½ callback xá»­ lÃ½ message telemetry khi nháº­n tá»« broker.
+// Hàm đăng ký callback xử lý message telemetry khi nhận từ broker.
 const setTelemetryMessageHandler = (handler) => {
   telemetryMessageHandler = typeof handler === "function" ? handler : null
 }
 
-// HÃ m khá»Ÿi táº¡o káº¿t ná»‘i MQTT, subscribe topic telemetry vÃ  báº­t reconnect tá»± Ä‘á»™ng.
+// Hàm khởi tạo kết nối MQTT, subscribe topic telemetry và bật reconnect tự động.
 const initMqttTelemetry = async (options = {}) => {
   if (options && typeof options.onTelemetryMessage === "function") {
     setTelemetryMessageHandler(options.onTelemetryMessage)
@@ -358,7 +358,7 @@ const initMqttTelemetry = async (options = {}) => {
   return getMqttState()
 }
 
-// HÃ m publish ACK lÃªn topic thiáº¿t bá»‹ Ä‘á»ƒ pháº£n há»“i tráº¡ng thÃ¡i ingest.
+// Hàm publish ACK lên topic thiết bị để phản hồi trạng thái ingest.
 const publishAck = async (serialNumber, ackPayload = {}) => {
   if (!mqttClient || !mqttState.connected || !activeConfig?.ackEnabled) {
     logMqttEvent("MQTT_ACK_SKIPPED", {
@@ -401,7 +401,7 @@ const publishAck = async (serialNumber, ackPayload = {}) => {
   })
 }
 
-// HÃ m Ä‘Ã³ng káº¿t ná»‘i MQTT an toÃ n khi server shutdown.
+// Hàm đóng kết nối MQTT an toàn khi server shutdown.
 const shutdownMqttTelemetry = async () => {
   stopDedupeCleanupTimer()
   dedupeMap.clear()

@@ -1,10 +1,10 @@
-// Controller xu ly nghiep vu benh su y te cua benh nhan va bac si.
+// Controller xử lý nghiệp vụ bệnh sử y tế của bệnh nhân và bác sĩ.
 "use strict"
 
 const prisma = require("../prismaClient")
 const { fromPrismaUserRole } = require("../utils/enumMappings")
 
-// Ham xu ly lay danh sach benh su theo quyen truy cap.
+// Hàm xử lý lấy danh sách bệnh sử theo quyền truy cập.
 exports.getHistories = async (req, res) => {
   try {
     const { user_id } = req.params
@@ -50,7 +50,7 @@ exports.getHistories = async (req, res) => {
   }
 }
 
-// Ham xu ly tao ban ghi benh su moi.
+// Hàm xử lý tạo bản ghi bệnh sử mới.
 exports.createHistory = async (req, res) => {
   try {
     const { user_id, doctor_diagnosis, medication, condition, notes } = req.body
@@ -81,7 +81,7 @@ exports.createHistory = async (req, res) => {
   }
 }
 
-// Ham xu ly cap nhat ban ghi benh su.
+// Hàm xử lý cập nhật bản ghi bệnh sử.
 exports.updateHistory = async (req, res) => {
   try {
     const { id } = req.params
@@ -109,7 +109,7 @@ exports.updateHistory = async (req, res) => {
   }
 }
 
-// Ham xu ly bo sung trieu chung vao benh su.
+// Hàm xử lý bổ sung triệu chứng vào bệnh sử.
 exports.addSymptom = async (req, res) => {
   try {
     const { id } = req.params
@@ -143,7 +143,7 @@ exports.addSymptom = async (req, res) => {
   }
 }
 
-// Ham xu ly cap nhat ket qua chan doan AI.
+// Hàm xử lý cập nhật kết quả chẩn đoán AI.
 exports.updateAIResult = async (req, res) => {
   try {
     const { id } = req.params
@@ -171,7 +171,7 @@ exports.updateAIResult = async (req, res) => {
   }
 }
 
-// Ham xu ly an ban ghi benh su da xoa.
+// Hàm xử lý ẩn bản ghi bệnh sử đã xóa.
 exports.deleteHistory = async (req, res) => {
   try {
     const { id } = req.params

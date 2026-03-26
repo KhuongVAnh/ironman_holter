@@ -6,13 +6,13 @@ const DOCTOR_ROLE = "bác sĩ"
 
 const router = express.Router()
 
-// Create report for patient (doctor only)
+// Tạo báo cáo cho bệnh nhân (chỉ bác sĩ)
 router.post("/:user_id", authenticateToken, authorizeRoles(DOCTOR_ROLE), createReport)
 
-// Get reports of a patient
+// Lấy báo cáo của một bệnh nhân
 router.get("/:user_id", authenticateToken, getUserReports)
 
-// Get reports created by doctor, or all reports if admin
+// Lấy báo cáo do bác sĩ tạo, hoặc toàn bộ báo cáo nếu là admin
 router.get("/doctor/my-reports", authenticateToken, authorizeRoles(DOCTOR_ROLE, "admin"), getDoctorReports)
 
 module.exports = router

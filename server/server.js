@@ -1,9 +1,9 @@
 ﻿const path = require("path")
 const dotenv = require("dotenv")
 
-// Quy táº¯c Æ°u tiÃªn env:
-// 1) server/.env lÃ  nguá»“n chÃ­nh.
-// 2) root .env chá»‰ bá»• sung key cÃ²n thiáº¿u (khÃ´ng override key Ä‘Ã£ cÃ³).
+// Quy tắc ưu tiên env:
+// 1) `server/.env` là nguồn chính.
+// 2) Root `.env` chỉ bổ sung key còn thiếu, không override key đã có.
 dotenv.config({ path: path.resolve(__dirname, ".env") })
 dotenv.config({ path: path.resolve(__dirname, "../.env"), override: false })
 
@@ -88,7 +88,7 @@ app.set("socketService", socketService)
 const PORT = process.env.PORT || 4000
 let isShuttingDown = false
 
-// HÃ m ghi log JSON line Ä‘á»ƒ chuáº©n hÃ³a lifecycle cá»§a server process.
+// Hàm ghi log JSON line để chuẩn hóa lifecycle của server process.
 const logServerEvent = (event, payload = {}) => {
   console.log(
     JSON.stringify({
@@ -100,7 +100,7 @@ const logServerEvent = (event, payload = {}) => {
   )
 }
 
-// HÃ m chuáº©n hÃ³a mÃ£ lá»—i ingest ná»™i bá»™ sang error_code ACK Ä‘Ã£ khÃ³a trong P3.
+// Hàm chuẩn hóa mã lỗi ingest nội bộ sang `error_code` ACK đã khóa trong P3.
 const toAckErrorCode = (ingestCode) => {
   const code = String(ingestCode || "").trim().toUpperCase()
   switch (code) {
@@ -111,7 +111,7 @@ const toAckErrorCode = (ingestCode) => {
   }
 }
 
-// HÃ m gá»­i ACK error náº¿u xÃ¡c Ä‘á»‹nh Ä‘Æ°á»£c serial tá»« topic theo quy táº¯c P3.
+// Hàm gửi ACK error nếu xác định được serial từ topic theo quy tắc P3.
 const ackErrorIfPossible = async ({ topicSerial, messageId, errorCode, message, topic }) => {
   if (!topicSerial) {
     logServerEvent("MQTT_ACK_ERROR_SKIPPED_NO_SERIAL", {
@@ -133,7 +133,7 @@ const ackErrorIfPossible = async ({ topicSerial, messageId, errorCode, message, 
   )
 }
 
-// HÃ m Ä‘Ã³ng tÃ i nguyÃªn an toÃ n khi server nháº­n tÃ­n hiá»‡u thoÃ¡t.
+// Hàm đóng tài nguyên an toàn khi server nhận tín hiệu thoát.
 const shutdownGracefully = async (signal) => {
   if (isShuttingDown) return
   isShuttingDown = true
@@ -167,7 +167,7 @@ const shutdownGracefully = async (signal) => {
   }, 10000).unref()
 }
 
-// HÃ m xá»­ lÃ½ payload MQTT vÃ  chuyá»ƒn vÃ o ingest service dÃ¹ng chung vá»›i HTTP.
+// Hàm xử lý payload MQTT và chuyển vào ingest service dùng chung với HTTP.
 const handleMqttTelemetryMessage = async ({ topic, payloadText, payloadBuffer }) => {
   const topicSerial = extractSerialFromTopic(topic)
   const payloadSize = Number(payloadBuffer?.length || 0)
@@ -341,7 +341,7 @@ const handleMqttTelemetryMessage = async ({ topic, payloadText, payloadBuffer })
   })
 }
 
-// HÃ m khá»Ÿi Ä‘á»™ng backend: DB, MQTT foundation vÃ  HTTP server.
+// Hàm khởi động backend: DB, MQTT foundation và HTTP server.
 const startServer = async () => {
   try {
     await prisma.$connect()

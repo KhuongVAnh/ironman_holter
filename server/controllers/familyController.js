@@ -1,7 +1,7 @@
-// Controller xu ly danh sach benh nhan ma nguoi than duoc cap quyen theo doi.
+// Controller xử lý danh sách bệnh nhân mà người thân được cấp quyền theo dõi.
 const prisma = require("../prismaClient")
 
-// Ham xu ly lay danh sach benh nhan duoc phep theo doi.
+// Hàm xử lý lấy danh sách bệnh nhân được phép theo dõi.
 exports.getAccessiblePatients = async (req, res) => {
   try {
     const viewer_id = Number.parseInt(req.params.viewer_id, 10)
@@ -20,7 +20,7 @@ exports.getAccessiblePatients = async (req, res) => {
   }
 }
 
-// Ham xu ly lay benh su cua benh nhan duoc cap quyen.
+// Hàm xử lý lấy bệnh sử của bệnh nhân được cấp quyền.
 exports.getPatientHistory = async (req, res) => {
   try {
     const patient_id = Number.parseInt(req.params.patient_id, 10)

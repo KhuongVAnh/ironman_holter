@@ -1,9 +1,9 @@
-// Controller xu ly quan ly tai khoan nguoi dung va thong tin ho so.
+// Controller xử lý quản lý tài khoản người dùng và thông tin hồ sơ.
 const bcrypt = require("bcrypt")
 const prisma = require("../prismaClient")
 const { toPrismaUserRole, fromPrismaUserRole } = require("../utils/enumMappings")
 
-// Ham xu ly lay danh sach nguoi dung trong he thong.
+// Hàm xử lý lấy danh sách người dùng trong hệ thống.
 const getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -31,7 +31,7 @@ const getAllUsers = async (req, res) => {
   }
 }
 
-// Ham xu ly cap nhat thong tin nguoi dung.
+// Hàm xử lý cập nhật thông tin người dùng.
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params
@@ -83,7 +83,7 @@ const updateUser = async (req, res) => {
   }
 }
 
-// Ham xu ly xoa tai khoan nguoi dung.
+// Hàm xử lý xóa tài khoản người dùng.
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params
@@ -107,7 +107,7 @@ const deleteUser = async (req, res) => {
   }
 }
 
-// Ham xu ly doi mat khau nguoi dung.
+// Hàm xử lý đổi mật khẩu người dùng.
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body

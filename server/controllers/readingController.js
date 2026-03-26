@@ -1,4 +1,4 @@
-﻿// Controller xu ly telemetry, du lieu ECG va lich su chi so tim mach.
+﻿// Controller xử lý telemetry, dữ liệu ECG và lịch sử chỉ số tim mạch.
 const prisma = require("../prismaClient")
 const { AccessRole, AccessStatus, NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("../services/socketEmitService")
@@ -208,7 +208,7 @@ const createAggregatedAlertNotification = async ({
   })
 }
 
-// Ham xu ly chuan hoa device_id ve so nguyen hop le.
+// Hàm xử lý chuẩn hóa device_id về số nguyên hợp lệ.
 const toDeviceId = (value) => {
   const parsed = Number.parseInt(value, 10)
   return Number.isInteger(parsed) ? parsed : null
@@ -219,7 +219,7 @@ const toReadingId = (value) => {
   return Number.isInteger(parsed) ? parsed : null
 }
 
-// Ham xu ly tim cac tai khoan can nhan du lieu real-time cua benh nhan.
+// Hàm xử lý tìm các tài khoản cần nhận dữ liệu real-time của bệnh nhân.
 const getPatientRecipientIds = async (patientId) => {
   const viewers = await prisma.accessPermission.findMany({
     where: {
@@ -232,7 +232,7 @@ const getPatientRecipientIds = async (patientId) => {
   return [patientId, ...viewers.map((item) => item.viewer_id)]
 }
 
-// Ham xu ly tao du lieu ECG gia lap de test.
+// Hàm xử lý tạo dữ liệu ECG giả lập để test.
 const createFakeReading = async (req, res) => {
   try {
     const deviceId = toDeviceId(req.body?.device_id)
@@ -331,7 +331,7 @@ const createFakeReading = async (req, res) => {
   }
 }
 
-// Ham xu ly lay du lieu doc theo thiet bi.
+// Hàm xử lý lấy dữ liệu đọc theo thiết bị.
 const getDeviceReadings = async (req, res) => {
   try {
     const deviceId = toDeviceId(req.params.device_id)
@@ -355,7 +355,7 @@ const getDeviceReadings = async (req, res) => {
   }
 }
 
-// Ham xu ly lay lich su du lieu tim mach theo nguoi dung.
+// Hàm xử lý lấy lịch sử dữ liệu tim mạch theo người dùng.
 const getUserReadingHistory = async (req, res) => {
   try {
     const { user_id } = req.params
@@ -406,7 +406,7 @@ const receiveTelemetry = async (req, res) => {
   }
 }
 
-// Ham xu ly lay chi tiet reading de hien thi do thi ECG.
+// Hàm xử lý lấy chi tiết reading để hiển thị đồ thị ECG.
 const getReadingDetail = async (req, res) => {
   try {
     const readingId = toReadingId(req.params.reading_id)

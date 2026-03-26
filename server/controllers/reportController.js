@@ -1,7 +1,7 @@
-// Controller xu ly tao va truy van bao cao y khoa.
+// Controller xử lý tạo và truy vấn báo cáo y khoa.
 const prisma = require("../prismaClient")
 
-// Ham xu ly tao bao cao y khoa cho benh nhan.
+// Hàm xử lý tạo báo cáo y khoa cho bệnh nhân.
 const createReport = async (req, res) => {
   try {
     const { user_id } = req.params
@@ -40,7 +40,7 @@ const createReport = async (req, res) => {
   }
 }
 
-// Ham xu ly lay danh sach bao cao cua benh nhan.
+// Hàm xử lý lấy danh sách báo cáo của bệnh nhân.
 const getUserReports = async (req, res) => {
   try {
     const { user_id } = req.params
@@ -61,7 +61,7 @@ const getUserReports = async (req, res) => {
   }
 }
 
-// Ham xu ly lay danh sach bao cao do bac si tao.
+// Hàm xử lý lấy danh sách báo cáo do bác sĩ tạo.
 const getDoctorReports = async (req, res) => {
   try {
     const doctor_id = Number.parseInt(req.user.user_id, 10)

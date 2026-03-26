@@ -1,11 +1,11 @@
-// Controller xu ly tao, truy van va cap nhat trang thai canh bao tim mach.
+// Controller xử lý tạo, truy vấn và cập nhật trạng thái cảnh báo tim mạch.
 const prisma = require("../prismaClient")
 const { fromPrismaUserRole } = require("../utils/enumMappings")
 const { AccessStatus, NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("../services/socketEmitService")
 const { createNotification } = require("../services/notificationService")
 
-// Ham xu ly tim cac tai khoan can nhan thong bao canh bao.
+// Hàm xử lý tìm các tài khoản cần nhận thông báo cảnh báo.
 const getAlertRecipientIds = async (patientId) => {
   const viewers = await prisma.accessPermission.findMany({
     where: {
@@ -18,7 +18,7 @@ const getAlertRecipientIds = async (patientId) => {
   return [patientId, ...viewers.map((item) => item.viewer_id)]
 }
 
-// Ham xu ly tao canh bao moi cho benh nhan.
+// Hàm xử lý tạo cảnh báo mới cho bệnh nhân.
 const createAlert = async (req, res) => {
   try {
     const { user_id, reading_id, alert_type, message, segment_start_sample, segment_end_sample } = req.body
@@ -137,7 +137,7 @@ const createAlert = async (req, res) => {
   }
 }
 
-// Ham xu ly lay danh sach canh bao theo nguoi dung.
+// Hàm xử lý lấy danh sách cảnh báo theo người dùng.
 const getUserAlerts = async (req, res) => {
   try {
     const { user_id } = req.params
@@ -161,7 +161,7 @@ const getUserAlerts = async (req, res) => {
   }
 }
 
-// Ham xu ly danh dau canh bao da duoc xu ly.
+// Hàm xử lý đánh dấu cảnh báo đã được xử lý.
 const resolveAlert = async (req, res) => {
   try {
     const { id } = req.params
@@ -187,7 +187,7 @@ const resolveAlert = async (req, res) => {
   }
 }
 
-// Ham xu ly lay toan bo canh bao cho quan tri.
+// Hàm xử lý lấy toàn bộ cảnh báo cho quản trị.
 const getAllAlerts = async (req, res) => {
   try {
     const { resolved } = req.query

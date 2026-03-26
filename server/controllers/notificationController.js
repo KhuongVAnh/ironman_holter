@@ -1,4 +1,4 @@
-// Controller xu ly trung tam thong bao cua nguoi dung.
+// Controller xử lý trung tâm thông báo của người dùng.
 const { NotificationType } = require("@prisma/client")
 const prisma = require("../prismaClient")
 
@@ -19,7 +19,7 @@ const isValidType = (value) => {
   return Object.values(NotificationType).includes(String(value))
 }
 
-// Ham xu ly lay danh sach thong bao cua user hien tai.
+// Hàm xử lý lấy danh sách thông báo của user hiện tại.
 const getNotifications = async (req, res) => {
   try {
     const currentUserId = parseId(req.user.user_id)
@@ -83,7 +83,7 @@ const getNotifications = async (req, res) => {
   }
 }
 
-// Ham xu ly dem so thong bao chua doc cua user hien tai.
+// Hàm xử lý đếm số thông báo chưa đọc của user hiện tại.
 const getUnreadCount = async (req, res) => {
   try {
     const currentUserId = parseId(req.user.user_id)
@@ -98,7 +98,7 @@ const getUnreadCount = async (req, res) => {
   }
 }
 
-// Ham xu ly danh dau da doc mot thong bao cua user hien tai.
+// Hàm xử lý đánh dấu đã đọc một thông báo của user hiện tại.
 const markNotificationRead = async (req, res) => {
   try {
     const currentUserId = parseId(req.user.user_id)
@@ -130,7 +130,7 @@ const markNotificationRead = async (req, res) => {
   }
 }
 
-// Ham xu ly danh dau da doc tat ca thong bao cua user hien tai.
+// Hàm xử lý đánh dấu đã đọc tất cả thông báo của user hiện tại.
 const markAllNotificationsRead = async (req, res) => {
   try {
     const currentUserId = parseId(req.user.user_id)

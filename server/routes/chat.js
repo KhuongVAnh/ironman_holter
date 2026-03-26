@@ -11,22 +11,22 @@ const { authenticateToken } = require("../middleware/auth")
 
 const router = express.Router()
 
-// Chat voi Gemini AI
+// Chat với Gemini AI
 router.post("/", authenticateToken, chatWithGemini)
 
-// Lay lich su chat AI
+// Lấy lịch sử chat AI
 router.get("/history", authenticateToken, getChatHistory)
 
-// Danh sach contact direct chat bac si - benh nhan
+// Danh sách contact direct chat bác sĩ - bệnh nhân
 router.get("/contacts", authenticateToken, getDirectChatContacts)
 
-// Lay lich su chat direct voi 1 user cu the
+// Lấy lịch sử chat direct với 1 user cụ thể
 router.get("/direct/:other_user_id", authenticateToken, getDirectMessages)
 
-// Gui tin nhan direct
+// Gửi tin nhắn direct
 router.post("/direct", authenticateToken, sendDirectMessage)
 
-// Danh dau doc tin nhan direct tu 1 user
+// Đánh dấu đọc tin nhắn direct từ 1 user
 router.put("/direct/:other_user_id/read", authenticateToken, markDirectMessagesRead)
 
 module.exports = router
