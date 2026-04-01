@@ -18,8 +18,8 @@
  */
 
 // Cấu hình Wi-Fi và MQTT.
-static const char *WIFI_SSID = "Thai";
-static const char *WIFI_PASSWORD = "0366330886";
+static const char *WIFI_SSID = "Nhan Home";
+static const char *WIFI_PASSWORD = "nhanhome";
 static const char *MQTT_BROKER_HOST = "7fca0eea573545b996b5e3b23e7e5613.s1.eu.hivemq.cloud";
 static const int MQTT_BROKER_PORT = 8883;
 static const char *MQTT_USERNAME = "iron-holter";
@@ -37,7 +37,7 @@ static const int MPU_NUM_SAMPLES = MPU_SAMPLE_RATE * BATCH_DURATION_SEC;
 static const int ECG_PIN = 34;
 static const int SDN_PIN = 25;
 // Timeout chờ ACK ứng dụng sau mỗi lần thử gửi.
-static const uint32_t ACK_TIMEOUT_MS = 3000;
+static const uint32_t ACK_TIMEOUT_MS = 3500;
 // Số lần thử gửi tối đa cho một batch trước khi đưa vào hàng đợi.
 static const uint8_t MAX_RETRY = 3;
 // Dung lượng hàng đợi retry trong RAM.
@@ -85,12 +85,6 @@ uint8_t retryHead = 0;
 uint8_t retryTail = 0;
 uint8_t retryCount = 0;
 
-// Trạng thái bộ lọc notch IIR 50Hz cho kênh ECG.
-float x1_ = 0, x2_ = 0;
-float y1_ = 0, y2_ = 0;
-const float b0 = 0.9723f, b1 = -1.8478f, b2 = 0.9723f;
-const float a1 = -1.8478f, a2 = 0.9446f;
-
 // ---------------------------------------------------------------------------
 // HỖ TRỢ STREAM JSON TRỰC TIẾP RA MQTT (KHÔNG DÙNG STRING LỚN TRÊN HEAP)
 // ---------------------------------------------------------------------------
@@ -120,7 +114,7 @@ struct JsonMqttWriter
       : client(c), ok(true), pending(0), totalWritten(0), lastChunkRequested(0), lastChunkWritten(0) {} // constructor khởi tạo
 
   // Đẩy phần dữ liệu đang pending xuống socket TLS.
-  // Trả false nếu ghi không đủ byte (lỗi mạng hoặc lỗi client).
+  // Trả false nếu (lỗi mạng hoặc lỗi client).
   bool flush()
   {
     if (!ok)
@@ -135,20 +129,25 @@ struct JsonMqttWriter
     {
       size_t written = client.write(
           reinterpret_cast<const uint8_t *>(chunk + offset),
-          pending - offset); // trong trường hợp mạng kém, không đảm bảo write toàn độ được chunk, vì vậy cần loop
+          pending - offset);
 
+      lastChunkRequested = pending - offset;
+      lastChunkWritten = written;
       totalWritten += written;
-      offset += written;
 
-      if (written == 0)
+      if (written > 0)
       {
-        if (!client.connected() || millis() - startAt > 2000)
-        {
-          ok = false;
-          return false;
-        }
-        delay(1);
+        offset += written;
+        continue;
       }
+
+      if (!client.connected() || millis() - startAt > 2000)
+      {
+        ok = false;
+        return false;
+      }
+
+      delay(1);
     }
 
     pending = 0;
@@ -557,16 +556,43 @@ bool dequeueRetry(RetryItem &outItem)
   return true;
 }
 
-// Hàm lọc notch 50Hz để giảm nhiễu lưới điện trên kênh ECG.
-float notchFilter(float x)
+// ---------- CẤU TRÚC BỘ LỌC TƯƠNG THÍCH ĐA TẦNG ----------
+typedef struct
 {
-  // Lọc notch 50Hz theo dạng IIR bậc 2.
-  float y = b0 * x + b1 * x1_ + b2 * x2_ - a1 * y1_ - a2 * y2_;
-  x2_ = x1_;
-  x1_ = x;
-  y2_ = y1_;
-  y1_ = y;
-  return y;
+  float b0, b1, b2;
+  float a1, a2;
+  double x1, x2; // Biến trạng thái đầu vào
+  double y1, y2; // Biến trạng thái đầu ra
+} BiquadFilter;
+
+// Hệ số được tính toán cho fs = 250Hz
+BiquadFilter hp05 = {0.991154f, -1.982307f, 0.991154f, -1.982229f, 0.982385f, 0, 0, 0, 0};
+BiquadFilter lp40 = {0.145324f, 0.290648f, 0.145324f, -0.671029f, 0.252325f, 0, 0, 0, 0};
+BiquadFilter nt50 = {0.979483f, -0.605354f, 0.979483f, -0.605354f, 0.958966f, 0, 0, 0, 0};
+
+// Hàm xử lý Biquad chung
+float processBiquad(BiquadFilter *f, float x)
+{
+  double y = (double)f->b0 * x + (double)f->b1 * f->x1 + (double)f->b2 * f->x2 - (double)f->a1 * f->y1 - (double)f->a2 * f->y2;
+
+  // Chống lỗi số (NaN/Inf) khi nhiễu quá lớn
+  if (isnan(y) || isinf(y))
+    y = f->y1;
+
+  f->x2 = f->x1;
+  f->x1 = x;
+  f->y2 = f->y1;
+  f->y1 = y;
+  return (float)y;
+}
+
+// Hàm lọc tổng hợp (thay thế notchFilter cũ)
+float applyFullECGFilter(float x)
+{
+  float out = processBiquad(&hp05, x); // Khử trôi đường nền 0.5Hz
+  out = processBiquad(&lp40, out);     // Khử nhiễu cơ 40Hz
+  out = processBiquad(&nt50, out);     // Khử nhiễu điện lưới 50Hz
+  return out;
 }
 
 // Hàm kết nối Wi-Fi và đợi đến khi có mạng.
@@ -710,7 +736,7 @@ void sensorTask(void *param)
       {
         int ecgRaw = analogRead(ECG_PIN);
         float v = ((float)ecgRaw / 4095.0f) * 3.3f - 1.65f;
-        v = notchFilter(v);
+        v = applyFullECGFilter(v);
         if (useBufferA)
           ecgBufA[ecgIdx] = v;
         else
@@ -774,7 +800,7 @@ void senderTask(void *param)
   while (true)
   {
     // Block lâu hơn để giảm wake-up CPU vô ích; vẫn thức dậy định kỳ để nuôi keepalive MQTT.
-    if (xSemaphoreTake(readySemaphore, idleWaitTicks) != pdTRUE)
+    if (xSemaphoreTake(readySemaphore, idleWaitTicks) != pdTRUE) // 250ms check 1 lần, ko chiếm cpu
     {
       const uint32_t nowMs = millis();
 
@@ -812,6 +838,8 @@ void senderTask(void *param)
     unsigned long sendStartMs = millis();
 
     // Gửi batch theo cơ chế retry ACK chuẩn.
+    // cần delay 1 chút để plush nốt phần data cuối
+    delay(500); // delay không chiếm cpu
     bool ok = publishWithRetry(messageId, sendA);
     unsigned long sendDurationMs = millis() - sendStartMs;
     if (!ok)
@@ -861,7 +889,7 @@ void setup()
   // secureClient.setNoDelay(true);
   mqttClient.setServer(MQTT_BROKER_HOST, MQTT_BROKER_PORT);
   // Buffer MQTT chỉ cần vừa phải vì payload đã stream dần, không cần chứa toàn bộ JSON.
-  mqttClient.setBufferSize(4096);
+  mqttClient.setBufferSize(8192);
   mqttClient.setCallback(mqttCallback);
   ensureMqttConnected();
 
