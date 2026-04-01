@@ -1,13 +1,38 @@
+/*
+Tác dụng:
+- Thực hiện suy luận ECG CNN trực tiếp trong backend Node.js.
+
+Vấn đề file này giải quyết:
+- dùng `ecgCnnPreprocessService` để lấy dữ liệu đã qua pipeline filter -> peak -> segment, sau đó load model TFJS, chạy CNN và hậu xử lý kết quả reading-level.
+
+Function chính:
+- initModel: load preprocess config, label map, model TFJS và warmup model.
+- predictFromReading: suy luận một reading ECG hoàn chỉnh và trả về kết quả reading-level.
+- predictBeatSegmentsForTest: infer trực tiếp trên các segment đã cắt sẵn để test beat-level.
+- getModelState: trả về trạng thái AI đang bật/tắt và model đã load hay chưa.
+*/
+
 const fs = require("fs")
 const path = require("path")
 const tf = require("@tensorflow/tfjs")
-const Fili = require("fili")
+const {
+  isAIEnabled,
+  getModelPaths,
+  getValidatedPreprocessConfig,
+  getLabelMap,
+  getLabelText,
+} = require("./ecgCnnConfigService")
+const {
+  preprocessSignalForInference,
+  flattenSegmentsToModelInput,
+} = require("./ecgCnnPreprocessService")
 const {
   ECG_AI_CLASS_CODES,
   ECG_AI_SUMMARY_ORDER,
   isNormalAiCode,
   getAiLabelFromCode,
 } = require("../strings/ecgAiStrings")
+
 // Tập reason code chuẩn cho toàn bộ luồng fallback của AI infer.
 const AI_FALLBACK_REASON_CODES = new Set([
   "AI_DISABLED", // AI bị tắt qua biến môi trường.
@@ -20,34 +45,9 @@ const AI_FALLBACK_REASON_CODES = new Set([
   "INVALID_SEGMENTS", // Dữ liệu segment test không hợp lệ.
   "INPUT_TRUNCATED", // Đầu vào bị cắt bớt do vượt ngưỡng cho phép.
 ])
-const DEFAULT_MAX_SIGNAL_SAMPLES = 10000 // Giới hạn số mẫu ECG tối đa cho một lần infer.
-
-/**
- * ecgCnnService
- * Mục tiêu:
- * - Thay thế AI fake bằng suy luận CNN thật ngay trong Node backend.
- *
- * Vấn đề cần giải:
- * - Model được export TFJS local (model.json + shard .bin), cần load an toàn và chỉ load 1 lần.
- * - Dữ liệu telemetry có thể lỗi/quá ngắn/không có R-peak, cần fallback để không làm vỡ nghiệp vụ chính.
- * - Pipeline infer phải giống train: bandpass -> detect peak -> segment 125 -> z-score -> predict.
- *
- * Ý tưởng triển khai:
- * 1) initModel(): load preprocess config + label map + model và warmup.
- * 2) predictFromReading(): validate input, preprocess, infer beat-level, gom nhóm bất thường theo segment liên tiếp.
- * 3) Fallback theo reason code (AI_DISABLED, SHORT_SIGNAL, NO_PEAK, ...), trả về object chuẩn.
- *
- * Lưu ý:
- * - N và Q được xem là bình thường, các class còn lại là bất thường.
- * - Service này chỉ cung cấp logic infer; wiring vào controller thuộc phase P3.
- */
 let model = null // Model TensorFlowJS đã load vào bộ nhớ.
-let preprocessConfig = null // Cấu hình tiền xử lý đồng bộ với bước train.
-let labelMap = {} // Bảng ánh xạ mã lớp sang tên lớp hiển thị.
 let isLoaded = false // Cờ cho biết model đã sẵn sàng hay chưa.
 let initPromise = null // Promise khởi tạo dùng để chống load model trùng lặp.
-
-// ===== Nhóm helper đọc file và resolve cấu hình =====
 
 // Đọc nội dung text từ file và loại bỏ BOM nếu có.
 const readTextFile = (filePath) => {
@@ -59,126 +59,20 @@ const readTextFile = (filePath) => {
   return text
 }
 
-// Đọc và parse file JSON an toàn từ đường dẫn cung cấp.
+// Đọc và parse JSON cho model TFJS local.
 const readJsonFile = (filePath) => JSON.parse(readTextFile(filePath))
-
-// Chuyển env path thành đường dẫn tuyệt đối theo root của server.
-const resolveServerPath = (envValue, fallbackRelative) => {
-  const serverRoot = path.resolve(__dirname, "..")
-  const value = String(envValue || fallbackRelative || "").trim()
-  return path.isAbsolute(value) ? value : path.resolve(serverRoot, value)
-}
-
-// Kiểm tra có bật AI inference qua biến môi trường hay không.
-const isAIEnabled = () => String(process.env.AI_ENABLE || "false").toLowerCase() === "true"
-
-// Lấy bộ đường dẫn model và config AI từ env hoặc giá trị mặc định.
-const getModelPaths = () => {
-  return {
-    modelPath: resolveServerPath(process.env.AI_MODEL_PATH, "model_CNN/ecg_tfjs/model.json"),
-    preprocessPath: resolveServerPath(
-      process.env.AI_PREPROCESS_CONFIG_PATH,
-      "model_CNN/ecg/preprocess_config.json"
-    ),
-    labelMapPath: resolveServerPath(
-      process.env.AI_LABEL_MAP_PATH,
-      "model_CNN/ecg/label_map.json"
-    ),
-  }
-}
-
-// Hàm trả về giới hạn số mẫu ECG tối đa cho một lần infer từ biến môi trường.
-const getMaxSignalSamples = () => {
-  const parsed = Number.parseInt(process.env.AI_MAX_SIGNAL_SAMPLES, 10)
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_SIGNAL_SAMPLES
-}
 
 // Hàm ghi log JSON line thống nhất cho toàn bộ luồng AI để dễ truy vết production.
 const logAiEvent = (event, payload = {}) => {
   const normalizedEvent = String(event || "AI_EVENT").trim() || "AI_EVENT"
-  const record = {
-    event: normalizedEvent,
-    timestamp: new Date().toISOString(),
-    ...payload,
-  }
-  console.log(JSON.stringify(record))
+  console.log(
+    JSON.stringify({
+      event: normalizedEvent,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    })
+  )
 }
-
-// Xác thực preprocess_config có đầy đủ key bắt buộc và giá trị hợp lệ.
-const validatePreprocessConfig = (config) => {
-  const requiredKeys = [
-    "fs",
-    "half_window",
-    "segment_len",
-    "lowcut",
-    "highcut",
-    "filter_order",
-    "rpeak_min_distance_sec",
-    "rpeak_min_height",
-    "classes",
-    "scaler_mean",
-    "scaler_scale",
-  ]
-
-  for (const key of requiredKeys) {
-    if (!(key in config)) {
-      throw new Error(`Missing preprocess_config key: ${key}`)
-    }
-  }
-
-  if (!Array.isArray(config.classes) || config.classes.length === 0) {
-    throw new Error("Invalid preprocess_config.classes")
-  }
-
-  const scalerScale = Number(config.scaler_scale)
-  if (!Number.isFinite(scalerScale) || scalerScale === 0) {
-    throw new Error("Invalid preprocess_config.scaler_scale")
-  }
-}
-
-// Hàm xác thực các tham số số học runtime trước khi chạy infer để tránh NaN propagation.
-const validateRuntimeNumericConfig = (config) => {
-  const fsHz = Number(config.fs)
-  const lowcut = Number(config.lowcut)
-  const highcut = Number(config.highcut)
-  const filterOrder = Number(config.filter_order)
-  const segmentLength = Number(config.segment_len)
-  const halfWindow = Number(config.half_window)
-  const rpeakMinDistanceSec = Number(config.rpeak_min_distance_sec)
-  const rpeakMinHeight = Number(config.rpeak_min_height)
-  const scalerMean = Number(config.scaler_mean)
-  const scalerScale = Number(config.scaler_scale)
-
-  const isValid =
-    Number.isFinite(fsHz) && fsHz > 0 &&
-    Number.isFinite(lowcut) && lowcut > 0 &&
-    Number.isFinite(highcut) && highcut > lowcut &&
-    Number.isFinite(filterOrder) && filterOrder > 0 &&
-    Number.isFinite(segmentLength) && segmentLength > 1 &&
-    Number.isFinite(halfWindow) && halfWindow > 0 &&
-    Number.isFinite(rpeakMinDistanceSec) && rpeakMinDistanceSec > 0 &&
-    Number.isFinite(rpeakMinHeight) &&
-    Number.isFinite(scalerMean) &&
-    Number.isFinite(scalerScale) && scalerScale !== 0
-
-  return {
-    isValid,
-    values: {
-      fsHz,
-      lowcut,
-      highcut,
-      filterOrder,
-      segmentLength,
-      halfWindow,
-      rpeakMinDistanceSec,
-      rpeakMinHeight,
-      scalerMean,
-      scalerScale,
-    },
-  }
-}
-
-// ===== Nhóm helper model loading (TFJS local artifacts) =====
 
 // Chuẩn hóa model topology để tương thích dữ liệu export Keras 3/InputLayer.
 const normalizeModelTopology = (modelTopology) => {
@@ -244,90 +138,8 @@ const buildCustomIoHandler = (modelPath) => {
   }
 }
 
-// ===== Nhóm helper preprocessing ECG =====
-
-// Tính hệ số bandpass IIR theo tham số trong preprocess config.
-const buildBandpassCoefficients = (config) => {
-  const low = Number(config.lowcut)
-  const high = Number(config.highcut)
-  const fsHz = Number(config.fs)
-  const order = Number(config.filter_order)
-  const center = (low + high) / 2
-  const bandwidth = Math.max(0.001, high - low)
-
-  const calculator = new Fili.CalcCascades()
-  return calculator.bandpass({
-    order,
-    characteristic: "butterworth",
-    Fs: fsHz,
-    Fc: center,
-    BW: bandwidth,
-    gain: 0,
-  })
-}
-
-// Áp dụng lọc bandpass hai chiều (forward + reverse) để giảm lệch pha.
-const applyBandpass = (signal, coeffs) => {
-  const forwardFilter = new Fili.IirFilter(coeffs)
-  const forward = forwardFilter.multiStep(signal.slice())
-
-  const reverseFilter = new Fili.IirFilter(coeffs)
-  const reverse = reverseFilter.multiStep(forward.slice().reverse())
-  return reverse.reverse()
-}
-
-// Tìm vị trí R-peak bằng local maxima, ngưỡng biên độ và khoảng cách tối thiểu.
-const detectPeaks = (signal, minHeight, minDistance) => {
-  const peaks = []
-  let lastAccepted = -minDistance
-
-  for (let i = 1; i < signal.length - 1; i += 1) {
-    const current = signal[i]
-    if (current < minHeight) continue
-    if (!(current > signal[i - 1] && current >= signal[i + 1])) continue
-    if (i - lastAccepted < minDistance) continue
-
-    peaks.push(i)
-    lastAccepted = i
-  }
-
-  return peaks
-}
-
-// Cắt tín hiệu đã lọc thành nhiều segment quanh từng peak theo cửa sổ cấu hình.
-const extractSegmentsFromPeaks = (filteredSignal, peaks, halfWindow, segmentLength) => {
-  const segments = []
-  for (let segmentIndex = 0; segmentIndex < peaks.length; segmentIndex += 1) {
-    const peakIndex = peaks[segmentIndex]
-    const start = peakIndex - halfWindow
-    const end = peakIndex + halfWindow + 1
-    if (start < 0 || end > filteredSignal.length) continue
-
-    const values = filteredSignal.slice(start, end)
-    if (values.length !== segmentLength) continue
-
-    segments.push({
-      segment_index: segmentIndex,
-      peak_sample: peakIndex,
-      start_sample: start,
-      end_sample: end,
-      values,
-    })
-  }
-  return segments
-}
-
-// Chuyển danh sách segment thành mảng phẳng để tạo tensor batch cho model.
-const flattenSegmentsToModelInput = (segments, segmentLength, scalerMean, scalerScale) => {
-  const flat = new Float32Array(segments.length * segmentLength)
-  for (let beatIndex = 0; beatIndex < segments.length; beatIndex += 1) {
-    const values = segments[beatIndex].values
-    for (let i = 0; i < segmentLength; i += 1) {
-      flat[beatIndex * segmentLength + i] = (Number(values[i]) - scalerMean) / scalerScale
-    }
-  }
-  return flat
-}
+// Map mã nhãn AI sang text hiển thị qua config service.
+const labelTextFromCode = (labelCode) => getLabelText(labelCode, getAiLabelFromCode)
 
 // Trích xuất danh sách nhãn dự đoán theo từng segment từ xác suất model trả về.
 const buildSegmentPredictions = (segments, probabilities, classes) => {
@@ -417,7 +229,7 @@ const buildAiResultSummary = (segmentPredictions) => {
   return orderedCodes.map((code) => `${getAiLabelFromCode(code)}:${counts.get(code)}`).join(", ")
 }
 
-// Chọn nhãn đại diện cho reading để giữ tương thích field cũ label_code/label_text/confidence.
+// Chọn nhãn đại diện cho reading để giữ tương thích field cũ.
 const pickPrimaryPrediction = (segmentPredictions) => {
   if (!Array.isArray(segmentPredictions) || segmentPredictions.length === 0) {
     return null
@@ -425,78 +237,6 @@ const pickPrimaryPrediction = (segmentPredictions) => {
 
   const firstAbnormal = segmentPredictions.find((item) => item.abnormal)
   return firstAbnormal || segmentPredictions[0]
-}
-
-// ===== Nhóm helper normalize input/output =====
-
-// Chuyển input reading về mảng số hợp lệ để phục vụ preprocessing.
-const parseSignalInput = (input) => {
-  let data = input
-
-  if (typeof data === "string") {
-    try {
-      data = JSON.parse(data)
-    } catch (error) {
-      return null
-    }
-  }
-
-  if (!Array.isArray(data) && data && typeof data === "object") {
-    if (Array.isArray(data.ecg_signal)) data = data.ecg_signal
-    else if (Array.isArray(data.reading)) data = data.reading
-  }
-
-  return Array.isArray(data) ? data : null
-}
-
-// Hàm làm sạch và giới hạn độ dài tín hiệu ECG để tránh lỗi runtime khi infer.
-const sanitizeSignalInput = (input) => {
-  const raw = parseSignalInput(input)
-  if (!raw) {
-    return { signal: null, inputLength: 0, truncated: false, reason: "INVALID_INPUT" }
-  }
-
-  const normalized = raw.map((value) => Number(value)).filter(Number.isFinite)
-  if (normalized.length === 0) {
-    return { signal: null, inputLength: 0, truncated: false, reason: "INVALID_INPUT" }
-  }
-
-  const maxSignalSamples = getMaxSignalSamples() // dài hơn thì cắt bớt
-  if (normalized.length > maxSignalSamples) {
-    const truncatedSignal = normalized.slice(-maxSignalSamples)
-    return {
-      signal: truncatedSignal,
-      inputLength: truncatedSignal.length,
-      truncated: true,
-      reason: "INPUT_TRUNCATED",
-      rawInputLength: normalized.length,
-    }
-  }
-
-  return {
-    signal: normalized,
-    inputLength: normalized.length,
-    truncated: false,
-    reason: null,
-  }
-}
-
-// Hàm đảm bảo preprocess_config luôn sẵn sàng khi cần lọc tín hiệu độc lập với luồng load model.
-const ensurePreprocessConfigLoaded = () => {
-  if (preprocessConfig) return preprocessConfig
-
-  const paths = getModelPaths()
-  const loadedConfig = readJsonFile(paths.preprocessPath)
-  validatePreprocessConfig(loadedConfig)
-  preprocessConfig = loadedConfig
-  return preprocessConfig
-}
-
-// Map label code của model sang label text hiển thị.
-const labelTextFromCode = (labelCode) => {
-  if (!labelCode) return null
-  const configuredLabel = String(labelMap?.[labelCode] || "").trim()
-  return configuredLabel || getAiLabelFromCode(labelCode)
 }
 
 // Hàm chuẩn hóa reason code fallback để chỉ dùng tập mã đã khóa.
@@ -526,80 +266,6 @@ const makeSkipResult = (reason, inferMs, options = {}) => {
   }
 }
 
-// Hàm lọc thông dải cho một reading để lưu xuống DB với tín hiệu đã qua preprocessing.
-const filterReadingSignal = (ecgSignal, options = {}) => {
-  const context = String(options?.context || "unknown")
-  const parsed = parseSignalInput(ecgSignal)
-  if (!parsed) {
-    return {
-      filtered_signal: [],
-      skipped: true,
-      reason: "INVALID_INPUT",
-      input_len: 0,
-    }
-  }
-
-  const signal = parsed.map((value) => Number(value)).filter(Number.isFinite)
-  if (signal.length === 0) {
-    return {
-      filtered_signal: [],
-      skipped: true,
-      reason: "INVALID_INPUT",
-      input_len: 0,
-    }
-  }
-
-  try {
-    const config = ensurePreprocessConfigLoaded()
-    const runtimeConfig = validateRuntimeNumericConfig(config || {})
-    if (!runtimeConfig.isValid) {
-      return {
-        filtered_signal: signal,
-        skipped: true,
-        reason: "MODEL_NOT_READY",
-        input_len: signal.length,
-      }
-    }
-
-    const coeffs = buildBandpassCoefficients(config)
-    const filteredSignal = applyBandpass(signal, coeffs)
-      .map((value) => Number(value))
-      .filter(Number.isFinite)
-
-    if (filteredSignal.length === 0) {
-      return {
-        filtered_signal: signal,
-        skipped: true,
-        reason: "INFER_ERROR",
-        input_len: signal.length,
-      }
-    }
-
-    return {
-      filtered_signal: filteredSignal,
-      skipped: false,
-      reason: null,
-      input_len: signal.length,
-    }
-  } catch (error) {
-    logAiEvent("AI_FILTER_ERROR", {
-      context,
-      reason: "INFER_ERROR",
-      input_len: signal.length,
-      fallback_applied: true,
-      message: error?.message || "UNKNOWN",
-    })
-    return {
-      filtered_signal: signal,
-      skipped: true,
-      reason: "INFER_ERROR",
-      input_len: signal.length,
-    }
-  }
-}
-
-// ===== Public APIs của service =====
-
 // Trả về trạng thái load model AI hiện tại cho runtime.
 const getModelState = () => ({
   enabled: isAIEnabled(),
@@ -627,9 +293,8 @@ const initModel = async () => {
   initPromise = (async () => {
     try {
       const paths = getModelPaths()
-      preprocessConfig = readJsonFile(paths.preprocessPath)
-      validatePreprocessConfig(preprocessConfig)
-      labelMap = fs.existsSync(paths.labelMapPath) ? readJsonFile(paths.labelMapPath) : {}
+      const preprocessConfig = getValidatedPreprocessConfig()
+      getLabelMap()
 
       const ioHandler = buildCustomIoHandler(paths.modelPath)
       model = await tf.loadLayersModel(ioHandler)
@@ -672,6 +337,8 @@ const initModel = async () => {
 const predictFromReading = async (ecgSignal, options = {}) => {
   const startedAt = Date.now()
   const context = String(options?.context || "unknown")
+  let inputLength = 0
+  let inputTruncated = false
 
   if (!isAIEnabled()) {
     const skip = makeSkipResult("AI_DISABLED", Date.now() - startedAt)
@@ -688,9 +355,9 @@ const predictFromReading = async (ecgSignal, options = {}) => {
     return skip
   }
 
-  if (!isLoaded || !model || !preprocessConfig) {
+  if (!isLoaded || !model) {
     const initResult = await initModel()
-    if (!initResult.loaded || !model || !preprocessConfig) {
+    if (!initResult.loaded || !model) {
       const initReason = initResult?.reason || "MODEL_NOT_READY"
       const skip = makeSkipResult(initReason, Date.now() - startedAt)
       logAiEvent("AI_INFER_SKIP", {
@@ -707,94 +374,34 @@ const predictFromReading = async (ecgSignal, options = {}) => {
     }
   }
 
-  const runtimeConfig = validateRuntimeNumericConfig(preprocessConfig || {})
-  if (!runtimeConfig.isValid) {
-    const skip = makeSkipResult("MODEL_NOT_READY", Date.now() - startedAt)
-    logAiEvent("AI_INFER_SKIP", {
-      context,
-      reason: skip.reason,
-      infer_ms: skip.infer_ms,
-      input_len: skip.input_len,
-      beat_count: skip.beat_count,
-      abnormal_group_count: 0,
-      ai_result_summary: skip.ai_result_summary,
-      fallback_applied: true,
-    })
-    return skip
-  }
-
-  const sanitized = sanitizeSignalInput(ecgSignal)
-  if (!sanitized.signal) {
-    const skip = makeSkipResult("INVALID_INPUT", Date.now() - startedAt, {
-      inputLength: sanitized.inputLength,
-      inputTruncated: sanitized.truncated,
-    })
-    logAiEvent("AI_INFER_SKIP", {
-      context,
-      reason: skip.reason,
-      infer_ms: skip.infer_ms,
-      input_len: skip.input_len,
-      beat_count: skip.beat_count,
-      abnormal_group_count: 0,
-      ai_result_summary: skip.ai_result_summary,
-      fallback_applied: true,
-    })
-    return skip
-  }
-
-  if (sanitized.truncated) {
-    logAiEvent("AI_INFER_SKIP", {
-      context,
-      reason: "INPUT_TRUNCATED",
-      infer_ms: Date.now() - startedAt,
-      input_len: sanitized.inputLength,
-      raw_input_len: sanitized.rawInputLength || sanitized.inputLength,
-      beat_count: 0,
-      abnormal_group_count: 0,
-      ai_result_summary: null,
-      fallback_applied: false,
-    })
-  }
-
-  const signal = sanitized.signal
-  const { segmentLength, halfWindow, rpeakMinDistanceSec, fsHz, rpeakMinHeight, scalerMean, scalerScale } =
-    runtimeConfig.values
-
-  if (signal.length < segmentLength) {
-    const skip = makeSkipResult("SHORT_SIGNAL", Date.now() - startedAt, {
-      labelCode: "Q",
-      inputLength: signal.length,
-      inputTruncated: sanitized.truncated,
-    })
-    logAiEvent("AI_INFER_SKIP", {
-      context,
-      reason: skip.reason,
-      infer_ms: skip.infer_ms,
-      input_len: skip.input_len,
-      beat_count: skip.beat_count,
-      abnormal_group_count: 0,
-      ai_result_summary: skip.ai_result_summary,
-      fallback_applied: true,
-    })
-    return skip
-  }
-
   try {
-    // Lọc thông dải để làm sạch tín hiệu trước khi phát hiện peak.
-    const coeffs = buildBandpassCoefficients(preprocessConfig)
-    const filteredSignal = applyBandpass(signal, coeffs)
+    const preprocessed = preprocessSignalForInference(ecgSignal)
+    inputLength = preprocessed.input_len
+    inputTruncated = preprocessed.input_truncated
 
-    // Phát hiện peak theo cấu hình để xác định tâm mỗi segment.
-    const minDistance = Math.max(1, Math.round(rpeakMinDistanceSec * fsHz))
-    const peaks = detectPeaks(filteredSignal, rpeakMinHeight, minDistance)
+    if (preprocessed.input_truncated) {
+      logAiEvent("AI_INFER_SKIP", {
+        context,
+        reason: "INPUT_TRUNCATED",
+        infer_ms: Date.now() - startedAt,
+        input_len: preprocessed.input_len,
+        raw_input_len: preprocessed.raw_input_len || preprocessed.input_len,
+        beat_count: 0,
+        abnormal_group_count: 0,
+        ai_result_summary: null,
+        fallback_applied: false,
+      })
+    }
 
-    // Trích xuất segment 0,5s quanh từng peak.
-    const segments = extractSegmentsFromPeaks(filteredSignal, peaks, halfWindow, segmentLength)
-    if (segments.length === 0) {
-      const skip = makeSkipResult("NO_PEAK", Date.now() - startedAt, {
-        labelCode: "Q",
-        inputLength: signal.length,
-        inputTruncated: sanitized.truncated,
+    if (preprocessed.skipped) {
+      const shouldUseNormalFallbackLabel =
+        preprocessed.reason === "SHORT_SIGNAL" ||
+        preprocessed.reason === "NO_PEAK" ||
+        preprocessed.reason === "INFER_ERROR"
+      const skip = makeSkipResult(preprocessed.reason, Date.now() - startedAt, {
+        labelCode: shouldUseNormalFallbackLabel ? "Q" : null,
+        inputLength: preprocessed.input_len,
+        inputTruncated: preprocessed.input_truncated,
       })
       logAiEvent("AI_INFER_SKIP", {
         context,
@@ -808,6 +415,11 @@ const predictFromReading = async (ecgSignal, options = {}) => {
       })
       return skip
     }
+
+    const preprocessConfig = preprocessed.preprocess_config
+    const runtimeConfig = preprocessed.runtime_config
+    const segments = preprocessed.segments
+    const { segmentLength, scalerMean, scalerScale } = runtimeConfig.values
 
     // Chuẩn hóa từng segment rồi nạp vào tensor batch [số segment, 125, 1].
     const beatCount = segments.length
@@ -849,8 +461,8 @@ const predictFromReading = async (ecgSignal, options = {}) => {
       skipped: false,
       reason: null,
       infer_ms: Date.now() - startedAt,
-      input_len: signal.length,
-      input_truncated: sanitized.truncated,
+      input_len: inputLength,
+      input_truncated: inputTruncated,
     }
 
     logAiEvent("AI_INFER_OK", {
@@ -868,8 +480,8 @@ const predictFromReading = async (ecgSignal, options = {}) => {
   } catch (error) {
     const skip = makeSkipResult("INFER_ERROR", Date.now() - startedAt, {
       labelCode: "Q",
-      inputLength: signal.length,
-      inputTruncated: sanitized.truncated,
+      inputLength,
+      inputTruncated,
     })
     logAiEvent("AI_INFER_ERROR", {
       context,
@@ -900,9 +512,9 @@ const predictBeatSegmentsForTest = async (segmentsInput) => {
     }
   }
 
-  if (!isLoaded || !model || !preprocessConfig) {
+  if (!isLoaded || !model) {
     const initResult = await initModel()
-    if (!initResult.loaded || !model || !preprocessConfig) {
+    if (!initResult.loaded || !model) {
       return {
         skipped: true,
         reason: "MODEL_NOT_READY",
@@ -913,6 +525,7 @@ const predictBeatSegmentsForTest = async (segmentsInput) => {
     }
   }
 
+  const preprocessConfig = getValidatedPreprocessConfig()
   const segmentLength = Number(preprocessConfig.segment_len)
   const classes = Array.isArray(preprocessConfig.classes)
     ? preprocessConfig.classes
@@ -923,10 +536,10 @@ const predictBeatSegmentsForTest = async (segmentsInput) => {
   // Làm sạch dữ liệu segment đầu vào và chỉ giữ segment đúng độ dài.
   const validSegments = Array.isArray(segmentsInput)
     ? segmentsInput
-        .map((segment) =>
-          Array.isArray(segment) ? segment.map((value) => Number(value)).filter(Number.isFinite) : null
-        )
-        .filter((segment) => Array.isArray(segment) && segment.length === segmentLength)
+      .map((segment) =>
+        Array.isArray(segment) ? segment.map((value) => Number(value)).filter(Number.isFinite) : null
+      )
+      .filter((segment) => Array.isArray(segment) && segment.length === segmentLength)
     : []
 
   if (validSegments.length === 0) {
@@ -997,7 +610,6 @@ const predictBeatSegmentsForTest = async (segmentsInput) => {
 module.exports = {
   initModel,
   predictFromReading,
-  filterReadingSignal,
   predictBeatSegmentsForTest,
   getModelState,
 }

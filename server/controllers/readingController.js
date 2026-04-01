@@ -3,7 +3,8 @@ const prisma = require("../prismaClient")
 const { AccessRole, AccessStatus, NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("../services/socketEmitService")
 const { createNotification } = require("../services/notificationService")
-const { predictFromReading, filterReadingSignal } = require("../services/ecgCnnService")
+const { predictFromReading } = require("../services/ecgCnnService")
+const { filterReadingSignal } = require("../services/ecgCnnPreprocessService")
 const {
   generateFakeECGData,
 } = require("../services/fakeReadingDataService")

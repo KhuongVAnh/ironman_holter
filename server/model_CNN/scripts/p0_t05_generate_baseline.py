@@ -1,3 +1,30 @@
+"""
+Tác dụng:
+- Tạo baseline chuẩn từ Python để đối chiếu với pipeline ECG CNN bên Node.js.
+- Ghi kết quả mẫu ra `baseline_p0_t05.json` và `baseline_p0_t05.csv`.
+
+Vấn đề file này giải quyết:
+- Cần một nguồn chân lý cố định để kiểm tra Node có bám đúng preprocessing và suy luận của Python hay không.
+- Cách làm: đọc config + dữ liệu ECG + TFJS weights, chạy filter -> detect peak -> cắt segment -> scale -> forward model, rồi ghi kết quả mẫu ra JSON/CSV.
+
+Cách chạy:
+- Từ thư mục `server`, chạy: `python model_CNN/scripts/p0_t05_generate_baseline.py`
+- Điều kiện: môi trường Python phải có `numpy` và `scipy`.
+
+Các function chính:
+- load_json: đọc file JSON có xử lý BOM.
+- validate_config: kiểm tra preprocess_config có đủ key và giá trị hợp lệ.
+- relu, softmax: các phép toán kích hoạt cơ bản dùng khi forward model.
+- conv1d_valid, maxpool1d_valid: mô phỏng các lớp Conv1D/MaxPool1D của model bằng NumPy.
+- load_tfjs_weights: đọc weights từ model TFJS export.
+- build_bandpass_coeffs: lấy hệ số filter b/a từ preprocess_config.
+- load_and_concat_signal: ghép nhiều reading thành một tín hiệu ECG dài.
+- detect_and_cut_segments: lọc tín hiệu, tìm peak và cắt segment quanh từng peak.
+- forward_segment: chạy forward một segment qua CNN.
+- write_outputs: ghi baseline ra file JSON và CSV.
+- main: điều phối toàn bộ pipeline tạo baseline.
+"""
+
 import csv
 import json
 from pathlib import Path
@@ -16,6 +43,8 @@ REQUIRED_CONFIG_KEYS = {
     "lowcut",
     "highcut",
     "filter_order",
+    "b_coeffs",
+    "a_coeffs",
     "rpeak_min_distance_sec",
     "rpeak_min_height",
     "scaler_mean",
@@ -103,10 +132,13 @@ def load_tfjs_weights(model_json_path: Path):
 
 
 def build_bandpass_coeffs(config):
-    nyquist = 0.5 * float(config["fs"])
-    low = float(config["lowcut"]) / nyquist
-    high = float(config["highcut"]) / nyquist
-    return scipy.signal.butter(int(config["filter_order"]), [low, high], btype="band")
+    b = np.asarray(config["b_coeffs"], dtype=np.float64)
+    a = np.asarray(config["a_coeffs"], dtype=np.float64)
+    if b.size < 2 or a.size < 2:
+        raise ValueError("Invalid b_coeffs/a_coeffs in preprocess_config.json")
+    if a[0] == 0:
+        raise ValueError("Invalid a_coeffs[0]=0 in preprocess_config.json")
+    return b, a
 
 
 def load_and_concat_signal(readings_path: Path) -> np.ndarray:
