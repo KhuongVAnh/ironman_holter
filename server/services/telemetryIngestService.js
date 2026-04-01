@@ -24,6 +24,8 @@ const {
   normalizeEcgSignal,
   toHeartRate,
   deriveHeartRateFromBeatCount,
+  resolveTelemetrySampleRate,
+  buildRealtimeEcgMeta,
 } = require("./telemetrySignalService")
 
 const FALLBACK_AI_RESULT = "Bình thường"
@@ -313,13 +315,23 @@ const ingestTelemetry = async (payload, context = {}) => {
     }
 
     const ecgToStore = filterSignalForStorage(rawEcg, `${source}:store`)
+    const sampleRateHz = resolveTelemetrySampleRate(payload)
     const { aiResultSummary, abnormalDetected, abnormalGroups, aiMeta } = await inferReadingWithAI(
       rawEcg,
       source
     )
     const providedHeartRate = toHeartRate(payload?.heart_rate)
-    const derivedHeartRate = deriveHeartRateFromBeatCount(aiMeta?.beat_count, rawEcg.length)
+    const derivedHeartRate = deriveHeartRateFromBeatCount(
+      aiMeta?.beat_count,
+      rawEcg.length,
+      sampleRateHz
+    )
     const resolvedHeartRate = providedHeartRate ?? derivedHeartRate ?? 0
+    const realtimeEcgMeta = buildRealtimeEcgMeta({
+      payload,
+      ecgSignal: ecgToStore,
+      fallbackSampleRate: sampleRateHz,
+    })
 
     const reading = await prisma.reading.create({
       data: {
@@ -340,6 +352,7 @@ const ingestTelemetry = async (payload, context = {}) => {
       serial_number: device.serial_number,
       heart_rate: reading.heart_rate,
       ecg_signal: ecgToStore,
+      ...realtimeEcgMeta,
       abnormal_detected: reading.abnormal_detected,
       ai_result: reading.ai_result,
       timestamp: reading.timestamp,

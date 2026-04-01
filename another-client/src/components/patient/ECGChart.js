@@ -74,13 +74,19 @@ const normalizeHighlights = (highlights = []) => {
     .filter(Boolean)
 }
 
-const ECGChart = ({ data = [], highlights = [], sampleRate = DEFAULT_SAMPLE_RATE, height = 300 }) => {
+const ECGChart = ({
+  data = [],
+  highlights = [],
+  sampleRate = DEFAULT_SAMPLE_RATE,
+  displayWindowSeconds = 5,
+  height = 300,
+}) => {
   const chartRef = useRef(null)
 
   const normalizedData = useMemo(() => normalizeEcgData(data), [data])
   const normalizedHighlights = useMemo(() => normalizeHighlights(highlights), [highlights])
 
-  const windowSize = 5 * sampleRate
+  const windowSize = Math.max(1, Math.round(displayWindowSeconds * sampleRate))
   const visibleData = normalizedData.slice(-windowSize)
   const windowStartSample = Math.max(0, normalizedData.length - visibleData.length)
   const startTime = windowStartSample / sampleRate

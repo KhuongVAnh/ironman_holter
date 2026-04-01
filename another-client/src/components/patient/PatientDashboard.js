@@ -11,11 +11,9 @@ import useECGStream from "./useECGStream"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
 import RecentAlertsPanel, { getAlertTypeLabel } from "../shared/RecentAlertsPanel"
 
-const ECG_SAMPLE_RATE = 250
-const ECG_CHUNK_SECONDS = 5
-const ECG_BUFFER_SECONDS = 10
-const ECG_CHUNK_SIZE = ECG_SAMPLE_RATE * ECG_CHUNK_SECONDS
-const ECG_BUFFER_SIZE = ECG_SAMPLE_RATE * ECG_BUFFER_SECONDS
+const DEFAULT_SAMPLE_RATE_HZ = 250
+const DISPLAY_WINDOW_SECONDS = 5
+const BUFFER_WINDOW_SECONDS = 10
 
 const normalizeEcgChunk = (signal) => {
   if (!Array.isArray(signal)) return []
@@ -25,19 +23,27 @@ const normalizeEcgChunk = (signal) => {
     .filter((item) => Number.isFinite(item))
 }
 
-const appendEcgChunk = (currentBuffer, nextChunk) => {
+const normalizeSampleRateHz = (value) => {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_SAMPLE_RATE_HZ
+  return parsed
+}
+
+const appendEcgChunk = (currentBuffer, nextChunk, bufferSampleLimit) => {
   const normalizedChunk = normalizeEcgChunk(nextChunk)
   if (normalizedChunk.length === 0) return currentBuffer
 
-  const trimmedChunk = normalizedChunk.slice(-ECG_CHUNK_SIZE)
   const normalizedBuffer = normalizeEcgChunk(currentBuffer)
-  return [...normalizedBuffer, ...trimmedChunk].slice(-ECG_BUFFER_SIZE)
+  return [...normalizedBuffer, ...normalizedChunk].slice(-bufferSampleLimit)
 }
 
 const PatientDashboard = () => {
   const { user } = useAuth()
   const [currentHeartRate, setCurrentHeartRate] = useState(75)
-  const [rawEcgData, setRawEcgData] = useState([])
+  const [ecgRealtimeState, setEcgRealtimeState] = useState({
+    sampleRateHz: DEFAULT_SAMPLE_RATE_HZ,
+    buffer: [],
+  })
   const [recentAlerts, setRecentAlerts] = useState([])
   const [isConnected, setIsConnected] = useState(false)
   const [aiResult, setAiResult] = useState(null)
@@ -56,7 +62,23 @@ const PatientDashboard = () => {
 
     const handleEcgData = (data) => {
       setCurrentHeartRate(data.heart_rate)
-      setRawEcgData((currentBuffer) => appendEcgChunk(currentBuffer, data.ecg_signal))
+      const nextSampleRateHz = normalizeSampleRateHz(data.sample_rate_hz)
+      const bufferSampleLimit = Math.max(1, Math.round(nextSampleRateHz * BUFFER_WINDOW_SECONDS))
+
+      setEcgRealtimeState((currentState) => {
+        const shouldResetBuffer = currentState.sampleRateHz !== nextSampleRateHz
+        const nextBuffer = appendEcgChunk(
+          shouldResetBuffer ? [] : currentState.buffer,
+          data.ecg_signal,
+          bufferSampleLimit
+        )
+
+        return {
+          sampleRateHz: nextSampleRateHz,
+          buffer: nextBuffer,
+        }
+      })
+
       const aiResultText = String(data.ai_result || "").trim()
       const abnormal = isAbnormalAiResultText(aiResultText, data.abnormal_detected)
       setAiResult({ result: formatAiResultForDisplay(aiResultText), time: data.timestamp, abnormal })
@@ -85,7 +107,12 @@ const PatientDashboard = () => {
     }
   }, [user.user_id])
 
-  const streamedEcgData = useECGStream(rawEcgData, ECG_SAMPLE_RATE, 0.2)
+  const streamedEcgData = useECGStream(
+    ecgRealtimeState.buffer,
+    ecgRealtimeState.sampleRateHz,
+    0.2,
+    DISPLAY_WINDOW_SECONDS
+  )
 
   const fetchRecentAlerts = async () => {
     try {
@@ -205,7 +232,12 @@ const PatientDashboard = () => {
           </div>
           <div className="flex-1 p-4">
             <div className="h-full rounded-[28px] border border-brand-100/80 bg-[linear-gradient(rgba(253,164,175,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(253,164,175,0.7)_1px,transparent_1px),linear-gradient(rgba(254,202,202,0.6)_0.5px,transparent_0.5px),linear-gradient(90deg,rgba(254,202,202,0.6)_0.5px,transparent_0.5px)] bg-[size:50px_50px,50px_50px,10px_10px,10px_10px]">
-              <ECGChart data={streamedEcgData} height={360} />
+              <ECGChart
+                data={streamedEcgData}
+                sampleRate={ecgRealtimeState.sampleRateHz}
+                displayWindowSeconds={DISPLAY_WINDOW_SECONDS}
+                height={360}
+              />
             </div>
           </div>
         </div>
@@ -263,5 +295,4 @@ const PatientDashboard = () => {
 }
 
 export default PatientDashboard
-
 

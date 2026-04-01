@@ -9,6 +9,7 @@ const {
   generateFakeECGData,
 } = require("../services/fakeReadingDataService")
 const { ingestTelemetry } = require("../services/telemetryIngestService")
+const { buildRealtimeEcgMeta } = require("../services/telemetrySignalService")
 const { resolveAiCodeFromLabel, getAiLabelFromCode } = require("../strings/ecgAiStrings")
 
 const FALLBACK_AI_RESULT = "Bình thường"
@@ -270,12 +271,16 @@ const createFakeReading = async (req, res) => {
 
     const io = req.app.get("io")
     const recipients = await getPatientRecipientIds(device.user_id)
+    const realtimeEcgMeta = buildRealtimeEcgMeta({
+      ecgSignal: ecg_signal,
+    })
 
     emitToUsers(io, recipients, "fake-reading", {
       device_id: deviceId,
       user_id: device.user_id,
       heart_rate,
       ecg_signal,
+      ...realtimeEcgMeta,
       abnormal_detected,
       ai_result: aiResultSummary,
       timestamp: reading.timestamp,
