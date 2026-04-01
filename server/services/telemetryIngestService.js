@@ -256,19 +256,6 @@ const getPatientRecipientIds = async (patientId) => {
   return [patientId, ...viewers.map((item) => item.viewer_id)]
 }
 
-// Hàm parse tín hiệu ECG đã lưu để phục vụ ghép chart realtime liên tục.
-const parseStoredEcgSignal = (storedValue) => {
-  let parsed = storedValue
-  if (typeof parsed === "string") {
-    try {
-      parsed = JSON.parse(parsed)
-    } catch (error) {
-      parsed = []
-    }
-  }
-  return Array.isArray(parsed) ? parsed : []
-}
-
 // Hàm xử lý nghiệp vụ ingest telemetry dùng chung cho cả HTTP route và MQTT consumer.
 const ingestTelemetry = async (payload, context = {}) => {
   const source = String(context?.source || "unknown")
@@ -345,22 +332,6 @@ const ingestTelemetry = async (payload, context = {}) => {
       },
     })
 
-    const previousReadings = await prisma.reading.findMany({
-      where: { device_id: reading.device_id },
-      orderBy: { timestamp: "desc" },
-      skip: 1,
-      take: 1,
-    })
-    const previousReading = previousReadings[0]
-
-    // merge để gửi cho client, thuận tiện cho việc hiển thị chart
-    let mergedECG = ecgToStore
-    if (previousReading) {
-      const previousEcg = parseStoredEcgSignal(previousReading.ecg_signal)
-      mergedECG = [...previousEcg, ...ecgToStore]
-      if (mergedECG.length > 2500) mergedECG = mergedECG.slice(-2500)
-    }
-
     const recipients = await getPatientRecipientIds(device.user_id)
     emitToUsers(io, recipients, "reading-update", {
       reading_id: reading.reading_id,
@@ -368,7 +339,7 @@ const ingestTelemetry = async (payload, context = {}) => {
       user_id: device.user_id,
       serial_number: device.serial_number,
       heart_rate: reading.heart_rate,
-      ecg_signal: mergedECG,
+      ecg_signal: ecgToStore,
       abnormal_detected: reading.abnormal_detected,
       ai_result: reading.ai_result,
       timestamp: reading.timestamp,

@@ -11,6 +11,29 @@ import useECGStream from "./useECGStream"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
 import RecentAlertsPanel, { getAlertTypeLabel } from "../shared/RecentAlertsPanel"
 
+const ECG_SAMPLE_RATE = 250
+const ECG_CHUNK_SECONDS = 5
+const ECG_BUFFER_SECONDS = 10
+const ECG_CHUNK_SIZE = ECG_SAMPLE_RATE * ECG_CHUNK_SECONDS
+const ECG_BUFFER_SIZE = ECG_SAMPLE_RATE * ECG_BUFFER_SECONDS
+
+const normalizeEcgChunk = (signal) => {
+  if (!Array.isArray(signal)) return []
+
+  return signal
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item))
+}
+
+const appendEcgChunk = (currentBuffer, nextChunk) => {
+  const normalizedChunk = normalizeEcgChunk(nextChunk)
+  if (normalizedChunk.length === 0) return currentBuffer
+
+  const trimmedChunk = normalizedChunk.slice(-ECG_CHUNK_SIZE)
+  const normalizedBuffer = normalizeEcgChunk(currentBuffer)
+  return [...normalizedBuffer, ...trimmedChunk].slice(-ECG_BUFFER_SIZE)
+}
+
 const PatientDashboard = () => {
   const { user } = useAuth()
   const [currentHeartRate, setCurrentHeartRate] = useState(75)
@@ -33,7 +56,7 @@ const PatientDashboard = () => {
 
     const handleEcgData = (data) => {
       setCurrentHeartRate(data.heart_rate)
-      if (Array.isArray(data.ecg_signal) && data.ecg_signal.length > 0) setRawEcgData(data.ecg_signal)
+      setRawEcgData((currentBuffer) => appendEcgChunk(currentBuffer, data.ecg_signal))
       const aiResultText = String(data.ai_result || "").trim()
       const abnormal = isAbnormalAiResultText(aiResultText, data.abnormal_detected)
       setAiResult({ result: formatAiResultForDisplay(aiResultText), time: data.timestamp, abnormal })
@@ -62,7 +85,7 @@ const PatientDashboard = () => {
     }
   }, [user.user_id])
 
-  const streamedEcgData = useECGStream(rawEcgData, 250, 0.2)
+  const streamedEcgData = useECGStream(rawEcgData, ECG_SAMPLE_RATE, 0.2)
 
   const fetchRecentAlerts = async () => {
     try {
@@ -240,6 +263,5 @@ const PatientDashboard = () => {
 }
 
 export default PatientDashboard
-
 
 
