@@ -1,8 +1,24 @@
+/*
+Tác dụng:
+- Là lõi ingest telemetry dùng chung cho cả HTTP và MQTT.
+
+Vấn đề file này giải quyết:
+- Cần một pipeline nghiệp vụ duy nhất để nhận telemetry, chuẩn hóa dữ liệu, gọi AI, lưu reading, tạo alert/notification và emit realtime mà không bị lặp code giữa nhiều entrypoint.
+- Cách làm: gom toàn bộ bước ingest vào service này, còn controller/MQTT chỉ truyền payload vào và nhận kết quả chuẩn hóa.
+
+Function chính:
+- buildIngestResult: tạo contract kết quả ingest nội bộ thống nhất.
+- inferReadingWithAI: gọi AI ECG và luôn trả về kết quả an toàn cho ingest.
+- filterSignalForStorage: lọc tín hiệu để lưu DB nhưng không làm fail nghiệp vụ nếu filter lỗi.
+- ingestTelemetry: xử lý trọn luồng ingest từ payload telemetry đến reading/alert/notification.
+*/
+
 const prisma = require("../prismaClient")
 const { AccessStatus, NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("./socketEmitService")
 const { createNotification } = require("./notificationService")
-const { predictFromReading, filterReadingSignal } = require("./ecgCnnService")
+const { predictFromReading } = require("./ecgCnnService")
+const { filterReadingSignal } = require("./ecgCnnPreprocessService")
 const { generateFallbackECGSignal } = require("./fakeReadingDataService")
 const {
   normalizeEcgSignal,
