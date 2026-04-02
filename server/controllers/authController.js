@@ -4,19 +4,85 @@ const jwt = require("jsonwebtoken")
 const prisma = require("../prismaClient")
 const { toPrismaUserRole, fromPrismaUserRole } = require("../utils/enumMappings")
 const {hashPass} = require("../services/authService")
+const { createHash, randomBytes } = require("crypto")
 
-// Hàm xử lý tạo JWT token cho người dùng sau khi xác thực.
-const generateToken = (user) => {
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET
+const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || "15m"
+const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || "7d"
+
+// Hàm xử lý lưu refresh token đã được hash vào database để quản lý và xác thực khi cần thiết.
+const hashToken = (value) => createHash("sha256").update(value).digest("hex") 
+
+// Hàm xây dựng payload người dùng cho token từ đối tượng user trong database.
+const buildUserPayload = (user) => ({
+  user_id: user.user_id,
+  email: user.email,
+  role: fromPrismaUserRole(user.role),
+})
+
+// Hàm tạo access token JWT với payload người dùng và thời gian hết hạn.
+const generateAccessToken = (user) => {
+  return jwt.sign(buildUserPayload(user), ACCESS_TOKEN_SECRET, {
+    expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+  })
+}
+
+// Hàm tạo refresh token JWT với payload người dùng, loại token và nonce để tăng cường bảo mật.
+const generateRefreshToken = (user) => {
   return jwt.sign(
     {
-      user_id: user.user_id,
-      email: user.email,
-      role: fromPrismaUserRole(user.role),
+      ...buildUserPayload(user),
+      type: "refresh",
+      nonce: randomBytes(16).toString("hex"), // Chuỗi random (32 ký tự hex) => các refresh token cùng user_id sẽ khác nhau, tránh bị trùng lặp token khi đăng nhập nhiều lần và tăng cường bảo mật
     },
-    process.env.JWT_SECRET,
-    { expiresIn: "24h" },
+    REFRESH_TOKEN_SECRET,
+    { expiresIn: REFRESH_TOKEN_EXPIRES_IN }
   )
 }
+
+// Hàm lấy options cho cookie refresh token, bao gồm các thuộc tính bảo mật và thời gian hết hạn.
+const getRefreshCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // true = cookie chỉ được gửi qua HTTPS, false cho phép gửi qua HTTP
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // none = 
+  path: "/api/auth", // chỉ gửi cookie này cho các request đến endpoint /api/auth
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+})
+
+// Hàm thiết lập cookie refresh token trong response.
+const setRefreshCookie = (res, refreshToken) => {
+  res.cookie("refresh_token", refreshToken, getRefreshCookieOptions()) // tên cookie là refresh_token, giá trị là refreshToken
+}
+
+// Hàm xóa cookie refresh token khỏi trình duyệt.
+const clearRefreshCookie = (res) => {
+  res.clearCookie("refresh_token", getRefreshCookieOptions())
+}
+
+// Hàm lưu refresh token đã được hash vào database
+const saveRefreshToken = async (userId, refreshToken) => {
+  const decoded = jwt.decode(refreshToken)
+  await prisma.refreshToken.create({
+    data: {
+      user_id: userId,
+      token_hash: hashToken(refreshToken),
+      expires_at: new Date(decoded.exp * 1000),
+    },
+  })
+}
+
+// Hàm xử lý tạo và cấp access token và refresh token cho người dùng sau khi xác thực.
+const issueAuthTokens = async (user, res) => {
+  const accessToken = generateAccessToken(user)
+  const refreshToken = generateRefreshToken(user)
+
+  await saveRefreshToken(user.user_id, refreshToken)
+  setRefreshCookie(res, refreshToken)
+
+  return accessToken
+}
+
 
 // Hàm xử lý đăng ký tài khoản mới.
 const register = async (req, res) => {
@@ -39,7 +105,7 @@ const register = async (req, res) => {
       },
     })
 
-    const token = generateToken(user)
+    const token = await issueAuthTokens(user, res)
 
     res.status(201).json({
       message: "Đăng ký thành công",
@@ -76,7 +142,7 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Email hoặc mật khẩu không đúng" })
     }
 
-    const token = generateToken(user)
+    const token = await issueAuthTokens(user, res)
 
     res.json({
       message: "Đăng nhập thành công",
@@ -91,6 +157,91 @@ const login = async (req, res) => {
   } catch (error) {
     console.error("Lỗi đăng nhập:", error)
     res.status(500).json({ message: "Lỗi server nội bộ" })
+  }
+}
+
+// Hàm xử lý làm mới access token bằng refresh token.
+const refresh = async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refresh_token
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Khong co refresh token" })
+    }
+
+    let decoded
+    try {
+      decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET)
+    } catch (_error) {
+      clearRefreshCookie(res)
+      return res.status(401).json({ message: "Refresh token khong hop le" })
+    }
+
+    if (decoded?.type !== "refresh") {
+      clearRefreshCookie(res)
+      return res.status(401).json({ message: "Refresh token khong hop le" })
+    }
+
+    const savedToken = await prisma.refreshToken.findUnique({
+      where: { token_hash: hashToken(refreshToken) },
+    })
+
+    if (!savedToken || savedToken.revoked_at || savedToken.expires_at < new Date()) {
+      clearRefreshCookie(res)
+      return res.status(401).json({ message: "Refresh token da het han hoac da bi thu hoi" })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { user_id: Number(decoded.user_id) },
+    })
+
+    if (!user || !user.is_active) {
+      clearRefreshCookie(res)
+      return res.status(401).json({ message: "Nguoi dung khong hop le" })
+    }
+
+    // thu hồi refresh token cũ rồi cấp refresh token 7 ngày mới => dưới 7 ngày dùng web 1 lần thì ko bao giờ phải đăng nhập
+    await prisma.refreshToken.update({
+      where: { token_id: savedToken.token_id },
+      data: { revoked_at: new Date() },
+    })
+
+    const token = await issueAuthTokens(user, res)
+
+    return res.json({
+      message: "Lam moi token thanh cong",
+      token,
+      user: {
+        user_id: user.user_id,
+        name: user.name,
+        email: user.email,
+        role: fromPrismaUserRole(user.role),
+      },
+    })
+  } catch (error) {
+    console.error("Loi refresh token:", error)
+    return res.status(500).json({ message: "Loi server noi bo" })
+  }
+}
+
+const logout = async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refresh_token
+
+    if (refreshToken) {
+      await prisma.refreshToken.updateMany({
+        where: {
+          token_hash: hashToken(refreshToken),
+          revoked_at: null,
+        },
+        data: { revoked_at: new Date() },
+      })
+    }
+
+    clearRefreshCookie(res)
+    return res.json({ message: "Dang xuat thanh cong" })
+  } catch (error) {
+    console.error("Loi dang xuat:", error)
+    return res.status(500).json({ message: "Loi server noi bo" })
   }
 }
 
@@ -130,4 +281,6 @@ module.exports = {
   register,
   login,
   getMe,
+  refresh,
+  logout,
 }

@@ -55,17 +55,18 @@ model User {
 
   devices                Device[]
   alerts                 Alert[]
-  patientReports         Report[]           @relation("PatientReports")
-  doctorReports          Report[]           @relation("DoctorReports")
+  patientReports         Report[]                @relation("PatientReports")
+  doctorReports          Report[]                @relation("DoctorReports")
   chatLogs               ChatLog[]
-  sentDirectMessages     DirectMessage[]    @relation("DirectSender")
-  receivedDirectMessages DirectMessage[]    @relation("DirectReceiver")
-  sharedPatients         AccessPermission[] @relation("SharedPatients")
-  sharedViewers          AccessPermission[] @relation("SharedViewers")
-  patientHistories       MedicalHistory[]   @relation("PatientHistories")
-  doctorHistories        MedicalHistory[]   @relation("DoctorHistories")
-  notificationsAuthored  Notification[]     @relation("NotificationActor")
+  sentDirectMessages     DirectMessage[]         @relation("DirectSender")
+  receivedDirectMessages DirectMessage[]         @relation("DirectReceiver")
+  sharedPatients         AccessPermission[]      @relation("SharedPatients")
+  sharedViewers          AccessPermission[]      @relation("SharedViewers")
+  patientHistories       MedicalHistory[]        @relation("PatientHistories")
+  doctorHistories        MedicalHistory[]        @relation("DoctorHistories")
+  notificationsAuthored  Notification[]          @relation("NotificationActor")
   notificationRecipients NotificationRecipient[]
+  refreshTokens          RefreshToken[]
 
   @@map("users")
 }
@@ -100,15 +101,15 @@ model Reading {
 }
 
 model Alert {
-  alert_id   Int      @id @default(autoincrement())
-  user_id    Int
-  reading_id Int
-  alert_type String
-  message    String   @db.Text
+  alert_id             Int      @id @default(autoincrement())
+  user_id              Int
+  reading_id           Int
+  alert_type           String
+  message              String   @db.Text
   segment_start_sample Int?
   segment_end_sample   Int?
-  timestamp  DateTime @default(now())
-  resolved   Boolean  @default(false)
+  timestamp            DateTime @default(now())
+  resolved             Boolean  @default(false)
 
   user    User    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
   reading Reading @relation(fields: [reading_id], references: [reading_id], onDelete: Cascade, onUpdate: Cascade)
@@ -211,13 +212,28 @@ model Notification {
   @@map("notifications")
 }
 
+model RefreshToken {
+  token_id   Int       @id @default(autoincrement())
+  user_id    Int
+  token_hash String    @unique @db.VarChar(191)
+  expires_at DateTime
+  revoked_at DateTime?
+  created_at DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@index([expires_at])
+  @@map("refresh_tokens")
+}
+
 model NotificationRecipient {
-  recipient_id     Int      @id @default(autoincrement())
-  notification_id  Int
-  user_id          Int
-  is_read          Boolean  @default(false)
-  read_at          DateTime?
-  created_at       DateTime @default(now()) @map("created_at")
+  recipient_id    Int       @id @default(autoincrement())
+  notification_id Int
+  user_id         Int
+  is_read         Boolean   @default(false)
+  read_at         DateTime?
+  created_at      DateTime  @default(now()) @map("created_at")
 
   notification Notification @relation(fields: [notification_id], references: [notification_id], onDelete: Cascade, onUpdate: Cascade)
   user         User         @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)

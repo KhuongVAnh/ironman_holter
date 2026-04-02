@@ -12,6 +12,7 @@ const cors = require("cors")
 const helmet = require("helmet")
 const http = require("http")
 const socketIo = require("socket.io")
+const cookieParser = require("cookie-parser") // để parse cookie
 
 const prisma = require("./prismaClient")
 const socketService = require("./services/socketService")
@@ -42,7 +43,11 @@ app.set("view engine", "ejs")
 
 // Middleware
 app.use(helmet())
-app.use(cors())
+app.use(cors({
+  origin: process.env.CLIENT_URL,
+  credentials: true,
+}))
+app.use(cookieParser())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 

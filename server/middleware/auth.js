@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken")
 
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET
+
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization
 
@@ -12,13 +14,13 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ message: "Token khong hop le" })
   }
 
-  if (!process.env.JWT_SECRET) {
-    console.error("JWT_SECRET chua duoc cau hinh")
+  if (!ACCESS_TOKEN_SECRET) {
+    console.error("ACCESS_TOKEN_SECRET chua duoc cau hinh")
     return res.status(500).json({ message: "Loi cau hinh he thong" })
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET)
     if (!decoded?.user_id) {
       return res.status(401).json({ message: "Token khong hop le" })
     }
