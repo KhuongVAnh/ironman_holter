@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -329,5 +329,38 @@
   .alert-card-head, .alert-meta-row { flex-direction: column; align-items: flex-start; }
 }
 
+/* react-toastify: compact toasts, top-right (see App.js ToastContainer) */
+.Toastify__toast-container--top-right {
+  top: max(0.5rem, env(safe-area-inset-top, 0px));
+  right: max(0.5rem, env(safe-area-inset-right, 0px));
+  width: min(18rem, calc(100vw - 1rem));
+  padding: 0;
+}
+.Toastify__toast {
+  min-height: 2.5rem !important;
+  margin-bottom: 0.35rem !important;
+}
+.Toastify__toast-body {
+  align-items: center;
+  gap: 0.5rem;
+}
+.Toastify__toast-icon {
+  width: 1rem !important;
+  min-width: 1rem !important;
+}
+.Toastify__toast-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+.Toastify__progress-bar {
+  height: 2px !important;
+}
+.Toastify__close-button {
+  align-self: center;
+  opacity: 0.55;
+}
+.Toastify__close-button:hover {
+  opacity: 1;
+}
 
 

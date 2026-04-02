@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { Suspense, lazy } from "react"
 import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom"
@@ -125,9 +125,11 @@ const AppContent = () => {
       </Suspense>
 
       <ToastContainer
-        position="bottom-right"
-        autoClose={3000}
-        toastClassName={() => "rounded-3xl border border-surface-line bg-white px-4 py-3 text-sm font-medium text-ink-800 shadow-panel"}
+        position="top-right"
+        autoClose={2000}
+        toastClassName={() =>
+          "min-h-0 rounded-xl border border-surface-line bg-white px-3 py-2 text-xs font-medium leading-snug text-ink-800 shadow-panel"
+        }
         bodyClassName={() => "p-0"}
       />
     </div>
