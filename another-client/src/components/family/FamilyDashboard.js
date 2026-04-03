@@ -184,6 +184,30 @@ const FamilyDashboard = () => {
 
       <div className="row g-4">
         <div className="col-md-8">
+          <RecentAlertsPanel
+            title="Cảnh báo gần nhất"
+            subtitle="Tổng hợp cảnh báo mới nhất của người thân được cấp quyền."
+            alerts={recentAlerts}
+            onAlertClick={(alert) => setSelectedReadingId(alert?.reading_id || null)}
+            isAlertDisabled={(alert) => !alert?.reading_id}
+            getAlertTitle={(alert) => {
+              const typeLabel = getAlertTypeLabel(alert.alert_type)
+              return alert.patient_name ? `${alert.patient_name} - ${typeLabel}` : typeLabel
+            }}
+            getAlertStatus={(alert) => {
+              const priority = getAlertPriority(alert.alert_type)
+              return { label: priority.label, className: priority.className }
+            }}
+            getAlertHint={(_alert, disabled, canClick) => {
+              if (disabled) return "Không có reading"
+              if (canClick) return "Nhấn để xem đồ thị ECG"
+              return ""
+            }}
+            emptyText="Không có cảnh báo nào"
+          />
+        </div>
+
+        <div className="col-md-4">
           <div className="card border-0 shadow-sm">
             <div className="card-header bg-white border-0 d-flex justify-content-between align-items-center">
               <h5 className="card-title mb-0">
@@ -198,7 +222,7 @@ const FamilyDashboard = () => {
               {familyMembers.length > 0 ? (
                 <div className="row g-3">
                   {familyMembers.map((member) => (
-                    <div key={member.user_id} className="col-md-6">
+                    <div key={member.user_id} className="col-md-12">
                       <div className="card border-0 bg-light">
                         <div className="card-body d-flex align-items-center">
                           <div className="avatar-circle bg-primary text-white me-3">{member.name.charAt(0).toUpperCase()}</div>
@@ -233,30 +257,6 @@ const FamilyDashboard = () => {
               )}
             </div>
           </div>
-        </div>
-
-        <div className="col-md-4">
-          <RecentAlertsPanel
-            title="Cảnh báo gần nhất"
-            subtitle="Tổng hợp cảnh báo mới nhất của người thân được cấp quyền."
-            alerts={recentAlerts}
-            onAlertClick={(alert) => setSelectedReadingId(alert?.reading_id || null)}
-            isAlertDisabled={(alert) => !alert?.reading_id}
-            getAlertTitle={(alert) => {
-              const typeLabel = getAlertTypeLabel(alert.alert_type)
-              return alert.patient_name ? `${alert.patient_name} - ${typeLabel}` : typeLabel
-            }}
-            getAlertStatus={(alert) => {
-              const priority = getAlertPriority(alert.alert_type)
-              return { label: priority.label, className: priority.className }
-            }}
-            getAlertHint={(_alert, disabled, canClick) => {
-              if (disabled) return "Không có reading"
-              if (canClick) return "Nhấn để xem đồ thị ECG"
-              return ""
-            }}
-            emptyText="Không có cảnh báo nào"
-          />
         </div>
       </div>
 
