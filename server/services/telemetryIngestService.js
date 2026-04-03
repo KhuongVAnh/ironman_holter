@@ -14,7 +14,7 @@ Function chính:
 */
 
 const prisma = require("../prismaClient")
-const { AccessStatus, NotificationType } = require("@prisma/client")
+const { NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("./socketEmitService")
 const { createNotification } = require("./notificationService")
 const { predictFromReading } = require("./ecgCnnService")
@@ -27,6 +27,10 @@ const {
   resolveTelemetrySampleRate,
   buildRealtimeEcgMeta,
 } = require("./telemetrySignalService")
+const {
+  getDeviceBySerialCached,
+  getRecipientIdsByPatientCached,
+} = require("./telemetryRuntimeCacheService")
 
 const FALLBACK_AI_RESULT = "Bình thường"
 
@@ -245,21 +249,9 @@ const createAggregatedAlertNotification = async ({
   })
 }
 
-// Hàm lấy danh sách tài khoản cần nhận dữ liệu realtime của bệnh nhân.
-const getPatientRecipientIds = async (patientId) => {
-  const viewers = await prisma.accessPermission.findMany({
-    where: {
-      patient_id: patientId,
-      status: AccessStatus.accepted,
-    },
-    select: { viewer_id: true },
-  })
-
-  return [patientId, ...viewers.map((item) => item.viewer_id)]
-}
-
 // Hàm xử lý nghiệp vụ ingest telemetry dùng chung cho cả HTTP route và MQTT consumer.
 const ingestTelemetry = async (payload, context = {}) => {
+  
   const source = String(context?.source || "unknown")
   const io = context?.io || null
   const actorId = context?.actorId ?? null
@@ -276,10 +268,7 @@ const ingestTelemetry = async (payload, context = {}) => {
       })
     }
 
-    const device = await prisma.device.findUnique({
-      where: { serial_number: serialNumber },
-      select: { device_id: true, user_id: true, serial_number: true },
-    })
+    const device = await getDeviceBySerialCached(serialNumber)
 
     if (!device) {
       return buildIngestResult({
@@ -344,7 +333,8 @@ const ingestTelemetry = async (payload, context = {}) => {
       },
     })
 
-    const recipients = await getPatientRecipientIds(device.user_id)
+    // Emit event realtime cho các tài khoản liên quan của bệnh nhân và bệnh nhân khi có reading mới
+    const recipients = await getRecipientIdsByPatientCached(device.user_id)
     emitToUsers(io, recipients, "reading-update", {
       reading_id: reading.reading_id,
       device_id: reading.device_id,
@@ -388,15 +378,20 @@ const ingestTelemetry = async (payload, context = {}) => {
         })),
       })
 
-      await createAggregatedAlertNotification({
-        actorId,
-        recipients,
-        io,
-        userId: device.user_id,
-        readingId: reading.reading_id,
-        serialNumber: device.serial_number,
-        aiResultSummary,
-        createdAlerts,
+      // Tạo notification cảnh báo dạng gộp cho reading có nhiều alert con, chạy async không chờ kết quả để tránh delay luồng ingest
+      Promise.resolve(
+        createAggregatedAlertNotification({
+          actorId,
+          recipients,
+          io,
+          userId: device.user_id,
+          readingId: reading.reading_id,
+          serialNumber: device.serial_number,
+          aiResultSummary,
+          createdAlerts,
+        })
+      ).catch((error) => {
+        console.error("Async aggregated alert notification failed:", error)
       })
     }
 

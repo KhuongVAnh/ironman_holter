@@ -10,6 +10,7 @@ const {
 } = require("../utils/enumMappings")
 const { emitToUsers } = require("../services/socketEmitService")
 const { createNotification } = require("../services/notificationService")
+const { invalidateRecipientCacheByPatient } = require("../services/telemetryRuntimeCacheService")
 
 // Hàm xử lý gửi yêu cầu chia sẻ dữ liệu bệnh nhân.
 exports.shareAccess = async (req, res) => {
@@ -114,6 +115,9 @@ exports.respondAccess = async (req, res) => {
       data: { status },
     })
 
+    // vô hiệu hóa cache người nhận của bệnh nhân để đảm bảo dữ liệu mới sẽ được truy vấn từ database khi có cập nhật về quyền truy cập
+    invalidateRecipientCacheByPatient(updatedPermission.patient_id)
+
     const responsePayload = {
       patient_id: updatedPermission.patient_id,
       viewer_id: updatedPermission.viewer_id,
@@ -196,6 +200,9 @@ exports.revokeAccess = async (req, res) => {
     if (!permission) return res.status(404).json({ error: "Không tìm thấy quyền này" })
 
     await prisma.accessPermission.delete({ where: { permission_id: permissionId } })
+
+    // vô hiệu hóa cache người nhận của bệnh nhân để đảm bảo dữ liệu mới sẽ được truy vấn từ database khi có cập nhật về quyền truy cập
+    invalidateRecipientCacheByPatient(permission.patient_id)
 
     const revokePayload = {
       viewer_id: permission.viewer_id,

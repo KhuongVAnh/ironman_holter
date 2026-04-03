@@ -5,6 +5,7 @@ const {
   fromPrismaDeviceStatus,
   fromPrismaUserRole,
 } = require("../utils/enumMappings")
+const { invalidateDeviceCacheBySerial } = require("../services/telemetryRuntimeCacheService")
 
 // Hàm xử lý đăng ký thiết bị mới cho bệnh nhân.
 const registerDevice = async (req, res) => {
@@ -56,6 +57,9 @@ const registerDevice = async (req, res) => {
         user_id: targetUserId,
       },
     })
+
+    // Vô hiệu hóa cache thiết bị dựa trên serial number để đảm bảo dữ liệu mới sẽ được truy vấn từ database khi có thiết bị mới được đăng ký
+    invalidateDeviceCacheBySerial(device.serial_number)
 
     res.status(201).json({
       message: "Dang ky thiet bi thanh cong",
@@ -127,6 +131,9 @@ const updateDeviceStatus = async (req, res) => {
       where: { device_id: id },
       data: { status: toPrismaDeviceStatus(status) },
     })
+
+    // Vô hiệu hóa cache thiết bị dựa trên serial number để đảm bảo dữ liệu mới sẽ được truy vấn từ database khi có cập nhật về trạng thái thiết bị
+    invalidateDeviceCacheBySerial(updatedDevice.serial_number)
 
     res.json({
       message: "Cap nhat trang thai thiet bi thanh cong",
