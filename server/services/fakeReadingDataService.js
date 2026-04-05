@@ -1,3 +1,20 @@
+/*
+Tác dụng:
+- Tạo dữ liệu ECG giả phục vụ test/demo và tạo tín hiệu dự phòng khi thiếu telemetry thật.
+
+Vấn đề file này giải quyết:
+- Cần dữ liệu fake đủ giống nhịp ECG thật để test backend mà không phụ thuộc thiết bị.
+- Cách làm: lấy segment từ baseline Python, ghép thành reading 5 giây, và giữ thêm một bộ sinh tín hiệu dự phòng đơn giản.
+
+Function chính:
+- resolveModelCnnPath: dựng path tuyệt đối vào thư mục `model_CNN`.
+- readJsonFile: đọc file JSON local.
+- resolveReadingsJsonPath: tìm file readings nguồn trong `model_CNN/ecg`.
+- getBaselineSegmentPool: tải và cache pool segment từ baseline.
+- generateFakeECGData: ghép các segment baseline thành một reading fake 5 giây.
+- generateFallbackECGSignal: tạo tín hiệu dự phòng đơn giản khi không có ECG hợp lệ.
+*/
+
 const fs = require("fs")
 const path = require("path")
 

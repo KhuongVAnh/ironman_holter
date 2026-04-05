@@ -1,6 +1,26 @@
 ﻿const mqtt = require("mqtt")
 
 let mqttClient = null
+/*
+Tác dụng:
+- Quản lý toàn bộ vòng đời MQTT cho telemetry ECG: kết nối, subscribe, dedupe, ACK và shutdown.
+
+Vấn đề file này giải quyết:
+- Cần nhận telemetry từ thiết bị qua MQTT một cách an toàn mà không làm hỏng luồng ingest do trùng message, payload lỗi hoặc broker mất kết nối.
+- Cách làm: đọc config từ env, chuẩn hóa topic/payload, chống trùng theo TTL, gọi handler ingest chung và publish ACK về thiết bị.
+
+Function chính:
+- resolveMqttConfig: đọc và chuẩn hóa cấu hình MQTT từ env.
+- initMqttTelemetry: khởi tạo client MQTT, subscribe topic telemetry và gắn handler.
+- setTelemetryMessageHandler: đăng ký handler xử lý message telemetry.
+- publishAck: gửi ACK về topic của thiết bị.
+- extractSerialFromTopic: tách serial từ topic `devices/{serial}/telemetry`.
+- buildAckPayload: tạo payload ACK chuẩn.
+- isDuplicateMessage, markMessageSeen, pruneExpiredDedupeKeys: quản lý chống trùng message.
+- getMqttState, getMaxPayloadBytes: trả về trạng thái và guard runtime.
+- shutdownMqttTelemetry: đóng kết nối MQTT an toàn khi server dừng.
+*/
+
 let telemetryMessageHandler = null
 let activeConfig = null
 let dedupeCleanupTimer = null
@@ -109,6 +129,26 @@ const buildAckTopic = (serial) => {
   const serialValue = encodeURIComponent(String(serial || "").trim())
   const template = activeConfig?.topicAckTemplate || "devices/{serial}/ack"
   return template.replace("{serial}", serialValue)
+}
+
+// Hàm tạo topic telemetry publish theo serial để giả lập thiết bị gửi dữ liệu lên broker.
+const buildTelemetryTopic = (serial) => {
+  const serialValue = encodeURIComponent(String(serial || "").trim())
+  const template = String(activeConfig?.topicTelemetry || "devices/+/telemetry").trim()
+
+  if (!template) {
+    return `devices/${serialValue}/telemetry`
+  }
+
+  if (template.includes("{serial}")) {
+    return template.replace("{serial}", serialValue)
+  }
+
+  if (template.includes("+")) {
+    return template.replace("+", serialValue)
+  }
+
+  return `devices/${serialValue}/telemetry`
 }
 
 // Hàm tạo payload ACK chuẩn hóa cho cả success/error/duplicate.
@@ -401,6 +441,80 @@ const publishAck = async (serialNumber, ackPayload = {}) => {
   })
 }
 
+// Hàm publish telemetry test lên broker để reuse toàn bộ luồng MQTT thật của hệ thống.
+const publishTelemetryMessage = async ({ serialNumber, payload, qos, retain = false } = {}) => {
+  const normalizedSerial = String(serialNumber || "").trim()
+  if (!normalizedSerial) {
+    return {
+      ok: false,
+      code: "INVALID_SERIAL",
+      message: "serial_number la bat buoc",
+      topic: null,
+    }
+  }
+
+  if (!mqttState.enabled) {
+    return {
+      ok: false,
+      code: "MQTT_DISABLED",
+      message: "MQTT dang tat",
+      topic: null,
+    }
+  }
+
+  if (!mqttClient || !mqttState.connected) {
+    return {
+      ok: false,
+      code: "MQTT_NOT_READY",
+      message: "MQTT chua san sang de publish telemetry",
+      topic: null,
+    }
+  }
+
+  const topic = buildTelemetryTopic(normalizedSerial)
+  const message = JSON.stringify(payload || {})
+  const publishQos = Number.isInteger(Number(qos)) ? Number(qos) : activeConfig?.qos || 1
+
+  logMqttEvent("MQTT_TELEMETRY_PUBLISHING", {
+    topic,
+    serial_number: normalizedSerial,
+    qos: publishQos,
+    payload_size: Buffer.byteLength(message, "utf8"),
+    payload_preview: toPayloadPreview(message),
+  })
+
+  return new Promise((resolve) => {
+    mqttClient.publish(topic, message, { qos: publishQos, retain: Boolean(retain) }, (error) => {
+      if (error) {
+        logMqttEvent("MQTT_TELEMETRY_PUBLISH_ERROR", {
+          topic,
+          serial_number: normalizedSerial,
+          reason: error.message,
+        })
+        resolve({
+          ok: false,
+          code: "MQTT_PUBLISH_FAILED",
+          message: error.message,
+          topic,
+        })
+        return
+      }
+
+      logMqttEvent("MQTT_TELEMETRY_PUBLISH_OK", {
+        topic,
+        serial_number: normalizedSerial,
+        qos: publishQos,
+      })
+      resolve({
+        ok: true,
+        code: "MQTT_PUBLISH_OK",
+        message: "Telemetry da duoc publish",
+        topic,
+      })
+    })
+  })
+}
+
 // Hàm đóng kết nối MQTT an toàn khi server shutdown.
 const shutdownMqttTelemetry = async () => {
   stopDedupeCleanupTimer()
@@ -436,6 +550,7 @@ module.exports = {
   pruneExpiredDedupeKeys,
   getMaxPayloadBytes,
   logMqttEvent,
+  publishTelemetryMessage,
 }
 
 
