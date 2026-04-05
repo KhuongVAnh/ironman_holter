@@ -89,6 +89,15 @@ const useSocket = (userId, userRole) => {
     }
     socket.on("notification:new", handleNotificationNew)
 
+    const handleReadingAiUpdated = (payload) => {
+      if (payload?.ai_status === "FAILED") {
+        toast.error(payload?.ai_error || "Phan tich AI that bai", { autoClose: 4000 })
+      }
+
+      window.dispatchEvent(new CustomEvent("readingAiUpdated", { detail: payload }))
+    }
+    socket.on("reading-ai-updated", handleReadingAiUpdated)
+
     // Event chua co consumer hoac chua co emitter trong flow hien tai.
     /*
     socket.on("direct-message:read", (payload) => {
@@ -128,6 +137,7 @@ const useSocket = (userId, userRole) => {
       if (socketRef.current) {
         socketRef.current.off("direct-message:new", handleDirectMessageNew)
         socketRef.current.off("notification:new", handleNotificationNew)
+        socketRef.current.off("reading-ai-updated", handleReadingAiUpdated)
         socketRef.current.disconnect()
         socketRef.current = null
       }

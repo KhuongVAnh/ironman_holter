@@ -11,6 +11,14 @@ import {
 } from "../../strings/ecgAiStrings"
 import ModalFrame from "./ModalFrame"
 
+const normalizeAiStatus = (value) => {
+  const normalized = String(value || "").trim().toUpperCase()
+  if (normalized === "DONE" || normalized === "FAILED" || normalized === "PENDING") {
+    return normalized
+  }
+  return "PENDING"
+}
+
 const normalizeEcgSignal = (signal) => {
   if (Array.isArray(signal)) return signal
   if (typeof signal === "string") {
@@ -83,10 +91,62 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
     fetchDetail()
   }, [show, readingId])
 
+  useEffect(() => {
+    if (!show || !readingId) return
+
+    const handleReadingAiUpdated = async (event) => {
+      const payload = event.detail || {}
+      const updatedReadingId = Number.parseInt(payload?.reading_id, 10)
+
+      if (!Number.isInteger(updatedReadingId) || updatedReadingId !== Number(readingId)) {
+        return
+      }
+
+      const nextStatus = normalizeAiStatus(payload.ai_status)
+
+      if (nextStatus === "DONE") {
+        try {
+          const response = await readingsApi.getDetail(readingId)
+          setReading(response.data?.reading || null)
+          setErrorMessage("")
+        } catch (error) {
+          console.error("Loi tai lai reading sau khi AI hoan tat:", error)
+        }
+        return
+      }
+
+      setReading((currentReading) => {
+        if (!currentReading) return currentReading
+
+        return {
+          ...currentReading,
+          ai_status: nextStatus,
+          ai_result: payload.ai_result !== undefined ? payload.ai_result : currentReading.ai_result,
+          abnormal_detected:
+            payload.abnormal_detected !== undefined
+              ? Boolean(payload.abnormal_detected)
+              : currentReading.abnormal_detected,
+          ai_error: payload.ai_error !== undefined ? payload.ai_error : currentReading.ai_error,
+          ai_completed_at: payload.timestamp || currentReading.ai_completed_at,
+        }
+      })
+    }
+
+    window.addEventListener("readingAiUpdated", handleReadingAiUpdated)
+    return () => window.removeEventListener("readingAiUpdated", handleReadingAiUpdated)
+  }, [show, readingId])
+
+  const aiStatus = useMemo(() => normalizeAiStatus(reading?.ai_status), [reading?.ai_status])
   const ecgSignal = useMemo(() => normalizeEcgSignal(reading?.ecg_signal), [reading?.ecg_signal])
   const aiResultDisplay = useMemo(() => formatAiResultForDisplay(reading?.ai_result), [reading?.ai_result])
-  const aiAbnormal = useMemo(() => isAbnormalAiResultText(reading?.ai_result, reading?.abnormal_detected), [reading?.ai_result, reading?.abnormal_detected])
-  const highlightSegments = useMemo(() => normalizeHighlightSegments(reading?.alerts, ecgSignal.length), [reading?.alerts, ecgSignal.length])
+  const aiAbnormal = useMemo(
+    () => aiStatus === "DONE" && isAbnormalAiResultText(reading?.ai_result, reading?.abnormal_detected),
+    [aiStatus, reading?.ai_result, reading?.abnormal_detected]
+  )
+  const highlightSegments = useMemo(
+    () => aiStatus === "DONE" ? normalizeHighlightSegments(reading?.alerts, ecgSignal.length) : [],
+    [aiStatus, reading?.alerts, ecgSignal.length]
+  )
   const highlightLegend = useMemo(() => {
     const countByCode = new Map()
     highlightSegments.forEach((segment) => {
@@ -100,6 +160,27 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
       count,
     }))
   }, [highlightSegments])
+
+  const analysisSummary = useMemo(() => {
+    if (aiStatus === "PENDING") {
+      return {
+        result: "Dang phan tich",
+        status: "Dang cho AI hoan tat",
+      }
+    }
+
+    if (aiStatus === "FAILED") {
+      return {
+        result: "Phan tich that bai",
+        status: reading?.ai_error || "Khong the hoan tat suy luan AI",
+      }
+    }
+
+    return {
+      result: aiResultDisplay,
+      status: aiAbnormal ? "Bat thuong" : "Binh thuong",
+    }
+  }, [aiStatus, aiResultDisplay, aiAbnormal, reading?.ai_error])
 
   return (
     <ModalFrame
@@ -115,12 +196,14 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
         <div className="alert alert-danger">{errorMessage}</div>
       ) : reading ? (
         <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <div className="rounded-[24px] bg-surface p-5 text-sm text-ink-700">
+            <div className="rounded-[24px] bg-surface p-5 text-sm text-ink-700">
             <p className="mb-2"><strong className="text-ink-900">Reading ID:</strong> {reading.reading_id}</p>
             <p className="mb-2"><strong className="text-ink-900">Thoi gian:</strong> {new Date(reading.timestamp).toLocaleString("vi-VN")}</p>
             <p className="mb-2"><strong className="text-ink-900">Nhip tim:</strong> {reading.heart_rate} BPM</p>
-            <p className="mb-2"><strong className="text-ink-900">Ket qua AI:</strong> {aiResultDisplay}</p>
-            <p className="mb-2"><strong className="text-ink-900">Trang thai:</strong> {aiAbnormal ? "Bat thuong" : "Binh thuong"}</p>
+            <p className="mb-2"><strong className="text-ink-900">AI status:</strong> {aiStatus}</p>
+            <p className="mb-2"><strong className="text-ink-900">Ket qua AI:</strong> {analysisSummary.result}</p>
+            <p className="mb-2"><strong className="text-ink-900">Trang thai:</strong> {analysisSummary.status}</p>
+            <p className="mb-2"><strong className="text-ink-900">AI completed:</strong> {reading?.ai_completed_at ? new Date(reading.ai_completed_at).toLocaleString("vi-VN") : "-"}</p>
             <p className="mb-2"><strong className="text-ink-900">Serial:</strong> {reading.device?.serial_number || "-"}</p>
             <p className="mb-0"><strong className="text-ink-900">Benh nhan:</strong> {reading.patient?.name || "-"}</p>
             <small className="text-muted">{reading.patient?.email || ""}</small>
@@ -131,7 +214,11 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
             </div>
             <div className="rounded-[24px] border border-surface-line bg-surface p-4">
               <h4 className="mb-3 text-base font-bold text-ink-900">Chu thich bat thuong</h4>
-              {highlightLegend.length > 0 ? (
+              {aiStatus === "PENDING" ? (
+                <p className="text-sm text-ink-600">Dang cho AI hoan tat de danh dau segment bat thuong.</p>
+              ) : aiStatus === "FAILED" ? (
+                <p className="text-sm text-ink-600">Khong co du lieu bat thuong vi qua trinh phan tich da that bai.</p>
+              ) : highlightLegend.length > 0 ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {highlightLegend.map((item) => (
                     <div key={item.code} className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">

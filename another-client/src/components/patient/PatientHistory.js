@@ -7,6 +7,42 @@ import ReadingDetailModal from "../shared/ReadingDetailModal"
 
 const ITEMS_PER_PAGE = 20
 
+const normalizeAiStatus = (value) => {
+  const normalized = String(value || "").trim().toUpperCase()
+  if (normalized === "DONE" || normalized === "FAILED" || normalized === "PENDING") {
+    return normalized
+  }
+  return "PENDING"
+}
+
+const isReadingAbnormal = (reading) =>
+  normalizeAiStatus(reading?.ai_status) === "DONE" &&
+  isAbnormalAiResultText(reading?.ai_result, reading?.abnormal_detected)
+
+const getAiStatusBadge = (reading) => {
+  const status = normalizeAiStatus(reading?.ai_status)
+
+  if (status === "PENDING") {
+    return {
+      label: "Dang phan tich",
+      className: "bg-amber-100 text-amber-700",
+    }
+  }
+
+  if (status === "FAILED") {
+    return {
+      label: "Phan tich that bai",
+      className: "bg-rose-100 text-rose-700",
+    }
+  }
+
+  const abnormal = isReadingAbnormal(reading)
+  return {
+    label: formatAiResultForDisplay(reading?.ai_result),
+    className: abnormal ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700",
+  }
+}
+
 const PatientHistory = () => {
   const { user } = useAuth()
   const [readings, setReadings] = useState([])
@@ -18,6 +54,36 @@ const PatientHistory = () => {
   useEffect(() => {
     fetchReadings()
   }, [currentPage])
+
+  useEffect(() => {
+    const handleReadingAiUpdated = (event) => {
+      const payload = event.detail || {}
+      const updatedReadingId = Number.parseInt(payload?.reading_id, 10)
+
+      if (!Number.isInteger(updatedReadingId)) return
+
+      setReadings((currentReadings) =>
+        currentReadings.map((reading) => {
+          if (reading.reading_id !== updatedReadingId) return reading
+
+          return {
+            ...reading,
+            ai_status: payload.ai_status || reading.ai_status,
+            ai_result: payload.ai_result !== undefined ? payload.ai_result : reading.ai_result,
+            abnormal_detected:
+              payload.abnormal_detected !== undefined
+                ? Boolean(payload.abnormal_detected)
+                : reading.abnormal_detected,
+            ai_error: payload.ai_error !== undefined ? payload.ai_error : reading.ai_error,
+            ai_completed_at: payload.timestamp || reading.ai_completed_at,
+          }
+        })
+      )
+    }
+
+    window.addEventListener("readingAiUpdated", handleReadingAiUpdated)
+    return () => window.removeEventListener("readingAiUpdated", handleReadingAiUpdated)
+  }, [])
 
   const fetchReadings = async () => {
     try {
@@ -63,7 +129,7 @@ const PatientHistory = () => {
       <section className="grid gap-4 md:grid-cols-3">
         <div className="app-card p-5"><p className="text-sm text-ink-500">Số bản ghi trang này</p><p className="mt-2 text-3xl font-black text-ink-900">{readings.length}</p></div>
         <div className="app-card p-5"><p className="text-sm text-ink-500">Trang hiện tại</p><p className="mt-2 text-3xl font-black text-ink-900">{currentPage}/{totalPages}</p></div>
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Bản ghi bất thường</p><p className="mt-2 text-3xl font-black text-red-600">{readings.filter((item) => isAbnormalAiResultText(item?.ai_result, item?.abnormal_detected)).length}</p></div>
+        <div className="app-card p-5"><p className="text-sm text-ink-500">Bản ghi bất thường</p><p className="mt-2 text-3xl font-black text-red-600">{readings.filter((item) => isReadingAbnormal(item)).length}</p></div>
       </section>
 
       <section className="app-card overflow-hidden">
@@ -97,13 +163,13 @@ const PatientHistory = () => {
                   </thead>
                   <tbody className="divide-y divide-surface-line">
                     {readings.map((reading) => {
-                      const abnormal = isAbnormalAiResultText(reading?.ai_result, reading?.abnormal_detected)
+                      const aiBadge = getAiStatusBadge(reading)
                       return (
                         <tr key={reading.reading_id} className="hover:bg-brand-50/60">
                           <td className="py-4 pr-4 text-ink-700">{formatDate(reading.timestamp)}</td>
                           <td className={`py-4 pr-4 text-lg font-bold ${heartRateTone(reading.heart_rate)}`}>{reading.heart_rate} BPM</td>
                           <td className="py-4 pr-4">
-                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${abnormal ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{formatAiResultForDisplay(reading?.ai_result)}</span>
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${aiBadge.className}`}>{aiBadge.label}</span>
                           </td>
                           <td className="py-4 pr-4 text-ink-600">{reading.device?.serial_number || reading.Device?.serial_number || "Không rõ serial"}</td>
                           <td className="py-4 text-right">

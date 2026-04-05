@@ -37,6 +37,34 @@ const appendEcgChunk = (currentBuffer, nextChunk, bufferSampleLimit) => {
   return [...normalizedBuffer, ...normalizedChunk].slice(-bufferSampleLimit)
 }
 
+const normalizeAiStatus = (value) => {
+  const normalized = String(value || "").trim().toUpperCase()
+  if (normalized === "DONE" || normalized === "FAILED" || normalized === "PENDING") {
+    return normalized
+  }
+  return "PENDING"
+}
+
+const buildAnalysisStateFromRealtime = (data = {}, currentState = null) => {
+  const status = normalizeAiStatus(data.ai_status)
+  const aiResultText = String(data.ai_result || "").trim()
+  const abnormal = status === "DONE"
+    ? isAbnormalAiResultText(aiResultText, data.abnormal_detected)
+    : false
+
+  return {
+    readingId: Number.isInteger(Number(data.reading_id))
+      ? Number(data.reading_id)
+      : currentState?.readingId || null,
+    status,
+    result: status === "DONE" ? formatAiResultForDisplay(aiResultText) : null,
+    rawResult: status === "DONE" ? aiResultText : null,
+    time: data.timestamp || currentState?.time || null,
+    abnormal,
+    error: status === "FAILED" ? String(data.ai_error || "Phan tich AI that bai") : null,
+  }
+}
+
 const PatientDashboard = () => {
   const { user } = useAuth()
   const [currentHeartRate, setCurrentHeartRate] = useState(75)
@@ -46,7 +74,7 @@ const PatientDashboard = () => {
   })
   const [recentAlerts, setRecentAlerts] = useState([])
   const [isConnected, setIsConnected] = useState(false)
-  const [aiResult, setAiResult] = useState(null)
+  const [analysisState, setAnalysisState] = useState(null)
   const [supervisingDoctors, setSupervisingDoctors] = useState([])
   const [selectedReadingId, setSelectedReadingId] = useState(null)
 
@@ -79,10 +107,29 @@ const PatientDashboard = () => {
         }
       })
 
-      const aiResultText = String(data.ai_result || "").trim()
-      const abnormal = isAbnormalAiResultText(aiResultText, data.abnormal_detected)
-      setAiResult({ result: formatAiResultForDisplay(aiResultText), time: data.timestamp, abnormal })
-      if (abnormal) toast.warning(`Phát hiện bất thường: ${data.heart_rate} bpm`)
+      setAnalysisState((currentState) => buildAnalysisStateFromRealtime(data, currentState))
+    }
+
+    const handleReadingAiUpdated = (event) => {
+      const payload = event.detail || {}
+
+      setAnalysisState((currentState) => {
+        const latestReadingId = currentState?.readingId
+        const incomingReadingId = Number.isInteger(Number(payload.reading_id))
+          ? Number(payload.reading_id)
+          : null
+
+        if (latestReadingId && incomingReadingId && latestReadingId !== incomingReadingId) {
+          return currentState
+        }
+
+        const nextState = buildAnalysisStateFromRealtime(payload, currentState)
+        if (nextState.status === "DONE" && nextState.abnormal) {
+          toast.warning("Phát hiện bất thường sau khi AI hoàn tất phân tích")
+        }
+
+        return nextState
+      })
     }
 
     const handleAlert = (alertData) => {
@@ -93,16 +140,16 @@ const PatientDashboard = () => {
     }
 
     socketClient.on("reading-update", handleEcgData)
-    socketClient.on("fake-reading", handleEcgData)
     socketClient.on("alert", handleAlert)
+    window.addEventListener("readingAiUpdated", handleReadingAiUpdated)
 
     fetchRecentAlerts()
     fetchSupervisingDoctors()
 
     return () => {
       socketClient.off("reading-update", handleEcgData)
-      socketClient.off("fake-reading", handleEcgData)
       socketClient.off("alert", handleAlert)
+      window.removeEventListener("readingAiUpdated", handleReadingAiUpdated)
       socketClient.close()
     }
   }, [user.user_id])
@@ -150,7 +197,7 @@ const PatientDashboard = () => {
         return
       }
       await readingsApi.createFake(devices[0].device_id)
-      toast.success("Đã tạo dữ liệu mô phỏng để kiểm tra giao diện")
+      toast.success("Đã gửi dữ liệu mô phỏng lên MQTT")
     } catch (error) {
       console.error("Lỗi tạo dữ liệu giả:", error)
       toast.error("Không thể tạo dữ liệu mô phỏng")
@@ -158,10 +205,36 @@ const PatientDashboard = () => {
   }
 
   const aiCard = useMemo(() => {
-    if (!aiResult) return { title: "Đang phân tích", detail: "Hệ thống cần thêm dữ liệu để đưa ra kết luận.", tone: "bg-slate-100 text-slate-700" }
-    if (aiResult.abnormal) return { title: "Cần lưu ý", detail: aiResult.result, tone: "bg-amber-50 text-amber-700" }
-    return { title: "Nhịp xoang bình thường", detail: aiResult.result, tone: "bg-emerald-50 text-emerald-700" }
-  }, [aiResult])
+    if (!analysisState || analysisState.status === "PENDING") {
+      return {
+        title: "Đang phân tích",
+        detail: "Tín hiệu ECG đã đến, hệ thống đang chờ AI hoàn tất kết luận.",
+        tone: "bg-slate-100 text-slate-700",
+      }
+    }
+
+    if (analysisState.status === "FAILED") {
+      return {
+        title: "Phân tích thất bại",
+        detail: analysisState.error || "Khong the hoan tat suy luan AI cho reading nay.",
+        tone: "bg-rose-50 text-rose-700",
+      }
+    }
+
+    if (analysisState.abnormal) {
+      return {
+        title: "Cần lưu ý",
+        detail: analysisState.result,
+        tone: "bg-amber-50 text-amber-700",
+      }
+    }
+
+    return {
+      title: "Nhịp xoang bình thường",
+      detail: analysisState.result,
+      tone: "bg-emerald-50 text-emerald-700",
+    }
+  }, [analysisState])
 
   return (
     <div className="space-y-6">
@@ -199,15 +272,18 @@ const PatientDashboard = () => {
           </div>
 
           <div className="app-card md:col-span-2 p-5">
-            <div className={`flex items-center gap-4 rounded-[22px] px-4 py-4 ${aiCard.tone}`}>
-              <div className="rounded-full bg-brand-50 p-3 text-brand-600"><i className="fas fa-brain"></i></div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold uppercase tracking-[0.18em]">Phân tích Ironman AI</p>
-                <p className="mt-1 text-base font-bold">{aiCard.title}</p>
-                <p className="mt-1 text-sm opacity-80">{aiCard.detail}</p>
+              <div className={`flex items-center gap-4 rounded-[22px] px-4 py-4 ${aiCard.tone}`}>
+                <div className="rounded-full bg-brand-50 p-3 text-brand-600"><i className="fas fa-brain"></i></div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em]">Phân tích Ironman AI</p>
+                  <p className="mt-1 text-base font-bold">{aiCard.title}</p>
+                  <p className="mt-1 text-sm opacity-80">{aiCard.detail}</p>
+                  {analysisState?.time ? (
+                    <p className="mt-2 text-xs opacity-70">{new Date(analysisState.time).toLocaleString("vi-VN")}</p>
+                  ) : null}
+                </div>
+                <i className="fas fa-badge-check opacity-60"></i>
               </div>
-              <i className="fas fa-badge-check opacity-60"></i>
-            </div>
           </div>
         </div>
 
@@ -295,4 +371,3 @@ const PatientDashboard = () => {
 }
 
 export default PatientDashboard
-
