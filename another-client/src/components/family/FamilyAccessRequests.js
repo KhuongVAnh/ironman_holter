@@ -25,8 +25,8 @@ const FamilyAccessRequests = () => {
       const response = await accessApi.getPending()
       setRequests(response.data || [])
     } catch (error) {
-      console.error("Loi tai danh sach yeu cau:", error)
-      toast.error("Khong the tai danh sach yeu cau")
+      console.error("Lỗi tải danh sách yêu cầu:", error)
+      toast.error("Không thể tải danh sách yêu cầu")
     }
   }
 
@@ -35,8 +35,8 @@ const FamilyAccessRequests = () => {
       const response = await familyApi.getPatients(user.user_id)
       setPatients(response.data || [])
     } catch (error) {
-      console.error("Loi tai danh sach benh nhan:", error)
-      toast.error("Khong the tai danh sach benh nhan")
+      console.error("Lỗi tải danh sách bệnh nhân:", error)
+      toast.error("Không thể tải danh sách bệnh nhân")
     }
   }
 
@@ -44,12 +44,12 @@ const FamilyAccessRequests = () => {
     try {
       setRespondingId(permissionId)
       await accessApi.respond(permissionId, action)
-      toast.success(action === "accept" ? "Da chap nhan yeu cau" : "Da tu choi yeu cau")
+      toast.success(action === "accept" ? "Đã chấp nhận yêu cầu" : "Đã từ chối yêu cầu")
       await fetchPendingRequests()
       await fetchAcceptedPatients()
     } catch (error) {
-      console.error("Loi xu ly yeu cau:", error)
-      toast.error(error.response?.data?.error || "Khong the xu ly yeu cau")
+      console.error("Lỗi xử lý yêu cầu:", error)
+      toast.error(error.response?.data?.error || "Không thể xử lý yêu cầu")
     } finally {
       setRespondingId(null)
     }
@@ -58,18 +58,18 @@ const FamilyAccessRequests = () => {
   return (
     <div className="space-y-6">
       <section className="app-card">
-        <div className="app-card-header"><div><h1 className="section-title"><i className="fas fa-user-shield me-2 text-brand-600"></i>Yeu cau truy cap benh nhan</h1><p className="section-subtitle">Phe duyet yeu cau theo doi nguoi than va dong bo danh sach duoc cap quyen.</p></div></div>
+        <div className="app-card-header"><div><h1 className="section-title"><i className="fas fa-user-shield me-2 text-brand-600"></i>Yêu cầu truy cập bệnh nhân</h1><p className="section-subtitle">Phê duyệt yêu cầu theo dõi người thân và đồng bộ danh sách được cấp quyền.</p></div></div>
         <div className="app-card-body table-responsive">
           <table className="table table-hover align-middle">
-            <thead><tr><th>#</th><th>Benh nhan</th><th>Vai tro</th><th>Trang thai</th><th className="text-end">Thao tac</th></tr></thead>
+            <thead><tr><th>#</th><th>Bệnh nhân</th><th>Vai trò</th><th>Trạng thái</th><th className="text-end">Thao tác</th></tr></thead>
             <tbody>
-              {requests.length === 0 ? <tr><td colSpan="5" className="text-center text-muted py-4">Khong co yeu cau dang cho xu ly</td></tr> : requests.map((item, index) => (
+              {requests.length === 0 ? <tr><td colSpan="5" className="text-center text-muted py-4">Không có yêu cầu đang chờ xử lý</td></tr> : requests.map((item, index) => (
                 <tr key={item.permission_id}>
                   <td>{index + 1}</td>
                   <td>{item.patient?.name}</td>
                   <td>{item.role}</td>
                   <td><span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeTone(item.status)}`}>{item.status}</span></td>
-                  <td className="text-end">{item.status === ACCESS_STATUS.PENDING ? <div className="btn-group justify-end"><button type="button" className="btn btn-outline-success btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "accept")}><i className="fas fa-check me-1"></i>Dong y</button><button type="button" className="btn btn-outline-danger btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "reject")}><i className="fas fa-xmark me-1"></i>Tu choi</button></div> : <span className="text-muted">-</span>}</td>
+                  <td className="text-end">{item.status === ACCESS_STATUS.PENDING ? <div className="btn-group justify-end"><button type="button" className="btn btn-outline-success btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "accept")}><i className="fas fa-check me-1"></i>Đồng ý</button><button type="button" className="btn btn-outline-danger btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "reject")}><i className="fas fa-xmark me-1"></i>Từ chối</button></div> : <span className="text-muted">-</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -78,12 +78,12 @@ const FamilyAccessRequests = () => {
       </section>
 
       <section className="app-card">
-        <div className="app-card-header"><div><h2 className="section-title"><i className="fas fa-heart-pulse me-2 text-brand-600"></i>Nguoi than dang theo doi</h2><p className="section-subtitle">Mo nhanh ho so benh su cua tung benh nhan da duoc cap quyen.</p></div></div>
+        <div className="app-card-header"><div><h2 className="section-title"><i className="fas fa-heart-pulse me-2 text-brand-600"></i>Người thân đang theo dõi</h2><p className="section-subtitle">Mở nhanh hồ sơ bệnh sử của từng bệnh nhân đã được cấp quyền.</p></div></div>
         <div className="app-card-body table-responsive">
           <table className="table table-hover align-middle">
-            <thead><tr><th>#</th><th>Ten benh nhan</th><th>Email</th><th className="text-end">Mo ho so</th></tr></thead>
+            <thead><tr><th>#</th><th>Tên bệnh nhân</th><th>Email</th><th className="text-end">Mở hồ sơ</th></tr></thead>
             <tbody>
-              {patients.length === 0 ? <tr><td colSpan="4" className="text-center text-muted py-4">Chua co benh nhan nao duoc cap quyen</td></tr> : patients.map((item, index) => (
+              {patients.length === 0 ? <tr><td colSpan="4" className="text-center text-muted py-4">Chưa có bệnh nhân nào được cấp quyền</td></tr> : patients.map((item, index) => (
                 <tr key={item.patient?.user_id}>
                   <td>{index + 1}</td>
                   <td>{item.patient?.name}</td>

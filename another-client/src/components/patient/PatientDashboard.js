@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react"
 import { toast } from "react-toastify"
+import { useRef } from "react"
 import io from "socket.io-client"
 import { API_BASE_URL } from "../../config/env"
 import { useAuth } from "../../contexts/AuthContext"
@@ -65,8 +66,21 @@ const buildAnalysisStateFromRealtime = (data = {}, currentState = null) => {
   }
 }
 
+const buildAlertToastMessage = (alertData = {}) => {
+  const firstAlert = Array.isArray(alertData.alerts) ? alertData.alerts[0] : null
+
+  return (
+    firstAlert?.message ||
+    alertData.message ||
+    (Number.isInteger(Number(alertData.abnormal_count)) && Number(alertData.abnormal_count) > 0
+      ? `Phát hiện ${Number(alertData.abnormal_count)} cảnh báo bất thường`
+      : "Phát hiện cảnh báo bất thường")
+  )
+}
+
 const PatientDashboard = () => {
   const { user } = useAuth()
+  const lastAlertToastKeyRef = useRef(null)
   const [currentHeartRate, setCurrentHeartRate] = useState(75)
   const [ecgRealtimeState, setEcgRealtimeState] = useState({
     sampleRateHz: DEFAULT_SAMPLE_RATE_HZ,
@@ -123,18 +137,23 @@ const PatientDashboard = () => {
           return currentState
         }
 
-        const nextState = buildAnalysisStateFromRealtime(payload, currentState)
-        if (nextState.status === "DONE" && nextState.abnormal) {
-          toast.warning("Phát hiện bất thường sau khi AI hoàn tất phân tích")
-        }
-
-        return nextState
+        return buildAnalysisStateFromRealtime(payload, currentState)
       })
     }
 
     const handleAlert = (alertData) => {
       if (alertData.user_id === user.user_id) {
-        toast.error(`Cảnh báo: ${alertData.message}`)
+        const firstAlert = Array.isArray(alertData.alerts) ? alertData.alerts[0] : null
+        const toastKey = [
+          Number.isInteger(Number(alertData.reading_id)) ? Number(alertData.reading_id) : "unknown-reading",
+          firstAlert?.alert_id || "no-alert-id",
+          Number(alertData.abnormal_count) || 0,
+        ].join(":")
+
+        if (lastAlertToastKeyRef.current !== toastKey) {
+          lastAlertToastKeyRef.current = toastKey
+          toast.error(`Cảnh báo: ${buildAlertToastMessage(alertData)}`)
+        }
         fetchRecentAlerts()
       }
     }

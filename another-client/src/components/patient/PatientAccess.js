@@ -27,13 +27,13 @@ const PatientAccess = () => {
 
     const handleResponse = (data) => {
       if (data.patient_id === user.user_id) {
-        toast.info("Mot yeu cau truy cap da duoc phan hoi")
+        toast.info("Một yêu cầu truy cập đã được phản hồi")
         fetchAccessList()
       }
     }
     const handleRevoke = (data) => {
       if (data.patient_id === user.user_id) {
-        toast.warning("Mot quyen truy cap da bi thu hoi")
+        toast.warning("Một quyền truy cập đã bị thu hồi")
         fetchAccessList()
       }
     }
@@ -51,8 +51,8 @@ const PatientAccess = () => {
       const response = await accessApi.list(user.user_id)
       setAccessList(response.data || [])
     } catch (error) {
-      console.error("Khong the tai danh sach quyen:", error)
-      toast.error("Khong the tai danh sach quyen truy cap")
+      console.error("Không thể tải danh sách quyền:", error)
+      toast.error("Không thể tải danh sách quyền truy cập")
     }
   }
 
@@ -60,24 +60,24 @@ const PatientAccess = () => {
     event.preventDefault()
     try {
       const response = await accessApi.share(viewerEmail, role)
-      toast.success(response.data?.message || "Da gui yeu cau chia se quyen")
+      toast.success(response.data?.message || "Đã gửi yêu cầu chia sẻ quyền")
       setViewerEmail("")
       fetchAccessList()
     } catch (error) {
-      console.error("Loi chia se quyen:", error)
-      toast.error(error.response?.data?.error || "Loi khi gui yeu cau")
+      console.error("Lỗi chia sẻ quyền:", error)
+      toast.error(error.response?.data?.error || "Lỗi khi gửi yêu cầu")
     }
   }
 
   const handleRevoke = async (id) => {
-    if (!window.confirm("Ban co chac muon thu hoi quyen nay?")) return
+    if (!window.confirm("Bạn có chắc muốn thu hồi quyền này?")) return
     try {
       await accessApi.revoke(id)
-      toast.warning("Da thu hoi quyen truy cap")
+      toast.warning("Đã thu hồi quyền truy cập")
       fetchAccessList()
     } catch (error) {
-      console.error("Loi thu hoi quyen:", error)
-      toast.error("Loi khi thu hoi quyen")
+      console.error("Lỗi thu hồi quyền:", error)
+      toast.error("Lỗi khi thu hồi quyền")
     }
   }
 
@@ -86,25 +86,25 @@ const PatientAccess = () => {
       <section className="app-card">
         <div className="app-card-header">
           <div>
-            <h1 className="section-title"><i className="fas fa-key me-2 text-brand-600"></i>Quan ly quyen truy cap</h1>
-            <p className="section-subtitle">Cap quyen xem du lieu cho bac si hoac nguoi than theo tung email.</p>
+            <h1 className="section-title"><i className="fas fa-key me-2 text-brand-600"></i>Quản lý quyền truy cập</h1>
+            <p className="section-subtitle">Cấp quyền xem dữ liệu cho bác sĩ hoặc người thân theo từng email.</p>
           </div>
         </div>
         <div className="app-card-body">
           <form className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_240px_180px]" onSubmit={handleShareAccess}>
             <div>
-              <label className="form-label">Email nguoi duoc cap quyen</label>
+              <label className="form-label">Email người được cấp quyền</label>
               <input className="form-control" type="email" value={viewerEmail} onChange={(event) => setViewerEmail(event.target.value)} placeholder="doctor@example.com" required />
             </div>
             <div>
-              <label className="form-label">Vai tro</label>
+              <label className="form-label">Vai trò</label>
               <select className="form-select" value={role} onChange={(event) => setRole(event.target.value)}>
-                <option value={ACCESS_ROLE.BAC_SI}>Bac si</option>
-                <option value={ACCESS_ROLE.GIA_DINH}>Gia dinh</option>
+                <option value={ACCESS_ROLE.BAC_SI}>Bác sĩ</option>
+                <option value={ACCESS_ROLE.GIA_DINH}>Gia đình</option>
               </select>
             </div>
             <div className="flex items-end">
-              <button type="submit" className="btn btn-primary w-100"><i className="fas fa-share-nodes me-2"></i>Gui yeu cau</button>
+              <button type="submit" className="btn btn-primary w-100"><i className="fas fa-share-nodes me-2"></i>Gửi yêu cầu</button>
             </div>
           </form>
         </div>
@@ -113,8 +113,8 @@ const PatientAccess = () => {
       <section className="app-card">
         <div className="app-card-header">
           <div>
-            <h2 className="section-title"><i className="fas fa-user-shield me-2 text-brand-600"></i>Danh sach quyen da cap</h2>
-            <p className="section-subtitle">Theo doi trang thai phe duyet va thu hoi khi can.</p>
+            <h2 className="section-title"><i className="fas fa-user-shield me-2 text-brand-600"></i>Danh sách quyền đã cấp</h2>
+            <p className="section-subtitle">Theo dõi trạng thái phê duyệt và thu hồi khi cần.</p>
           </div>
         </div>
         <div className="app-card-body">
@@ -132,7 +132,7 @@ const PatientAccess = () => {
               </thead>
               <tbody>
                 {accessList.length === 0 ? (
-                  <tr><td colSpan="6" className="text-center text-muted py-4">Chua co ai duoc cap quyen</td></tr>
+                  <tr><td colSpan="6" className="text-center text-muted py-4">Chưa có ai được cấp quyền</td></tr>
                 ) : accessList.map((item, index) => (
                   <tr key={item.permission_id}>
                     <td>{index + 1}</td>

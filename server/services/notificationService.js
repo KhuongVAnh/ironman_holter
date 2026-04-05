@@ -45,7 +45,7 @@ const persistNotification = async ({
   const notification = await prisma.notification.create({
     data: {
       type,
-      title: String(title || "Thong bao"),
+      title: String(title || "Thông báo"),
       message: String(message || ""),
       actor_id: parseOptionalInt(actorId),
       entity_type: entityType ? String(entityType) : null,

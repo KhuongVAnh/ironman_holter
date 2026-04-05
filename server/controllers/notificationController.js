@@ -78,8 +78,8 @@ const getNotifications = async (req, res) => {
 
     return res.json({ notifications })
   } catch (error) {
-    console.error("Loi lay danh sach thong bao:", error)
-    return res.status(500).json({ message: "Loi server noi bo" })
+    console.error("Lỗi lấy danh sách thông báo:", error)
+    return res.status(500).json({ message: "Lỗi server nội bộ" })
   }
 }
 
@@ -93,8 +93,8 @@ const getUnreadCount = async (req, res) => {
 
     return res.json({ unread_count })
   } catch (error) {
-    console.error("Loi lay so thong bao chua doc:", error)
-    return res.status(500).json({ message: "Loi server noi bo" })
+    console.error("Lỗi lấy số thông báo chưa đọc:", error)
+    return res.status(500).json({ message: "Lỗi server nội bộ" })
   }
 }
 
@@ -125,8 +125,8 @@ const markNotificationRead = async (req, res) => {
       updated: Number(updated.count || 0),
     })
   } catch (error) {
-    console.error("Loi danh dau da doc thong bao:", error)
-    return res.status(500).json({ message: "Loi server noi bo" })
+    console.error("Lỗi đánh dấu đã đọc thông báo:", error)
+    return res.status(500).json({ message: "Lỗi server nội bộ" })
   }
 }
 

@@ -107,7 +107,7 @@ async function main() {
                 user_id: patient.user_id,
                 reading_id: reading1.reading_id,
                 alert_type: "DEVICE_INFO",
-                message: "Thiet bi da ket noi va dang hoat dong binh thuong.",
+                message: "Thiết bị đã kết nối và đang hoạt động bình thường.",
                 resolved: true,
             },
         ],
@@ -133,7 +133,7 @@ async function main() {
             {
                 user_id: patient.user_id,
                 role: ChatRole.bot,
-                message: "Ban nen nghi ngoi, do lai nhip tim. Neu nhip cao keo dai hoac chong mat, hay lien he bac si.",
+                message: "Bạn nên nghỉ ngơi, đo lại nhịp tim. Nếu nhịp cao kéo dài hoặc chóng mặt, hãy liên hệ bác sĩ.",
             },
         ],
     });

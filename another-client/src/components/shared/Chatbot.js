@@ -59,13 +59,13 @@ const Chatbot = ({ userId, userRole }) => {
   const getWelcomeMessage = () => {
     switch (userRole) {
       case ROLE.BENH_NHAN:
-        return "Xin chao. Toi co the giai thich cac chi so ECG, trang thai canh bao va cac thong tin tim mach co ban."
+        return "Xin chào. Tôi có thể giải thích các chỉ số ECG, trạng thái cảnh báo và các thông tin tim mạch cơ bản."
       case ROLE.BAC_SI:
-        return "Xin chao bac si. Toi co the ho tro tom tat ECG, nhan dien canh bao va tra cuu thong tin y khoa nen tang."
+        return "Xin chào bác sĩ. Tôi có thể hỗ trợ tóm tắt ECG, nhận diện cảnh báo và tra cứu thông tin y khoa nền tảng."
       case ROLE.GIA_DINH:
-        return "Xin chao. Toi co the giai thich tinh trang suc khoe cua nguoi than va cac canh bao lien quan."
+        return "Xin chào. Tôi có thể giải thích tình trạng sức khỏe của người thân và các cảnh báo liên quan."
       case ROLE.ADMIN:
-        return "Xin chao admin. Toi co the ho tro giai thich so lieu va su kien van hanh he thong."
+        return "Xin chào admin. Tôi có thể hỗ trợ giải thích số liệu và sự kiện vận hành hệ thống."
       default:
         return "Xin chao. Toi la tro ly AI Ironman Holter."
     }

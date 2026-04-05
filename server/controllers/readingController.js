@@ -26,7 +26,7 @@ const createFakeReading = async (req, res) => {
   try {
     const deviceId = toDeviceId(req.body?.device_id)
     if (deviceId === null) {
-      return res.status(400).json({ message: "device_id khong hop le" })
+      return res.status(400).json({ message: "device_id không hợp lệ" })
     }
 
     const device = await prisma.device.findUnique({ where: { device_id: deviceId } })
@@ -55,7 +55,7 @@ const createFakeReading = async (req, res) => {
         publishResult.code === "MQTT_DISABLED" || publishResult.code === "MQTT_NOT_READY" ? 503 : 500
 
       return res.status(statusCode).json({
-        message: publishResult.message || "Khong the publish fake telemetry len MQTT",
+        message: publishResult.message || "Không thể publish fake telemetry lên MQTT",
         code: publishResult.code || "MQTT_PUBLISH_FAILED",
       })
     }
@@ -211,7 +211,7 @@ const getReadingDetail = async (req, res) => {
       })
 
       if (!viewerAccess) {
-        return res.status(403).json({ message: "Ban khong co quyen xem reading nay" })
+        return res.status(403).json({ message: "Bạn không có quyền xem reading này" })
       }
     }
 

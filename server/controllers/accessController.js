@@ -31,11 +31,11 @@ exports.shareAccess = async (req, res) => {
     })
 
     if (existing?.status === "accepted") {
-      return res.status(400).json({ error: "Nguoi nay da duoc cap quyen truy cap" })
+      return res.status(400).json({ error: "Người này đã được cấp quyền truy cập" })
     }
 
     if (existing?.status === "pending") {
-      return res.status(400).json({ error: "Yeu cau truy cap dang cho duoc xu ly" })
+      return res.status(400).json({ error: "Yêu cầu truy cập đang chờ được xử lý" })
     }
 
     let permissionRecord
@@ -68,8 +68,8 @@ exports.shareAccess = async (req, res) => {
 
     await createNotification({
       type: NotificationType.ACCESS_REQUEST,
-      title: "Yeu cau truy cap moi",
-      message: "Ban vua nhan mot yeu cau truy cap du lieu benh nhan.",
+      title: "Yêu cầu truy cập mới",
+      message: "Bạn vừa nhận một yêu cầu truy cập dữ liệu bệnh nhân.",
       actorId: user_id,
       entityType: "access_permission",
       entityId: permissionRecord.permission_id,
@@ -81,8 +81,8 @@ exports.shareAccess = async (req, res) => {
     return res.status(existing?.status === "rejected" ? 200 : 201).json({
       message:
         existing?.status === "rejected"
-          ? "Da gui lai yeu cau chia se quyen truy cap"
-          : "Da gui yeu cau chia se quyen truy cap",
+          ? "Đã gửi lại yêu cầu chia sẻ quyền truy cập"
+          : "Đã gửi yêu cầu chia sẻ quyền truy cập",
       data: {
         ...permissionRecord,
         role: fromPrismaAccessRole(permissionRecord.role),
@@ -90,7 +90,7 @@ exports.shareAccess = async (req, res) => {
     })
   } catch (error) {
     console.error("Error sharing access:", error)
-    return res.status(500).json({ error: "Loi khi chia se quyen truy cap" })
+    return res.status(500).json({ error: "Lỗi khi chia sẻ quyền truy cập" })
   }
 }
 
@@ -128,11 +128,11 @@ exports.respondAccess = async (req, res) => {
 
     await createNotification({
       type: NotificationType.ACCESS_RESPONSE,
-      title: status === "accepted" ? "Yeu cau da duoc chap nhan" : "Yeu cau da bi tu choi",
+      title: status === "accepted" ? "Yêu cầu đã được chấp nhận" : "Yêu cầu đã bị từ chối",
       message:
         status === "accepted"
-          ? "Yeu cau truy cap cua ban da duoc chap nhan."
-          : "Yeu cau truy cap cua ban da bi tu choi.",
+          ? "Yêu cầu truy cập của bạn đã được chấp nhận."
+          : "Yêu cầu truy cập của bạn đã bị từ chối.",
       actorId,
       entityType: "access_permission",
       entityId: updatedPermission.permission_id,
@@ -173,9 +173,9 @@ exports.listAccess = async (req, res) => {
       role: fromPrismaAccessRole(item.role),
       viewer: item.viewer
         ? {
-            ...item.viewer,
-            role: fromPrismaUserRole(item.viewer.role),
-          }
+          ...item.viewer,
+          role: fromPrismaUserRole(item.viewer.role),
+        }
         : null,
     }))
 
@@ -212,8 +212,8 @@ exports.revokeAccess = async (req, res) => {
 
     await createNotification({
       type: NotificationType.ACCESS_REVOKE,
-      title: "Quyen truy cap da bi thu hoi",
-      message: "Quyen truy cap du lieu benh nhan cua ban da bi thu hoi.",
+      title: "Quyền truy cập đã bị thu hồi",
+      message: "Quyền truy cập dữ liệu bệnh nhân của bạn đã bị thu hồi.",
       actorId,
       entityType: "access_permission",
       entityId: permission.permission_id,
@@ -246,9 +246,9 @@ exports.getPendingRequests = async (req, res) => {
       role: fromPrismaAccessRole(item.role),
       patient: item.patient
         ? {
-            ...item.patient,
-            role: fromPrismaUserRole(item.patient.role),
-          }
+          ...item.patient,
+          role: fromPrismaUserRole(item.patient.role),
+        }
         : null,
     }))
 

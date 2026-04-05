@@ -1,3 +1,22 @@
+/*
+Tác dụng:
+- Kiểm thử độ khớp beat-level inference của Node so với baseline Python.
+
+Vấn đề file này giải quyết:
+- Cần biết model CNN trên Node có dự đoán gần với baseline Python hay không khi đầu vào segment đã được cắt đúng sẵn.
+- Cách làm: lấy `segment_start/segment_end` từ baseline, dựng lại segment trên cùng slice ECG, gọi `predictBeatSegmentsForTest`, rồi so label/confidence với baseline.
+
+Cách chạy:
+- Từ thư mục `server`, chạy: `node services/ecgCnnBaselineTestService.js`
+
+Function chính:
+- loadEnvForTest: nạp env cho phiên test.
+- buildAllSignalFromReadings: ghép readings thành một tín hiệu dài.
+- buildSegmentsFromBaseline: dựng lại các segment từ baseline Python.
+- calculateMetrics: tính accuracy và confidence MAE so với baseline.
+- runBaselineAccuracyTest: chạy toàn bộ bài test beat-level parity.
+*/
+
 const fs = require("fs")
 const path = require("path")
 const dotenv = require("dotenv")

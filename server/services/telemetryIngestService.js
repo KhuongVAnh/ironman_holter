@@ -104,7 +104,7 @@ const ingestTelemetry = async (payload, context = {}) => {
       return buildIngestResult({
         statusCode: 404,
         code: "DEVICE_NOT_FOUND",
-        message: "Khong tim thay thiet bi",
+        message: "Không tìm thấy thiết bị",
         data: { ...buildIngestResult().data, serial_number: serialNumber },
         error: { reason: "DEVICE_NOT_FOUND" },
       })

@@ -18,7 +18,7 @@ const NotificationBell = () => {
         if (!mounted) return
         setUnreadCount(Number(response.data?.unread_count || 0))
       } catch (error) {
-        console.error("Loi lay so thong bao chua doc:", error)
+        console.error("Lỗi lấy số thông báo chưa đọc:", error)
       }
     }
 
@@ -51,8 +51,8 @@ const NotificationBell = () => {
       type="button"
       className={`relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border ${isActive ? "border-brand-200 bg-brand-50 text-brand-700" : "border-surface-line bg-white text-ink-700"}`}
       onClick={() => navigate("/notifications")}
-      aria-label="Thong bao"
-      title="Thong bao"
+      aria-label="Thông báo"
+      title="Thông báo"
     >
       <i className="fas fa-bell text-lg"></i>
       {unreadCount > 0 ? (

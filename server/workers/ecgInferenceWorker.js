@@ -1,9 +1,7 @@
 const IORedis = require("ioredis")
 const { Worker } = require("bullmq")
 const prisma = require("../prismaClient")
-const { NotificationType } = require("@prisma/client")
 const { predictFromReading } = require("../services/ecgCnnService")
-const { persistNotification } = require("../services/notificationService")
 const { getRecipientIdsByPatientCached } = require("../services/telemetryRuntimeCacheService")
 
 const connection = new IORedis(process.env.REDIS_URL, {
@@ -34,7 +32,7 @@ const buildAlertMessageFromGroup = (group, heartRate) => {
     const startSample = Number(group?.start_sample)
     const endSample = Number(group?.end_sample)
     const segmentCount = Number(group?.segment_count || 1)
-    return `Phat hien ${alertType} tai doan mau ${startSample}-${endSample} (${segmentCount} segment). Nhip tim ${heartRate} bpm`
+    return `Phát hiện ${alertType} (${segmentCount} segment). Nhịp tim ${heartRate} bpm`
 }
 
 // Hàm để đánh dấu reading là thất bại với thông điệp lỗi cụ thể
@@ -130,7 +128,6 @@ const worker = new Worker(
             })
 
             let createdAlerts = []
-            let notificationResult = null
             const recipients = await getRecipientIdsByPatientCached(userId)
 
             if (abnormalDetected) {
@@ -141,23 +138,6 @@ const worker = new Worker(
                     abnormalGroups
                 )
 
-                notificationResult = await persistNotification({
-                    type: NotificationType.ALERT,
-                    title: "Bat thuong duoc phat hien",
-                    message: `Phat hien ${createdAlerts.length} canh bao bat thuong (${aiResultSummary})`,
-                    actorId: null,
-                    entityType: "alert",
-                    entityId: createdAlerts[0]?.alert_id || null,
-                    payload: {
-                        user_id: userId,
-                        reading_id: updatedReading.reading_id,
-                        serial_number: serialNumber || null,
-                        abnormal_count: createdAlerts.length,
-                        ai_result_summary: aiResultSummary,
-                        alerts: createdAlerts,
-                    },
-                    recipientUserIds: recipients,
-                })
             }
 
             return {
@@ -168,7 +148,6 @@ const worker = new Worker(
                 aiResult: aiResultSummary,
                 abnormalDetected,
                 alertIds: createdAlerts.map((item) => item.alert_id),
-                notificationId: notificationResult?.notification?.notification_id || null,
                 recipients,
                 completedAt: new Date().toISOString(),
             }

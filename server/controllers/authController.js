@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 const prisma = require("../prismaClient")
 const { toPrismaUserRole, fromPrismaUserRole } = require("../utils/enumMappings")
-const {hashPass} = require("../services/authService")
+const { hashPass } = require("../services/authService")
 const { createHash, randomBytes } = require("crypto")
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET
@@ -12,7 +12,7 @@ const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || "15m"
 const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || "7d"
 
 // Hàm xử lý lưu refresh token đã được hash vào database để quản lý và xác thực khi cần thiết.
-const hashToken = (value) => createHash("sha256").update(value).digest("hex") 
+const hashToken = (value) => createHash("sha256").update(value).digest("hex")
 
 // Hàm xây dựng payload người dùng cho token từ đối tượng user trong database.
 const buildUserPayload = (user) => ({
@@ -238,10 +238,10 @@ const logout = async (req, res) => {
     }
 
     clearRefreshCookie(res)
-    return res.json({ message: "Dang xuat thanh cong" })
+    return res.json({ message: "Đăng xuất thành công" })
   } catch (error) {
-    console.error("Loi dang xuat:", error)
-    return res.status(500).json({ message: "Loi server noi bo" })
+    console.error("Lỗi đăng xuất:", error)
+    return res.status(500).json({ message: "Lỗi server nội bộ" })
   }
 }
 

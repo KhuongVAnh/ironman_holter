@@ -109,7 +109,7 @@ const AppShell = ({ children }) => {
 
   const sidebar = (
     <div className={`flex h-full flex-col gap-6 overflow-y-auto bg-white py-6 ${sidebarCollapsed ? "px-3" : "px-5"}`}>
-      <div className={`rounded-[28px] bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white shadow-float ${sidebarCollapsed ? "p-3" : "p-5"}`}>
+      <div className={`rounded-[18px] bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white shadow-float ${sidebarCollapsed ? "p-3" : "p-5"}`}>
         <button
           type="button"
           className={`flex w-full items-center text-left ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
@@ -129,7 +129,7 @@ const AppShell = ({ children }) => {
         </button>
       </div>
 
-      <div className={`rounded-[28px] border border-surface-line bg-surface-panel shadow-soft ${sidebarCollapsed ? "p-3" : "p-5"}`}>
+      <div className={`rounded-[18px] border border-surface-line bg-surface-panel shadow-soft ${sidebarCollapsed ? "p-3" : "p-5"}`}>
         <div className={`flex ${sidebarCollapsed ? "justify-center" : "items-center gap-4"}`}>
           <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-brand-100 bg-brand-50 text-xl font-bold text-brand-700">
             {user?.name?.charAt(0)?.toUpperCase() || "U"}
@@ -171,7 +171,7 @@ const AppShell = ({ children }) => {
       </div>
 
       {user?.role === ROLE.BENH_NHAN && !sidebarCollapsed ? (
-        <div className="rounded-[28px] border border-surface-line bg-white p-5 shadow-soft">
+        <div className="rounded-[18px] border border-surface-line bg-white p-5 shadow-soft">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-ink-900">Không gian điều trị</h2>
             <i className="fas fa-user-doctor text-brand-600"></i>
@@ -186,7 +186,7 @@ const AppShell = ({ children }) => {
         </div>
       ) : null}
 
-      <div className={`mt-auto rounded-[28px] border border-surface-line bg-ink-900 text-white shadow-soft ${sidebarCollapsed ? "p-3" : "p-5"}`}>
+      <div className={`mt-auto rounded-[18px] border border-surface-line bg-ink-900 text-white shadow-soft ${sidebarCollapsed ? "p-3" : "p-5"}`}>
         {sidebarCollapsed ? (
           <div className="flex justify-center" title="Hỗ trợ khẩn cấp: gọi 115 nếu có dấu hiệu nguy cấp.">
             <i className="fas fa-siren-on text-lg"></i>

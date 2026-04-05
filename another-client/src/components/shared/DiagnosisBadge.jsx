@@ -5,7 +5,7 @@
 
 const DiagnosisBadge = ({ type, value }) => {
   if (!value) return null
-  const label = type === "ai" ? "AI" : "Bac si"
+  const label = type === "ai" ? "AI" : "Bác sĩ"
   const tone = toneByType[type] || "bg-slate-100 text-slate-700"
 
   return (

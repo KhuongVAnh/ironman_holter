@@ -33,7 +33,7 @@ const registerDevice = async (req, res) => {
     }
 
     if (!isAdmin && Number.isInteger(requestedUserId) && requestedUserId !== requesterId) {
-      return res.status(403).json({ message: "Ban chi duoc dang ky thiet bi cho tai khoan cua minh" })
+      return res.status(403).json({ message: "Bạn chỉ được đăng ký thiết bị cho tài khoản của mình" })
     }
 
     const user = await prisma.user.findUnique({ where: { user_id: targetUserId } })
@@ -48,7 +48,7 @@ const registerDevice = async (req, res) => {
     })
 
     if (existingDevice) {
-      return res.status(400).json({ message: "Thiet bi da duoc dang ky" })
+      return res.status(400).json({ message: "Thiết bị đã được đăng ký" })
     }
 
     const device = await prisma.device.create({
@@ -62,15 +62,15 @@ const registerDevice = async (req, res) => {
     invalidateDeviceCacheBySerial(device.serial_number)
 
     res.status(201).json({
-      message: "Dang ky thiet bi thanh cong",
+      message: "Đăng ký thiết bị thành công",
       device: {
         ...device,
         status: fromPrismaDeviceStatus(device.status),
       },
     })
   } catch (error) {
-    console.error("Loi dang ky thiet bi:", error)
-    res.status(500).json({ message: "Loi server noi bo" })
+    console.error("Lỗi đăng ký thiết bị:", error)
+    res.status(500).json({ message: "Lỗi server nội bộ" })
   }
 }
 
@@ -87,7 +87,7 @@ const getUserDevices = async (req, res) => {
     }
 
     if (!isAdmin && requesterId !== userId) {
-      return res.status(403).json({ message: "Khong co quyen truy cap danh sach thiet bi nay" })
+      return res.status(403).json({ message: "Không có quyền truy cập danh sách thiết bị này" })
     }
 
     const devices = await prisma.device.findMany({
@@ -107,8 +107,8 @@ const getUserDevices = async (req, res) => {
 
     res.json({ devices: mappedDevices })
   } catch (error) {
-    console.error("Loi lay danh sach thiet bi:", error)
-    res.status(500).json({ message: "Loi server noi bo" })
+    console.error("Lỗi lấy danh sách thiết bị:", error)
+    res.status(500).json({ message: "Lỗi server nội bộ" })
   }
 }
 
@@ -124,7 +124,7 @@ const updateDeviceStatus = async (req, res) => {
 
     const device = await prisma.device.findUnique({ where: { device_id: id } })
     if (!device) {
-      return res.status(404).json({ message: "Khong tim thay thiet bi" })
+      return res.status(404).json({ message: "Không tìm thấy thiết bị" })
     }
 
     const updatedDevice = await prisma.device.update({
@@ -136,15 +136,15 @@ const updateDeviceStatus = async (req, res) => {
     invalidateDeviceCacheBySerial(updatedDevice.serial_number)
 
     res.json({
-      message: "Cap nhat trang thai thiet bi thanh cong",
+      message: "Cập nhật trạng thái thiết bị thành công",
       device: {
         ...updatedDevice,
         status: fromPrismaDeviceStatus(updatedDevice.status),
       },
     })
   } catch (error) {
-    console.error("Loi cap nhat thiet bi:", error)
-    res.status(500).json({ message: "Loi server noi bo" })
+    console.error("Lỗi cập nhật thiết bị:", error)
+    res.status(500).json({ message: "Lỗi server nội bộ" })
   }
 }
 
@@ -165,16 +165,16 @@ const getAllDevices = async (req, res) => {
       status: fromPrismaDeviceStatus(device.status),
       user: device.user
         ? {
-            ...device.user,
-            role: fromPrismaUserRole(device.user.role),
-          }
+          ...device.user,
+          role: fromPrismaUserRole(device.user.role),
+        }
         : null,
     }))
 
     res.json({ devices: mappedDevices })
   } catch (error) {
-    console.error("Loi lay tat ca thiet bi:", error)
-    res.status(500).json({ message: "Loi server noi bo" })
+    console.error("Lỗi lấy tất cả thiết bị:", error)
+    res.status(500).json({ message: "Lỗi server nội bộ" })
   }
 }
 

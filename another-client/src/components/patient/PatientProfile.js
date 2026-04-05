@@ -36,22 +36,22 @@ const PatientProfile = () => {
   const handlePasswordSubmit = async (event) => {
     event.preventDefault()
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Mat khau xac nhan khong khop")
+      toast.error("Mật khẩu xác nhận không khớp")
       return
     }
     if (passwordData.newPassword.length < 6) {
-      toast.error("Mat khau moi phai co it nhat 6 ky tu")
+      toast.error("Mật khẩu mới phải có ít nhất 6 ký tự")
       return
     }
     setLoading(true)
     try {
       await usersApi.changePassword(passwordData.currentPassword, passwordData.newPassword)
-      toast.success("Doi mat khau thanh cong")
+      toast.success("Đổi mật khẩu thành công")
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })
       setShowPasswordModal(false)
     } catch (error) {
-      console.error("Loi doi mat khau:", error)
-      toast.error(error.response?.data?.message || "Khong the doi mat khau")
+      console.error("Lỗi đổi mật khẩu:", error)
+      toast.error(error.response?.data?.message || "Không thể đổi mật khẩu")
     } finally {
       setLoading(false)
     }
@@ -62,10 +62,10 @@ const PatientProfile = () => {
       <section className="app-card">
         <div className="app-card-header">
           <div>
-            <h1 className="section-title"><i className="fas fa-user-pen me-2 text-brand-600"></i>Ho so ca nhan</h1>
-            <p className="section-subtitle">Thong tin nhan dang, email va thiet lap co ban cua tai khoan.</p>
+            <h1 className="section-title"><i className="fas fa-user-pen me-2 text-brand-600"></i>Hồ sơ cá nhân</h1>
+            <p className="section-subtitle">Thông tin nhận dạng, email và thiết lập cơ bản của tài khoản.</p>
           </div>
-          {!isEditing ? <button type="button" className="btn btn-outline-primary" onClick={() => setIsEditing(true)}><i className="fas fa-pen me-2"></i>Chinh sua</button> : null}
+          {!isEditing ? <button type="button" className="btn btn-outline-primary" onClick={() => setIsEditing(true)}><i className="fas fa-pen me-2"></i>Chỉnh sửa</button> : null}
         </div>
         <div className="app-card-body">
           {isEditing ? (
@@ -91,27 +91,27 @@ const PatientProfile = () => {
       <aside className="app-card">
         <div className="app-card-header">
           <div>
-            <h2 className="section-title"><i className="fas fa-shield-halved me-2 text-brand-600"></i>Bao mat</h2>
-            <p className="section-subtitle">Quan ly thong tin xac thuc va phien dang nhap.</p>
+            <h2 className="section-title"><i className="fas fa-shield-halved me-2 text-brand-600"></i>Bảo mật</h2>
+            <p className="section-subtitle">Quản lý thông tin xác thực và phiên đăng nhập.</p>
           </div>
         </div>
         <div className="app-card-body space-y-4 text-sm text-ink-700">
-          <div className="rounded-[24px] bg-surface p-5"><i className="fas fa-key me-2 text-brand-600"></i>Mat khau duoc ma hoa va luu bao mat.</div>
-          <div className="rounded-[24px] bg-surface p-5"><i className="fas fa-clock me-2 text-brand-600"></i>Dang nhap gan nhat: Hom nay</div>
-          <button type="button" className="btn btn-outline-warning w-100" onClick={() => setShowPasswordModal(true)}><i className="fas fa-lock me-2"></i>Doi mat khau</button>
+          <div className="rounded-[24px] bg-surface p-5"><i className="fas fa-key me-2 text-brand-600"></i>Mật khẩu được mã hóa và lưu bảo mật.</div>
+          <div className="rounded-[24px] bg-surface p-5"><i className="fas fa-clock me-2 text-brand-600"></i>Đăng nhập gần nhất: Hôm nay</div>
+          <button type="button" className="btn btn-outline-warning w-100" onClick={() => setShowPasswordModal(true)}><i className="fas fa-lock me-2"></i>Đổi mật khẩu</button>
         </div>
       </aside>
 
       <ModalFrame
         show={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
-        title="Doi mat khau"
-        footer={<><button type="button" className="btn btn-outline-secondary" onClick={() => setShowPasswordModal(false)}>Huy</button><button type="submit" form="change-password-form" className="btn btn-primary" disabled={loading}>{loading ? "Dang doi..." : "Luu mat khau moi"}</button></>}
+        title="Đổi mật khẩu"
+        footer={<><button type="button" className="btn btn-outline-secondary" onClick={() => setShowPasswordModal(false)}>Hủy</button><button type="submit" form="change-password-form" className="btn btn-primary" disabled={loading}>{loading ? "Đang đợi..." : "Lưu mật khẩu mới"}</button></>}
       >
         <form id="change-password-form" className="space-y-4" onSubmit={handlePasswordSubmit}>
-          <div><label className="form-label">Mat khau hien tai</label><input className="form-control" type="password" value={passwordData.currentPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, currentPassword: event.target.value }))} required /></div>
-          <div><label className="form-label">Mat khau moi</label><input className="form-control" type="password" value={passwordData.newPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, newPassword: event.target.value }))} required minLength="6" /></div>
-          <div><label className="form-label">Xac nhan mat khau moi</label><input className="form-control" type="password" value={passwordData.confirmPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, confirmPassword: event.target.value }))} required minLength="6" /></div>
+          <div><label className="form-label">Mật khẩu hiện tại</label><input className="form-control" type="password" value={passwordData.currentPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, currentPassword: event.target.value }))} required /></div>
+          <div><label className="form-label">Mật khẩu mới</label><input className="form-control" type="password" value={passwordData.newPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, newPassword: event.target.value }))} required minLength="6" /></div>
+          <div><label className="form-label">Xác nhận mật khẩu mới</label><input className="form-control" type="password" value={passwordData.confirmPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, confirmPassword: event.target.value }))} required minLength="6" /></div>
         </form>
       </ModalFrame>
     </div>

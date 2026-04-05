@@ -137,17 +137,17 @@ const mapDirectError = (error, res) => {
     return res.status(404).json({ message: "Khong tim thay nguoi dung" })
   }
   if (error.message === "INACTIVE_USER") {
-    return res.status(403).json({ message: "Tai khoan chat da bi vo hieu hoa" })
+    return res.status(403).json({ message: "Tài khoản chat đã bị vô hiệu hóa" })
   }
   if (error.message === "ROLE_NOT_ALLOWED" || error.message === "PAIR_NOT_ALLOWED") {
-    return res.status(403).json({ message: "Chi ho tro chat giua benh nhan va bac si" })
+    return res.status(403).json({ message: "Chỉ hỗ trợ chat giữa bệnh nhân và bác sĩ" })
   }
   if (error.message === "ACCESS_NOT_GRANTED") {
-    return res.status(403).json({ message: "Bac si chua duoc benh nhan cap quyen truy cap" })
+    return res.status(403).json({ message: "Bác sĩ chưa được bệnh nhân cấp quyền truy cập" })
   }
 
   const statusCode = error.status || 500
-  return res.status(statusCode).json({ message: "Loi server noi bo" })
+  return res.status(statusCode).json({ message: "Lỗi server nội bộ" })
 }
 
 // Hàm xử lý hỏi đáp với trợ lý AI.
@@ -173,13 +173,13 @@ const chatWithGemini = async (req, res) => {
           {
             parts: [{
               text: `
-                  Ban la mot tro ly AI chuyen mon tim mach, giong nhu mot bac si tim mach.
-                  Hay luon tra loi bang tieng Viet, ngan gon, de hieu, chuyen nghiep.
-                  Khi co trieu chung nguy hiem (vi du: dau nguc du doi, kho tho nang, ngat xiu),
-                  hay nhan manh rang benh nhan can di kham hoac goi cap cuu ngay lap tuc.
-                  Khong dua ra chan doan tuyet doi, luon khuyen benh nhan di kham bac si chuyen khoa.
+                  Bạn là một trợ lý AI chuyên môn tim mạch, giống như một bác sĩ tim mạch.
+                  Hãy luôn trả lời bằng tiếng Việt, ngắn gọn, dễ hiểu, chuyên nghiệp.
+                  Khi có triệu chứng nguy hiểm (ví dụ: đau ngực dữ dội, khó thở nặng, ngất xỉu),
+                  hãy nhấn mạnh rằng bệnh nhân cần đi khám hoặc gọi cấp cứu ngay lập tức.
+                  Không đưa ra chẩn đoán tuyệt đối, luôn khuyên bệnh nhân đi khám bác sĩ chuyên khoa.
                   ---
-                  Cau hoi cua benh nhan: ${message}
+                  Câu hỏi của bệnh nhân: ${message}
                   `,
             }],
           },
@@ -205,7 +205,7 @@ const chatWithGemini = async (req, res) => {
     console.error("Loi chat voi Gemini:", error.response?.data || error.message)
 
     const defaultReply =
-      "Xin loi, toi dang gap su co ky thuat. Vui long thu lai sau."
+      "Xin lỗi, tôi đang gặp sự cố kỹ thuật. Vui lòng thử lại sau."
 
     await prisma.chatLog.create({
       data: {
