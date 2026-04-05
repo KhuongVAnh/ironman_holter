@@ -86,13 +86,16 @@ model Device {
 }
 
 model Reading {
-  reading_id        Int      @id @default(autoincrement())
+  reading_id        Int       @id @default(autoincrement())
   device_id         Int
-  timestamp         DateTime @default(now())
+  timestamp         DateTime  @default(now())
   heart_rate        Int
   ecg_signal        Json
-  abnormal_detected Boolean  @default(false)
+  abnormal_detected Boolean   @default(false)
   ai_result         String?
+  ai_status         String    @default("PENDING")
+  ai_error          String?   @db.Text
+  ai_completed_at   DateTime?
 
   device Device  @relation(fields: [device_id], references: [device_id], onDelete: Cascade, onUpdate: Cascade)
   alerts Alert[]

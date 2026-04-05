@@ -1,29 +1,17 @@
 /*
-Tác dụng:
-- Là lõi ingest telemetry dùng chung cho cả HTTP và MQTT.
-
-Vấn đề file này giải quyết:
-- Cần một pipeline nghiệp vụ duy nhất để nhận telemetry, chuẩn hóa dữ liệu, gọi AI, lưu reading, tạo alert/notification và emit realtime mà không bị lặp code giữa nhiều entrypoint.
-- Cách làm: gom toàn bộ bước ingest vào service này, còn controller/MQTT chỉ truyền payload vào và nhận kết quả chuẩn hóa.
-
-Function chính:
-- buildIngestResult: tạo contract kết quả ingest nội bộ thống nhất.
-- inferReadingWithAI: gọi AI ECG và luôn trả về kết quả an toàn cho ingest.
-- filterSignalForStorage: lọc tín hiệu để lưu DB nhưng không làm fail nghiệp vụ nếu filter lỗi.
-- ingestTelemetry: xử lý trọn luồng ingest từ payload telemetry đến reading/alert/notification.
+Tac dung:
+- La loi ingest telemetry dung chung cho ca HTTP va MQTT.
+- Hot path chi validate, normalize, tao reading PENDING va enqueue job AI.
 */
 
 const prisma = require("../prismaClient")
-const { NotificationType } = require("@prisma/client")
 const { emitToUsers } = require("./socketEmitService")
-const { createNotification } = require("./notificationService")
-const { predictFromReading } = require("./ecgCnnService")
+const { enqueueEcgInference } = require("./ecgInferenceQueueService")
 const { filterReadingSignal } = require("./ecgCnnPreprocessService")
 const { generateFallbackECGSignal } = require("./fakeReadingDataService")
 const {
   normalizeEcgSignal,
   toHeartRate,
-  deriveHeartRateFromBeatCount,
   resolveTelemetrySampleRate,
   buildRealtimeEcgMeta,
 } = require("./telemetrySignalService")
@@ -32,9 +20,6 @@ const {
   getRecipientIdsByPatientCached,
 } = require("./telemetryRuntimeCacheService")
 
-const FALLBACK_AI_RESULT = "Bình thường"
-
-// Hàm ghi log JSON line cho luồng ingest telemetry để dễ truy vết theo từng source.
 const logTelemetryIngestEvent = (event, payload = {}) => {
   const normalizedEvent = String(event || "TELEMETRY_INGEST_EVENT").trim() || "TELEMETRY_INGEST_EVENT"
   console.log(
@@ -47,7 +32,6 @@ const logTelemetryIngestEvent = (event, payload = {}) => {
   )
 }
 
-// Hàm tạo object kết quả ingest chuẩn hóa để HTTP và MQTT dùng cùng một contract nội bộ.
 const buildIngestResult = (overrides = {}) => {
   return {
     ok: false,
@@ -63,84 +47,13 @@ const buildIngestResult = (overrides = {}) => {
       heart_rate: null,
       abnormal_detected: false,
       ai_result: null,
+      ai_status: null,
       alert_count: 0,
     },
     alerts: [],
     recipients: [],
     error: null,
     ...overrides,
-  }
-}
-
-// Hàm chuẩn hóa chuỗi tóm tắt kết quả AI để lưu trong reading.ai_result.
-const toAiResultSummary = (aiResult) => {
-  const summary = String(aiResult?.ai_result_summary || "").trim()
-  return summary || FALLBACK_AI_RESULT
-}
-
-// Hàm gọi service AI và luôn trả về kết quả an toàn cho luồng ingest.
-const inferReadingWithAI = async (ecgSignal, context) => {
-  try {
-    const aiResult = await predictFromReading(ecgSignal, { context })
-    if (!aiResult || aiResult.skipped) {
-      logTelemetryIngestEvent("AI_INFER_SKIP", {
-        context,
-        reason: aiResult?.reason || "UNKNOWN",
-        infer_ms: aiResult?.infer_ms ?? null,
-        input_len: aiResult?.input_len ?? 0,
-        beat_count: aiResult?.beat_count ?? 0,
-        abnormal_group_count: 0,
-        ai_result_summary: FALLBACK_AI_RESULT,
-        fallback_applied: true,
-      })
-      return {
-        aiResultSummary: FALLBACK_AI_RESULT,
-        abnormalDetected: false,
-        abnormalGroups: [],
-        aiMeta: aiResult || null,
-      }
-    }
-
-    const aiResultSummary = toAiResultSummary(aiResult)
-    const abnormalGroups = Array.isArray(aiResult.abnormal_groups) ? aiResult.abnormal_groups : []
-    const abnormalDetected = abnormalGroups.length > 0
-
-    logTelemetryIngestEvent("AI_INFER_OK", {
-      context,
-      reason: null,
-      ai_result_summary: aiResultSummary,
-      infer_ms: aiResult.infer_ms ?? null,
-      input_len: aiResult.input_len ?? 0,
-      beat_count: aiResult.beat_count ?? null,
-      abnormal_group_count: abnormalGroups.length,
-      fallback_applied: false,
-      abnormal_detected: abnormalDetected,
-    })
-
-    return {
-      aiResultSummary,
-      abnormalDetected,
-      abnormalGroups,
-      aiMeta: aiResult,
-    }
-  } catch (error) {
-    logTelemetryIngestEvent("AI_INFER_ERROR", {
-      context,
-      reason: "INFER_ERROR",
-      infer_ms: null,
-      input_len: 0,
-      beat_count: 0,
-      abnormal_group_count: 0,
-      ai_result_summary: FALLBACK_AI_RESULT,
-      fallback_applied: true,
-      message: error?.message || "UNKNOWN",
-    })
-    return {
-      aiResultSummary: FALLBACK_AI_RESULT,
-      abnormalDetected: false,
-      abnormalGroups: [],
-      aiMeta: null,
-    }
   }
 }
 
@@ -159,6 +72,7 @@ const filterSignalForStorage = (ecgSignal, context) => {
   const filteredSignal = Array.isArray(filteredResult?.filtered_signal)
     ? filteredResult.filtered_signal
     : []
+
   if (filteredSignal.length > 0) {
     return filteredSignal
   }
@@ -166,95 +80,11 @@ const filterSignalForStorage = (ecgSignal, context) => {
   return Array.isArray(ecgSignal) ? ecgSignal : []
 }
 
-// Hàm lấy nhãn cảnh báo để lưu alert_type từ dữ liệu nhóm segment bất thường.
-const getAlertTypeFromGroup = (group) => {
-  const labelText = String(group?.label_text || "").trim()
-  const labelCode = String(group?.label_code || "").trim()
-  return labelText || labelCode || "Bat thuong"
-}
-
-// Hàm tạo nội dung message cảnh báo từ một nhóm segment bất thường.
-const buildAlertMessageFromGroup = (group, heartRate) => {
-  const alertType = getAlertTypeFromGroup(group)
-  const startSample = Number(group?.start_sample)
-  const endSample = Number(group?.end_sample)
-  const segmentCount = Number(group?.segment_count || 1)
-  return `Phát hiện ${alertType} tại đoạn mẫu ${startSample}-${endSample} (${segmentCount} segment). Nhịp tim ${heartRate} bpm`
-}
-
-// Hàm tạo nhiều alert từ danh sách nhóm segment bất thường của một reading.
-const createGroupedAlerts = async (userId, readingId, heartRate, abnormalGroups) => {
-  const createOps = abnormalGroups.map((group) =>
-    prisma.alert.create({
-      data: {
-        user_id: userId,
-        reading_id: readingId,
-        alert_type: getAlertTypeFromGroup(group),
-        message: buildAlertMessageFromGroup(group, heartRate),
-        segment_start_sample: Number.isInteger(Number(group.start_sample))
-          ? Number(group.start_sample)
-          : null,
-        segment_end_sample: Number.isInteger(Number(group.end_sample))
-          ? Number(group.end_sample)
-          : null,
-      },
-    })
-  )
-  return prisma.$transaction(createOps)
-}
-
-// Hàm emit một event alert dạng gộp cho toàn bộ alert của cùng một reading.
-const emitAggregatedAlertEvent = (io, recipients, payload) => {
-  emitToUsers(io, recipients, "alert", payload)
-}
-
-// Hàm tạo notification cảnh báo dạng gộp cho một reading có nhiều alert con.
-const createAggregatedAlertNotification = async ({
-  actorId,
-  recipients,
-  io,
-  userId,
-  readingId,
-  serialNumber,
-  aiResultSummary,
-  createdAlerts,
-}) => {
-  if (!Array.isArray(createdAlerts) || createdAlerts.length === 0) return
-
-  const summaryMessage = `Phát hiện ${createdAlerts.length} cảnh báo bất thường (${aiResultSummary})`
-  await createNotification({
-    type: NotificationType.ALERT,
-    title: "Canh bao suc khoe",
-    message: summaryMessage,
-    actorId,
-    entityType: "alert",
-    entityId: createdAlerts[0].alert_id,
-    payload: {
-      user_id: userId,
-      reading_id: readingId,
-      serial_number: serialNumber || null,
-      abnormal_count: createdAlerts.length,
-      ai_result_summary: aiResultSummary,
-      alerts: createdAlerts.map((alert) => ({
-        alert_id: alert.alert_id,
-        alert_type: alert.alert_type,
-        message: alert.message,
-        segment_start_sample: alert.segment_start_sample,
-        segment_end_sample: alert.segment_end_sample,
-        timestamp: alert.timestamp,
-      })),
-    },
-    recipientUserIds: recipients,
-    io,
-  })
-}
-
 // Hàm xử lý nghiệp vụ ingest telemetry dùng chung cho cả HTTP route và MQTT consumer.
 const ingestTelemetry = async (payload, context = {}) => {
-  
+
   const source = String(context?.source || "unknown")
   const io = context?.io || null
-  const actorId = context?.actorId ?? null
 
   try {
     const serialNumber = String(payload?.serial_number ?? payload?.serial ?? "").trim()
@@ -289,10 +119,11 @@ const ingestTelemetry = async (payload, context = {}) => {
           serial_number: serialNumber,
         })
       }
+
       return buildIngestResult({
         statusCode: 400,
         code: "INVALID_PAYLOAD",
-        message: "ecg_signal khong hop le",
+        message: "ecg_signal không hợp lệ",
         data: {
           ...buildIngestResult().data,
           serial_number: serialNumber,
@@ -305,17 +136,7 @@ const ingestTelemetry = async (payload, context = {}) => {
 
     const ecgToStore = filterSignalForStorage(rawEcg, `${source}:store`)
     const sampleRateHz = resolveTelemetrySampleRate(payload)
-    const { aiResultSummary, abnormalDetected, abnormalGroups, aiMeta } = await inferReadingWithAI(
-      rawEcg,
-      source
-    )
-    const providedHeartRate = toHeartRate(payload?.heart_rate)
-    const derivedHeartRate = deriveHeartRateFromBeatCount(
-      aiMeta?.beat_count,
-      rawEcg.length,
-      sampleRateHz
-    )
-    const resolvedHeartRate = providedHeartRate ?? derivedHeartRate ?? 0
+    const resolvedHeartRate = toHeartRate(payload?.heart_rate) ?? 0
     const realtimeEcgMeta = buildRealtimeEcgMeta({
       payload,
       ecgSignal: ecgToStore,
@@ -326,15 +147,77 @@ const ingestTelemetry = async (payload, context = {}) => {
       data: {
         device_id: device.device_id,
         heart_rate: resolvedHeartRate,
-        ecg_signal: JSON.stringify(ecgToStore),
-        abnormal_detected: abnormalDetected,
-        ai_result: aiResultSummary,
+        ecg_signal: ecgToStore,
+        abnormal_detected: false,
+        ai_result: null,
+        ai_status: "PENDING",
+        ai_error: null,
+        ai_completed_at: null,
         timestamp: new Date(),
       },
     })
 
     // Emit event realtime cho các tài khoản liên quan của bệnh nhân và bệnh nhân khi có reading mới
     const recipients = await getRecipientIdsByPatientCached(device.user_id)
+
+    try {
+      // đưa job vào queue để xử lý AI bất đồng bộ, tránh blocking luồng chính của ingest và giảm thiểu độ trễ trong phản hồi HTTP/MQTT
+      await enqueueEcgInference({
+        readingId: reading.reading_id,
+        deviceId: device.device_id,
+        userId: device.user_id,
+        serialNumber: device.serial_number,
+        ecgSignal: rawEcg,
+        sampleRateHz: realtimeEcgMeta.sample_rate_hz || null,
+        providedHeartRate: resolvedHeartRate,
+        source,
+      })
+    } catch (error) {
+      await prisma.reading.update({
+        where: { reading_id: reading.reading_id },
+        data: {
+          ai_status: "FAILED",
+          ai_error: error?.message || "QUEUE_ENQUEUE_FAILED",
+          ai_completed_at: null,
+        },
+      })
+
+      logTelemetryIngestEvent("QUEUE_ENQUEUE_FAILED", {
+        source,
+        serial_number: serialNumber,
+        reading_id: reading.reading_id,
+        message: error?.message || "UNKNOWN",
+      })
+
+      return buildIngestResult({
+        statusCode: 500,
+        code: "QUEUE_ENQUEUE_FAILED",
+        message: "Không thể đưa job vào queue AI",
+        reading: {
+          ...reading,
+          ai_status: "FAILED",
+          ai_error: error?.message || "QUEUE_ENQUEUE_FAILED",
+        },
+        data: {
+          reading_id: reading.reading_id,
+          device_id: device.device_id,
+          user_id: device.user_id,
+          serial_number: device.serial_number,
+          heart_rate: reading.heart_rate,
+          abnormal_detected: false,
+          ai_result: null,
+          ai_status: "FAILED",
+          alert_count: 0,
+        },
+        recipients,
+        error: {
+          reason: "QUEUE_ENQUEUE_FAILED",
+          detail: error?.message || "UNKNOWN",
+        },
+      })
+    }
+
+    // Phát event realtime cho client ngay khi tạo reading mới, dù job AI chưa được xử lý, để cập nhật giao diện người dùng nhanh chóng
     emitToUsers(io, recipients, "reading-update", {
       reading_id: reading.reading_id,
       device_id: reading.device_id,
@@ -343,63 +226,17 @@ const ingestTelemetry = async (payload, context = {}) => {
       heart_rate: reading.heart_rate,
       ecg_signal: ecgToStore,
       ...realtimeEcgMeta,
-      abnormal_detected: reading.abnormal_detected,
-      ai_result: reading.ai_result,
+      abnormal_detected: false,
+      ai_result: null,
+      ai_status: "PENDING",
       timestamp: reading.timestamp,
     })
-
-    let createdAlerts = []
-    if (abnormalDetected) {
-      createdAlerts = await createGroupedAlerts(
-        device.user_id,
-        reading.reading_id,
-        reading.heart_rate,
-        abnormalGroups
-      )
-
-      const message = `Phat hien ${createdAlerts.length} canh bao bat thuong (${aiResultSummary})`
-      emitAggregatedAlertEvent(io, recipients, {
-        reading_id: reading.reading_id,
-        user_id: device.user_id,
-        abnormal_count: createdAlerts.length,
-        ai_result_summary: aiResultSummary,
-        alert_type: createdAlerts[0]?.alert_type || null,
-        message,
-        timestamp: reading.timestamp,
-        alerts: createdAlerts.map((alert) => ({
-          alert_id: alert.alert_id,
-          user_id: alert.user_id,
-          reading_id: alert.reading_id,
-          alert_type: alert.alert_type,
-          message: alert.message,
-          segment_start_sample: alert.segment_start_sample,
-          segment_end_sample: alert.segment_end_sample,
-          timestamp: alert.timestamp,
-        })),
-      })
-
-      // Tạo notification cảnh báo dạng gộp cho reading có nhiều alert con, chạy async không chờ kết quả để tránh delay luồng ingest
-      Promise.resolve(
-        createAggregatedAlertNotification({
-          actorId,
-          recipients,
-          io,
-          userId: device.user_id,
-          readingId: reading.reading_id,
-          serialNumber: device.serial_number,
-          aiResultSummary,
-          createdAlerts,
-        })
-      ).catch((error) => {
-        console.error("Async aggregated alert notification failed:", error)
-      })
-    }
 
     return buildIngestResult({
       ok: true,
       statusCode: 201,
       code: "INGEST_OK",
-      message: "Telemetry data received",
+      message: "Nhận telemetry thành công",
       reading,
       data: {
         reading_id: reading.reading_id,
@@ -407,13 +244,13 @@ const ingestTelemetry = async (payload, context = {}) => {
         user_id: device.user_id,
         serial_number: device.serial_number,
         heart_rate: reading.heart_rate,
-        abnormal_detected: reading.abnormal_detected,
-        ai_result: reading.ai_result,
-        alert_count: createdAlerts.length,
+        abnormal_detected: false,
+        ai_result: null,
+        ai_status: "PENDING",
+        alert_count: 0,
       },
-      alerts: createdAlerts,
+      alerts: [],
       recipients,
-      error: null,
     })
   } catch (error) {
     logTelemetryIngestEvent("INGEST_FAILED", {

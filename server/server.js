@@ -27,6 +27,7 @@ const {
   getMaxPayloadBytes,
 } = require("./services/mqttTelemetryService")
 const { ingestTelemetry } = require("./services/telemetryIngestService")
+const { attachAiQueueRealtimeBridge } = require("./services/aiQueueRealtimeBridgeService")
 
 const app = express()
 const server = http.createServer(app)
@@ -105,16 +106,21 @@ const logServerEvent = (event, payload = {}) => {
   )
 }
 
-// Hàm chuẩn hóa mã lỗi ingest nội bộ sang `error_code` ACK đã khóa trong P3.
-const toAckErrorCode = (ingestCode) => {
-  const code = String(ingestCode || "").trim().toUpperCase()
-  switch (code) {
-    case "MISSING_SERIAL":
-      return "MISSING_SERIAL"
-    default:
-      return "INGEST_FAILED"
-  }
-}
+// Khởi tạo bridge để lắng nghe sự kiện từ AI queue và emit đến client qua Socket.IO, không phụ thuộc vào worker nên có thể chạy chung trong server process.
+/*
+* mục đích chính là bridge giữa AI queue và realtime client update, 
+đảm bảo khi job AI hoàn thành sẽ có sự kiện cập nhật ngay cho client mà không cần client phải poll hay subscribe trực tiếp vào queue.
+* cách hoạt động:
+  - lắng nghe sự kiện job completed từ ecgInferenceQueueEvents
+  - khi có job completed, lấy thông tin kết quả từ job data
+  - xác định userId và readingId từ job data để biết ai là người nhận thông tin cập nhật
+  - emit sự kiện qua Socket.IO đến client của user đó với payload chứa kết quả AI mới nhất
+  - log sự kiện này để theo dõi lifecycle của job và tương tác realtime
+*/
+attachAiQueueRealtimeBridge({
+  io,
+  logEvent: logServerEvent,
+})
 
 // Hàm gửi ACK error nếu xác định được serial từ topic theo quy tắc P3.
 const ackErrorIfPossible = async ({ topicSerial, messageId, errorCode, message, topic }) => {
@@ -136,6 +142,66 @@ const ackErrorIfPossible = async ({ topicSerial, messageId, errorCode, message, 
       message,
     })
   )
+}
+
+// ACK `ok` giờ mang nghĩa message đã được backend chấp nhận hợp lệ, không chờ ingest xong.
+const ackAcceptedMessage = async ({ serialNumber, messageId, duplicate = false, topic }) => {
+  await publishAck(
+    serialNumber,
+    buildAckPayload({
+      messageId,
+      status: "ok",
+      duplicate,
+    })
+  )
+
+  logServerEvent("MQTT_ACK_ACCEPTED", {
+    topic,
+    serial_number: serialNumber,
+    message_id: messageId,
+    duplicate,
+  })
+}
+
+// Sau khi ACK accepted, ingest chạy nội bộ và chỉ log kết quả.
+const runAcceptedTelemetryIngest = ({ payload, topic, dedupeSerial, messageId }) => {
+  Promise.resolve(
+    ingestTelemetry(payload, {
+      source: "mqtt",
+      io,
+      actorId: null,
+      topic,
+    })
+  )
+    .then((ingestResult) => {
+      if (ingestResult.ok) {
+        logServerEvent("MQTT_INGEST_OK", {
+          topic,
+          code: ingestResult.code,
+          serial_number: ingestResult.data?.serial_number || dedupeSerial,
+          reading_id: ingestResult.data?.reading_id || null,
+          message_id: messageId,
+          alert_count: ingestResult.data?.alert_count || 0,
+        })
+        return
+      }
+
+      logServerEvent("MQTT_INGEST_ERROR", {
+        topic,
+        code: ingestResult.code,
+        message: ingestResult.message,
+        serial_number: ingestResult.data?.serial_number || dedupeSerial,
+        message_id: messageId,
+      })
+    })
+    .catch((error) => {
+      logServerEvent("MQTT_INGEST_EXCEPTION", {
+        topic,
+        serial_number: dedupeSerial,
+        message_id: messageId,
+        reason: error?.message || "UNKNOWN",
+      })
+    })
 }
 
 // Hàm đóng tài nguyên an toàn khi server nhận tín hiệu thoát.
@@ -288,62 +354,26 @@ const handleMqttTelemetryMessage = async ({ topic, payloadText, payloadBuffer })
       serial_number: dedupeSerial,
       message_id: messageId,
     })
-    await publishAck(
-      dedupeSerial,
-      buildAckPayload({
-        messageId,
-        status: "ok",
-        duplicate: true,
-      })
-    )
-    return
-  }
-
-  const ingestResult = await ingestTelemetry(payload, {
-    source: "mqtt",
-    io,
-    actorId: null,
-    topic,
-  })
-
-  if (ingestResult.ok) {
-    markMessageSeen(dedupeSerial, messageId)
-    await publishAck(
-      dedupeSerial,
-      buildAckPayload({
-        messageId,
-        status: "ok",
-        readingId: ingestResult.data.reading_id,
-        duplicate: false,
-      })
-    )
-
-    logServerEvent("MQTT_INGEST_OK", {
+    await ackAcceptedMessage({
+      serialNumber: dedupeSerial,
+      messageId,
+      duplicate: true,
       topic,
-      code: ingestResult.code,
-      serial_number: ingestResult.data.serial_number,
-      reading_id: ingestResult.data.reading_id,
-      message_id: messageId,
-      alert_count: ingestResult.data.alert_count,
     })
     return
   }
 
-  await ackErrorIfPossible({
-    topicSerial: dedupeSerial,
+  // Message hợp lệ và chưa seen, đánh dấu đã seen để các message duplicate sau này nhận biết.
+  // đưa data cho ingest xử lý nhưng không chờ kết quả, chỉ ACK đã nhận message hợp lệ trước để giảm độ trễ phản hồi cho thiết bị.
+  markMessageSeen(dedupeSerial, messageId)
+  await ackAcceptedMessage({ // gửi ACK ngay khi chấp nhận message
+    serialNumber: dedupeSerial,
     messageId,
-    errorCode: toAckErrorCode(ingestResult.code),
-    message: ingestResult.message,
+    duplicate: false,
     topic,
   })
-
-  logServerEvent("MQTT_INGEST_ERROR", {
-    topic,
-    code: ingestResult.code,
-    message: ingestResult.message,
-    serial_number: ingestResult.data.serial_number,
-    message_id: messageId,
-  })
+  // chạy ingest bất đồng bộ, không chờ kết quả để trả ACK, tránh delay cho thiết bị. Kết quả ingest sẽ được log riêng.
+  runAcceptedTelemetryIngest({ payload, topic, dedupeSerial, messageId })
 }
 
 // Hàm khởi động backend: DB, MQTT foundation và HTTP server.
