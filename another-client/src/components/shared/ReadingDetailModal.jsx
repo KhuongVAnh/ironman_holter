@@ -213,11 +213,11 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
               <ECGChart data={ecgSignal} highlights={highlightSegments} />
             </div>
             <div className="rounded-[24px] border border-surface-line bg-surface p-4">
-              <h4 className="mb-3 text-base font-bold text-ink-900">Chu thich bat thuong</h4>
+              <h4 className="mb-3 text-base font-bold text-ink-900">Chú thích bất thường</h4>
               {aiStatus === "PENDING" ? (
-                <p className="text-sm text-ink-600">Dang cho AI hoan tat de danh dau segment bat thuong.</p>
+                <p className="text-sm text-ink-600">Đang chờ AI hoàn tất.</p>
               ) : aiStatus === "FAILED" ? (
-                <p className="text-sm text-ink-600">Khong co du lieu bat thuong vi qua trinh phan tich da that bai.</p>
+                <p className="text-sm text-ink-600">không có dữ liệu bất thường vì quá trình phân tích đã thất bại.</p>
               ) : highlightLegend.length > 0 ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {highlightLegend.map((item) => (
@@ -231,13 +231,13 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-ink-600">Khong co segment bat thuong</p>
+                <p className="text-sm text-ink-600">Không có segment bất thường</p>
               )}
             </div>
           </div>
         </div>
       ) : (
-        <div className="py-8 text-center text-sm text-ink-600">Khong tim thay du lieu reading</div>
+        <div className="py-8 text-center text-sm text-ink-600">Không tìm thấy dữ liệu reading</div>
       )}
     </ModalFrame>
   )

@@ -7,6 +7,7 @@ emit reading-ai-updated, alert, notification:new
 const { Job } = require("bullmq")
 const prisma = require("../prismaClient")
 const { ecgInferenceQueue, ecgInferenceQueueEvents } = require("./ecgInferenceQueueService")
+const { emitNotificationToUsers } = require("./notificationService")
 const { emitToUsers } = require("./socketEmitService")
 const { getRecipientIdsByPatientCached } = require("./telemetryRuntimeCacheService")
 
@@ -32,6 +33,20 @@ const attachAiQueueRealtimeBridge = ({ io, logEvent }) => {
                 abnormal_detected: Boolean(payload.abnormalDetected),
                 timestamp: payload.completedAt || new Date().toISOString(),
             })
+
+            if (payload.notificationId) {
+                const notification = await prisma.notification.findUnique({
+                    where: { notification_id: Number(payload.notificationId) },
+                })
+
+                if (notification) {
+                    emitNotificationToUsers({
+                        io,
+                        recipients,
+                        notification,
+                    })
+                }
+            }
 
             if (Array.isArray(payload.alertIds) && payload.alertIds.length > 0) {
                 const alerts = await prisma.alert.findMany({

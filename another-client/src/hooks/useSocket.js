@@ -84,7 +84,9 @@ const useSocket = (userId, userRole) => {
     const handleNotificationNew = (notification) => {
       const title = notification?.title ? `${notification.title}: ` : ""
       const body = notification?.message || "B\u1ea1n c\u00f3 th\u00f4ng b\u00e1o m\u1edbi"
-      toast.info(`${title}${body}`, { autoClose: 4000 })
+      if (notification?.type !== "ALERT") {
+        toast.info(`${title}${body}`, { autoClose: 4000 })
+      }
       window.dispatchEvent(new CustomEvent("appNotificationNew", { detail: notification }))
     }
     socket.on("notification:new", handleNotificationNew)

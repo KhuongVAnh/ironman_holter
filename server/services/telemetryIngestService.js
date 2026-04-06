@@ -170,6 +170,7 @@ const ingestTelemetry = async (payload, context = {}) => {
         ecgSignal: rawEcg,
         sampleRateHz: realtimeEcgMeta.sample_rate_hz || null,
         providedHeartRate: resolvedHeartRate,
+        recipients: recipients,
         source,
       })
     } catch (error) {

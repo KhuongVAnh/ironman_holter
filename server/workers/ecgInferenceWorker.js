@@ -1,7 +1,9 @@
 const IORedis = require("ioredis")
 const { Worker } = require("bullmq")
 const prisma = require("../prismaClient")
+const { NotificationType } = require("@prisma/client")
 const { predictFromReading } = require("../services/ecgCnnService")
+const { persistNotification } = require("../services/notificationService")
 const { getRecipientIdsByPatientCached } = require("../services/telemetryRuntimeCacheService")
 
 const connection = new IORedis(process.env.REDIS_URL, {
@@ -72,6 +74,7 @@ const createGroupedAlerts = async (userId, readingId, heartRate, abnormalGroups)
     return prisma.$transaction(createOps)
 }
 
+console.log("ECG Inference Worker started!!!\n")
 // Worker để xử lý các job AI inference cho ECG readings, 
 // bao gồm cập nhật kết quả AI cho reading, phát cảnh báo mới nếu có bất thường được phát hiện, 
 // và gửi notification đến người dùng liên quan.
@@ -84,6 +87,7 @@ const worker = new Worker(
             serialNumber,
             ecgSignal,
             providedHeartRate,
+            recipients,
             source,
         } = job.data
 
@@ -128,7 +132,7 @@ const worker = new Worker(
             })
 
             let createdAlerts = []
-            const recipients = await getRecipientIdsByPatientCached(userId)
+            let notificationResult = null
 
             if (abnormalDetected) {
                 createdAlerts = await createGroupedAlerts(
@@ -138,6 +142,23 @@ const worker = new Worker(
                     abnormalGroups
                 )
 
+                notificationResult = await persistNotification({
+                    type: NotificationType.ALERT,
+                    title: "Có bất thường sức khỏe!!!",
+                    message: `Phát hiện ${createdAlerts.length} cảnh báo bất thường (${aiResultSummary})`,
+                    actorId: null,
+                    entityType: "alert",
+                    entityId: createdAlerts[0]?.alert_id || null,
+                    payload: {
+                        user_id: userId,
+                        reading_id: updatedReading.reading_id,
+                        serial_number: serialNumber || null,
+                        abnormal_count: createdAlerts.length,
+                        ai_result_summary: aiResultSummary,
+                        alerts: createdAlerts,
+                    },
+                    recipientUserIds: recipients,
+                })
             }
 
             return {
@@ -148,6 +169,7 @@ const worker = new Worker(
                 aiResult: aiResultSummary,
                 abnormalDetected,
                 alertIds: createdAlerts.map((item) => item.alert_id),
+                notificationId: notificationResult?.notification?.notification_id || null,
                 recipients,
                 completedAt: new Date().toISOString(),
             }
