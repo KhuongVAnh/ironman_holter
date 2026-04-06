@@ -65,61 +65,133 @@ Dự án tập trung vào một luồng end-to-end hoàn chỉnh: **IoT device -
 - **Lưu trữ có hệ thống:** biến dữ liệu đo và lịch sử điều trị thành hồ sơ sức khỏe số có thể tra cứu lại.
 - **Kết nối nhiều bên:** bệnh nhân, bác sĩ và gia đình cùng tham gia theo dõi trên cùng một nền tảng, với quyền truy cập rõ ràng.
 ## Điểm nổi bật
-- **Realtime thực chiến:** truyền dữ liệu liên tục qua MQTT/HTTP, cập nhật giao diện bằng Socket.IO gần như tức thời.
-- **AI ECG pipeline:** tiền xử lý tín hiệu, suy luận CNN, gom nhóm vùng bất thường để tạo cảnh báo có ngữ cảnh.
-- **Độ tin cậy dữ liệu thiết bị:** ACK ứng dụng, retry khi lỗi mạng, chống trùng bản tin (deduplication).
-- **Role-based platform:** dashboard riêng cho bệnh nhân, bác sĩ, gia đình, admin; có phân quyền chia sẻ hồ sơ y tế.
-- **Full-stack hoàn chỉnh:** từ firmware ESP32 đến backend API/database và frontend trực quan.
+- **Kiến trúc end-to-end thực thụ:** project bao trọn toàn bộ chuỗi từ thiết bị ESP32, truyền telemetry, backend cloud, AI inference, realtime gateway cho đến dashboard web theo vai trò.
+- **AI pipeline tách worker riêng:** web server không còn phải chờ CNN suy luận; telemetry được đẩy qua queue để xử lý bất đồng bộ, giúp ingest nhanh hơn và kiến trúc dễ mở rộng hơn.
+- **Realtime nhiều lớp:** hệ thống vừa có `reading-update` cho dữ liệu sống, vừa có `reading-ai-updated`, `alert`, `notification:new` để phản ánh đầy đủ vòng đời của một bản ghi ECG.
+- **Độ tin cậy cho dữ liệu IoT:** MQTT có `message_id`, ACK ở tầng ứng dụng, chống trùng bản tin và khả năng retry, giúp pipeline chịu lỗi tốt hơn so với chỉ nhận dữ liệu một chiều.
+- **Mô hình dữ liệu sát nghiệp vụ y tế:** tách rõ `reading`, `alert`, `notification`, `medical history`, `access permission`; bệnh nhân giữ quyền sở hữu dữ liệu, bác sĩ và gia đình chỉ xem khi được cấp quyền.
+- **Frontend không chỉ hiển thị kết quả cuối:** giao diện phản ánh cả trạng thái `PENDING`, `DONE`, `FAILED` của AI, nên người dùng nhìn thấy đúng tiến trình xử lý thay vì chỉ nhận một kết luận đen-trắng.
+- **Test gần với production:** fake telemetry được đưa đi qua luồng MQTT thật thay vì chèn thẳng vào DB, giúp việc kiểm thử sát với hành vi hệ thống khi có thiết bị ngoài đời.
 
 ## Công nghệ sử dụng
-### 1) IoT Firmware (ESP32)
-- **Board & framework:** `ESP32 DevKit` + `Arduino framework` (quản lý bằng `PlatformIO`).
-- **Sensors:** `ECG analog` + `MPU6050` (gia tốc kế/con quay) qua `Adafruit MPU6050` và `Adafruit Unified Sensor`.
-- **Transport:** MQTT over TLS với `PubSubClient` (topic telemetry/ack), có `message_id`, retry queue và app-level ACK.
-- **Signal handling trên thiết bị:** thu mẫu theo batch (`250Hz ECG`, `50Hz MPU`, cửa sổ 5s), notch filter `50Hz`, double-buffer để tách luồng đọc/gửi.
+### 1) IoT firmware và thiết bị
+- **Phần cứng:** `ESP32 DevKit` kết hợp cảm biến ECG analog và `MPU6050`.
+- **Môi trường phát triển:** `PlatformIO` với `Arduino framework`.
+- **Kỹ thuật trên thiết bị:** lấy mẫu theo batch, lọc nhiễu cơ bản, đóng gói telemetry có `message_id`, gửi theo cửa sổ thời gian cố định.
+- **Kết nối uplink:** `MQTT over TLS`, có topic telemetry và ACK riêng để thiết bị biết server đã nhận dữ liệu ở mức ứng dụng.
 
-### 2) Backend & API
+### 2) Backend web process
 - **Runtime/API:** `Node.js` + `Express`.
-- **ORM & DB:** `Prisma` + `MySQL` (schema, migration, seed).
-- **Realtime:** `Socket.IO` để push `reading-update`, `alert`, `notification` theo user/role.
-- **MQTT ingest:** `mqtt` client trên server, subscribe `devices/+/telemetry`, kiểm tra payload, chống trùng message (dedupe TTL), phản hồi ACK về thiết bị.
-- **Data pipeline:** service ingest chung cho cả HTTP/MQTT, chuẩn hóa tín hiệu, lưu reading, tạo alert/notification và emit realtime.
+- **ORM và database:** `Prisma` + `MySQL`.
+- **Xác thực và bảo mật:** `jsonwebtoken`, `bcrypt`, `helmet`, `cors`, `cookie-parser`.
+- **Realtime:** `Socket.IO` cho `reading-update`, `reading-ai-updated`, `alert`, `notification:new`, chat và các sự kiện đồng bộ giao diện.
+- **MQTT server-side integration:** package `mqtt`, subscribe `devices/+/telemetry`, parse payload, dedupe theo `message_id`, publish ACK về `devices/{serial}/ack`.
+- **View layer phụ trợ:** `EJS` cho một số màn admin/debug phía server.
 
-### 3) AI/Deep Learning cho ECG
-- **Inference engine:** `TensorFlow.js` (`@tensorflow/tfjs`) chạy model CNN ngay trên backend Node.js.
-- **Model artifacts:** `model.json` + `.bin` (TFJS format).
-- **Tiền xử lý:** bandpass filter và xử lý tín hiệu bằng `fili`, detect peak, cắt segment theo nhịp tim, chuẩn hóa và suy luận batch.
-- **Kết quả AI:** phân loại segment-level, gom nhóm bất thường liên tiếp, sinh `ai_result_summary` để cảnh báo có ngữ cảnh.
+### 3) AI worker và hàng đợi bất đồng bộ
+- **Queue:** `BullMQ`.
+- **Message broker / queue backend:** `Redis`.
+- **Worker riêng:** AI inference không còn chạy trong web process; worker xử lý job riêng qua `node workers/ecgInferenceWorker.js`.
+- **Mục tiêu kiến trúc:** giảm latency của ingest path, cho phép web server nhận telemetry nhanh rồi đẩy suy luận CNN sang background worker.
+- **Kết quả nghiệp vụ:** web process tạo `reading` ở trạng thái `PENDING`, worker cập nhật `DONE/FAILED`, tạo alert khi cần và bridge các kết quả trở lại Socket.IO.
 
-### 4) Frontend Web
-- **Framework:** cả hai frontend đều dùng `React 18` + `Vite`.
-- **Frontend chính mới:** `another-client/` dùng `Tailwind CSS`, `react-router-dom`, dashboard mới theo concept sidebar + card system.
-- **Frontend cũ/legacy:** `client/` là bản UI cũ, dùng `Bootstrap 5` + `React-Bootstrap`.
-- **Charts:** `Chart.js` + `react-chartjs-2` để hiển thị waveform ECG.
+### 4) AI/Deep Learning cho ECG
+- **Inference engine:** `TensorFlow.js` (`@tensorflow/tfjs`) chạy model CNN trong worker Node.js.
+- **Tiền xử lý tín hiệu:** làm sạch signal, chuẩn hóa dữ liệu ECG và dựng feature phù hợp cho mô hình.
+- **Kết quả AI:** sinh `ai_result`, `ai_status`, gom nhóm segment bất thường, tạo alert có ngữ cảnh để hiển thị trên dashboard và modal ECG.
+- **Model assets:** các artifact `model.json`, `.bin`, baseline/test data và label map được lưu ngay trong repo server.
+
+### 5) Frontend web
+- **Frontend duy nhất hiện tại:** `another-client/`.
+- **Framework:** `React 18` + `Vite`.
+- **UI layer:** `Tailwind CSS` kết hợp token/style chung trong `src/index.css`.
+- **Router và data client:** `react-router-dom`, `axios`.
 - **Realtime client:** `socket.io-client`.
-- **HTTP client:** `axios`.
-- **UX notifications:** `react-toastify`.
+- **Thông báo giao diện:** `react-toastify`.
+- **Biểu đồ ECG:** `Chart.js` + `react-chartjs-2`.
+- **Định hướng UX hiện tại:** dashboard theo vai trò, dữ liệu realtime cho bệnh nhân, lịch sử đo, modal chi tiết ECG, inbox thông báo và cảnh báo đồng bộ theo quyền truy cập.
 
-### 5) Security, Integration, Deployment
-- **Auth & security middleware:** `JWT` (`jsonwebtoken`), `bcrypt`, `helmet`, `cors`.
-- **AI assistant integration:** `Google Gemini API` (`@google/generative-ai`) cho chatbot hỗ trợ người dùng.
-- **Environment management:** `dotenv`.
-- **Deployment (web):** frontend/backend public qua `Railway` (URL production đặt ở đầu README).
+## Kỹ thuật nổi bật trong project
+### 1) Kỹ thuật trong server
+- **Queue-based AI pipeline:** web process chỉ nhận telemetry, tạo `reading(PENDING)` và đẩy job vào `BullMQ`; worker riêng xử lý CNN và cập nhật kết quả sau. Đây là kỹ thuật quan trọng nhất để tách `ingest latency` khỏi `AI latency`.
+- **Realtime fan-out theo user room:** Socket.IO được tổ chức theo `user-{id}` room, nên `reading-ai-updated`, `alert`, `notification:new` chỉ emit tới đúng recipients thay vì broadcast toàn hệ thống.
+- **Tách web process và AI worker:** backend không còn là một tiến trình làm tất cả; phần API/realtime và phần suy luận AI được tách thành hai runtime độc lập, giúp dễ scale và dễ cô lập lỗi hơn.
+- **Domain model theo vòng đời xử lý:** reading, alert và notification được tách vai trò rõ ràng; reading phản ánh tiến trình xử lý AI, alert lưu bất thường nghiệp vụ, còn notification phục vụ inbox và chuông thông báo realtime.
 
-## Kiến trúc ngắn gọn
-`ESP32 Sensors -> MQTT/HTTP Ingest -> AI + Database -> Alert Engine -> Web Dashboard (Patient/Doctor/Family/Admin)`
+### 2) Kỹ thuật trong firmware
+- **Xử lý đa luồng trên ESP32:** firmware tách riêng các trách nhiệm đọc cảm biến, đóng gói dữ liệu và gửi telemetry để giảm nguy cơ block toàn bộ vòng lặp khi mạng chậm.
+- **Double buffer A/B:** thiết bị sử dụng hai buffer luân phiên để một buffer tiếp tục thu mẫu trong khi buffer còn lại được chuẩn bị để gửi đi, giúp hạn chế mất mẫu khi stream liên tục.
+- **MQTT telemetry có ACK ứng dụng:** sau khi publish, thiết bị còn chờ ACK ở tầng ứng dụng để biết server đã thực sự nhận và xử lý bản tin.
 
-## Cấu trúc project
+## Kiến trúc tổng thể
 ```text
-ironman_holter/
-├─ ESP32/          # Firmware và thu thập telemetry từ thiết bị
-├─ server/         # API, realtime, AI inference, database
-├─ another-client/ # Frontend mới dùng Tailwind CSS
-└─ client/         # Frontend cũ/legacy
+ESP32 Device
+  -> MQTT / HTTP telemetry
+  -> Express ingest layer
+  -> Prisma + MySQL create reading(PENDING)
+  -> BullMQ queue on Redis
+  -> ECG AI worker (TensorFlow.js)
+  -> update reading / create alerts / notifications
+  -> Socket.IO bridge
+  -> React dashboard theo vai trò
 ```
 
-> Lưu ý: Đây là dự án kỹ thuật phục vụ học tập/nghiên cứu và trình diễn năng lực xây dựng hệ thống theo dõi tim mạch thông minh.
+## Triển khai và vận hành
+### Backend
+- Web process và AI worker là hai tiến trình độc lập.
+- Khi deploy cần cấu hình env cho cả hai, đặc biệt:
+  - `DATABASE_URL`
+  - `REDIS_URL`
+  - các biến MQTT
+  - các biến secret/auth
+- Prisma Client cần được generate trước khi chạy runtime:
+  - `npx prisma generate`
+- Nếu có migration mới:
+  - `npx prisma migrate deploy`
 
+### Worker
+- Worker hiện chạy qua:
+```bash
+npm run worker:ai
+```
+- Có thể scale bằng nhiều worker process nếu tài nguyên máy đủ, vì queue đã tách rời khỏi web process.
 
+### Frontend
+- Frontend production hiện là `another-client`.
+- Client này đã được cập nhật để hiểu contract queue-based:
+  - `reading-update` có thể tới với `ai_status = PENDING`
+  - `reading-ai-updated` sẽ chốt trạng thái `DONE/FAILED`
+
+## Cấu trúc project hiện tại
+```text
+ironman_holter/
+├─ ESP32/          # Firmware và logic telemetry trên thiết bị
+├─ server/         # API, MQTT ingest, Prisma, BullMQ, AI worker, realtime
+└─ another-client/ # Frontend React/Vite/Tailwind đang sử dụng
+```
+
+## Gợi ý chạy local
+### 1) Backend web
+```bash
+cd server
+npm install
+npx prisma generate
+npm run dev
+```
+
+### 2) AI worker
+```bash
+cd server
+npm run worker:ai:dev
+```
+
+### 3) Frontend
+```bash
+cd another-client
+npm install
+npm run dev
+```
+
+> Lưu ý: Project này phục vụ học tập, nghiên cứu và trình diễn kỹ thuật xây dựng một hệ thống tim mạch thông minh theo hướng end-to-end, có thiết bị IoT, backend realtime và pipeline AI tách worker.
 
 
