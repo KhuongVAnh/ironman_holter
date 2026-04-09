@@ -14,6 +14,61 @@ const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || "7d"
 // Hàm xử lý lưu refresh token đã được hash vào database để quản lý và xác thực khi cần thiết.
 const hashToken = (value) => createHash("sha256").update(value).digest("hex")
 
+const parseDurationToMs = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  if (/^\d+$/.test(trimmed)) {
+    return Number(trimmed)
+  }
+
+  const match = trimmed.match(/^(\d+)(ms|s|m|h|d)$/i)
+  if (!match) {
+    return null
+  }
+
+  const amount = Number(match[1])
+  const unit = match[2].toLowerCase()
+  const multipliers = {
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+  }
+
+  return amount * multipliers[unit]
+}
+
+const ensureAuthSecretsConfigured = () => {
+  if (!ACCESS_TOKEN_SECRET || !REFRESH_TOKEN_SECRET) {
+    const error = new Error("ACCESS_TOKEN_SECRET hoặc REFRESH_TOKEN_SECRET chưa được cấu hình")
+    error.code = "AUTH_CONFIG_MISSING"
+    throw error
+  }
+}
+
+const getRefreshCookieMaxAge = () => {
+  return parseDurationToMs(REFRESH_TOKEN_EXPIRES_IN) || 7 * 24 * 60 * 60 * 1000
+}
+
+const getRefreshCookieBaseOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // true = cookie chỉ được gửi qua HTTPS, false cho phép gửi qua HTTP
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // none = 
+  path: "/api/auth", // chỉ gửi cookie này cho các request đến endpoint /api/auth
+})
+
 // Hàm xây dựng payload người dùng cho token từ đối tượng user trong database.
 const buildUserPayload = (user) => ({
   user_id: user.user_id,
@@ -23,6 +78,7 @@ const buildUserPayload = (user) => ({
 
 // Hàm tạo access token JWT với payload người dùng và thời gian hết hạn.
 const generateAccessToken = (user) => {
+  ensureAuthSecretsConfigured()
   return jwt.sign(buildUserPayload(user), ACCESS_TOKEN_SECRET, {
     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
   })
@@ -30,6 +86,7 @@ const generateAccessToken = (user) => {
 
 // Hàm tạo refresh token JWT với payload người dùng, loại token và nonce để tăng cường bảo mật.
 const generateRefreshToken = (user) => {
+  ensureAuthSecretsConfigured()
   return jwt.sign(
     {
       ...buildUserPayload(user),
@@ -43,11 +100,12 @@ const generateRefreshToken = (user) => {
 
 // Hàm lấy options cho cookie refresh token, bao gồm các thuộc tính bảo mật và thời gian hết hạn.
 const getRefreshCookieOptions = () => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production", // true = cookie chỉ được gửi qua HTTPS, false cho phép gửi qua HTTP
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // none = 
-  path: "/api/auth", // chỉ gửi cookie này cho các request đến endpoint /api/auth
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+  ...getRefreshCookieBaseOptions(),
+  maxAge: getRefreshCookieMaxAge(),
+})
+
+const getRefreshCookieClearOptions = () => ({
+  ...getRefreshCookieBaseOptions(),
 })
 
 // Hàm thiết lập cookie refresh token trong response.
@@ -57,12 +115,16 @@ const setRefreshCookie = (res, refreshToken) => {
 
 // Hàm xóa cookie refresh token khỏi trình duyệt.
 const clearRefreshCookie = (res) => {
-  res.clearCookie("refresh_token", getRefreshCookieOptions())
+  res.clearCookie("refresh_token", getRefreshCookieClearOptions())
 }
 
 // Hàm lưu refresh token đã được hash vào database
 const saveRefreshToken = async (userId, refreshToken) => {
   const decoded = jwt.decode(refreshToken)
+  if (!decoded?.exp) {
+    throw new Error("Không thể giải mã refresh token")
+  }
+
   await prisma.refreshToken.create({
     data: {
       user_id: userId,
@@ -119,6 +181,9 @@ const register = async (req, res) => {
     })
   } catch (error) {
     console.error("Lỗi đăng ký:", error)
+    if (error.code === "AUTH_CONFIG_MISSING") {
+      return res.status(500).json({ message: "lỗi cấu hình hệ thống" })
+    }
     res.status(500).json({ message: "Lỗi server nội bộ" })
   }
 }
@@ -156,6 +221,9 @@ const login = async (req, res) => {
     })
   } catch (error) {
     console.error("Lỗi đăng nhập:", error)
+    if (error.code === "AUTH_CONFIG_MISSING") {
+      return res.status(500).json({ message: "Loi cau hinh he thong" })
+    }
     res.status(500).json({ message: "Lỗi server nội bộ" })
   }
 }
@@ -163,6 +231,8 @@ const login = async (req, res) => {
 // Hàm xử lý làm mới access token bằng refresh token.
 const refresh = async (req, res) => {
   try {
+    ensureAuthSecretsConfigured()
+
     const refreshToken = req.cookies?.refresh_token
     if (!refreshToken) {
       return res.status(401).json({ message: "Khong co refresh token" })
@@ -219,6 +289,9 @@ const refresh = async (req, res) => {
     })
   } catch (error) {
     console.error("Loi refresh token:", error)
+    if (error.code === "AUTH_CONFIG_MISSING") {
+      return res.status(500).json({ message: "Loi cau hinh he thong" })
+    }
     return res.status(500).json({ message: "Loi server noi bo" })
   }
 }
