@@ -26,7 +26,7 @@ const DoctorHistoryPanel = () => {
 
   const fetchHistory = async () => {
     try {
-      const response = await historyApi.getDoctorHistory(patientId)
+      const response = await historyApi.getByUser(patientId)
       setHistories(response.data || [])
     } catch (error) {
       console.error(error)
@@ -49,8 +49,8 @@ const DoctorHistoryPanel = () => {
 
   const handleCreate = async (data) => {
     try {
-      const payload = { ...data, patient_id: patientId, doctor_id: user.user_id }
-      const response = await historyApi.addDoctorHistory(payload)
+      const payload = { ...data, user_id: Number(patientId) }
+      const response = await historyApi.create(payload)
       toast.success(response.data.message)
       setShowForm(false)
       setEditData(null)
@@ -64,7 +64,7 @@ const DoctorHistoryPanel = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa bản ghi này?")) return
     try {
-      await historyApi.deleteDoctorHistory(id)
+      await historyApi.delete(id)
       toast.warning("Đã xóa bản ghi")
       fetchHistory()
     } catch (error) {
@@ -75,7 +75,7 @@ const DoctorHistoryPanel = () => {
 
   const handleUpdate = async (data) => {
     try {
-      const response = await historyApi.updateDoctorHistory(data.history_id, data)
+      const response = await historyApi.update(data.history_id, data)
       toast.info(response.data.message)
       setShowForm(false)
       setEditData(null)

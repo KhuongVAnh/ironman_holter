@@ -15,7 +15,7 @@ const FamilyHistoryPanel = () => {
 
   const fetchHistory = async () => {
     try {
-      const response = await historyApi.getFamilyHistory(patientId)
+      const response = await historyApi.getByUser(patientId)
       setHistories(response.data || [])
     } catch (error) {
       console.error("Lỗi tải bệnh sử người thân:", error)

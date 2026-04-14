@@ -1,4 +1,4 @@
-import axios from "axios"
+﻿import axios from "axios"
 import { API_BASE_URL } from "../config/env"
 
 const API_BASE = API_BASE_URL
@@ -12,29 +12,29 @@ const api = axios.create({
 
 let refreshPromise = null
 
-// Hàm xử lý làm mới access token bằng refresh token. 
-// 1 quả hàm cực kỳ thông minh, chỉ gửi 1 request, nhận res mới cho gửi req tiếp
+// Hàm xử lý làm mới access token bằng refresh token.
+// Chỉ tạo một request refresh tại một thời điểm để các request lỗi 401 khác dùng chung kết quả.
 const refreshAccessToken = async () => {
-  if (!refreshPromise) { // Nếu chưa có request làm mới nào đang chờ, tạo một request mới
-    refreshPromise = api.post("/auth/refresh") // gọi api và giao cho web api xử lý
-      .then((response) => { // web api xử lý xong, gọi callback và chạy phần trong then
+  if (!refreshPromise) {
+    refreshPromise = api.post("/auth/refresh")
+      .then((response) => {
         const newToken = response.data.token
         localStorage.setItem("token", newToken)
         api.defaults.headers.common.Authorization = `Bearer ${newToken}`
         return newToken
       })
       .finally(() => {
-        refreshPromise = null //
+        refreshPromise = null
       })
   }
   return refreshPromise
 }
 
-// api.interceptors.response.use là middleware của axios, gọi là tiền xử lý res
+// Middleware response của axios: nếu access token hết hạn thì thử refresh một lần rồi gửi lại request gốc.
 api.interceptors.response.use(
-  (response) => response, // thành công thi oke cho đi qua
-  async (error) => { // thất bại thì đi qua phần xử lý này
-    const originalRequest = error.config //
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
     const status = error.response?.status
 
     const isAuthEndpoint =
@@ -42,9 +42,7 @@ api.interceptors.response.use(
       originalRequest?.url?.includes("/auth/register") ||
       originalRequest?.url?.includes("/auth/refresh")
 
-    // _retry là cờ ta tự thêm vào error.config để đánh dấu đã thử refresh token hay chưưa
-    // mã lỗi xác thực + chưa thử refresh token + không phải endpoint auth thì mới thử refresh token
-    if (status === 401 && !originalRequest?._retry && !isAuthEndpoint) { 
+    if (status === 401 && !originalRequest?._retry && !isAuthEndpoint) {
       originalRequest._retry = true
 
       try {
@@ -143,13 +141,6 @@ export const historyApi = {
   create: (data) => api.post("/history", data),
   update: (id, data) => api.put(`/history/${id}`, data),
   delete: (id) => api.delete(`/history/${id}`),
-
-  getDoctorHistory: (patientId) => api.get(`/doctor/history/${patientId}`),
-  addDoctorHistory: (data) => api.post("/doctor/history", data),
-  updateDoctorHistory: (id, data) => api.put(`/doctor/history/${id}`, data),
-  deleteDoctorHistory: (id) => api.delete(`/doctor/history/${id}`),
-
-  getFamilyHistory: (patientId) => api.get(`/family/history/${patientId}`),
 }
 
 // ========== Reports ==========

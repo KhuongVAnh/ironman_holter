@@ -319,7 +319,7 @@ const PatientDashboard = () => {
                 onClick={generateFakeData}
               >
                 <i className="fas fa-play text-[10px]"></i>
-                Dữ liệu mô phỏng
+                Mô phỏng
               </button>
               <span className="rounded-md bg-brand-50 px-3 py-1 text-brand-700">25 mm/s</span>
               <span className="rounded-md bg-surface px-3 py-1 text-ink-500">10 mm/mV</span>

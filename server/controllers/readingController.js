@@ -255,8 +255,8 @@ const getReadingDetail = async (req, res) => {
       },
     })
   } catch (error) {
-    console.error("Loi lay chi tiet reading:", error)
-    return res.status(500).json({ message: "Loi server noi bo" })
+    console.error("Lỗi lấy chi tiết reading:", error)
+    return res.status(500).json({ message: "Lỗi server nội bộ" })
   }
 }
 
