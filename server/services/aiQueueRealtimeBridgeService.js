@@ -1,7 +1,7 @@
-/**
+﻿/**
  * lắng nghe completed/failed
-đọc DB nếu cần
-emit reading-ai-updated, alert, notification:new
+ * đọc DB nếu cần
+ * emit reading-ai-updated, alert, notification:new
  */
 
 const { Job } = require("bullmq")
@@ -11,19 +11,16 @@ const { emitNotificationToUsers } = require("./notificationService")
 const { emitToUsers } = require("./socketEmitService")
 const { getRecipientIdsByPatientCached } = require("./telemetryRuntimeCacheService")
 
-// Dịch vụ này đóng vai trò là cầu nối giữa hàng đợi xử lý AI (ecgInferenceQueue) và hệ thống realtime của server, 
-// lắng nghe sự kiện hoàn thành hoặc thất bại của các job trong hàng đợi, 
-// sau đó truy vấn database nếu cần thiết để lấy thông tin chi tiết và phát ra các sự kiện realtime đến client thông qua Socket.IO, 
-// bao gồm cập nhật kết quả AI cho reading, phát cảnh báo mới nếu có bất thường được phát hiện, và gửi notification đến người dùng liên quan. 
-// Việc này giúp đảm bảo rằng người dùng sẽ nhận được thông tin cập nhật một cách nhanh chóng và chính xác sau khi quá trình inference hoàn tất, 
-// đồng thời giảm thiểu độ trễ trong việc phản hồi kết quả AI và cảnh báo bất thường.
+// Dịch vụ này đóng vai trò là cầu nối giữa hàng đợi xử lý AI (ecgInferenceQueue) và hệ thống realtime của server,
+// lắng nghe sự kiện hoàn thành hoặc thất bại của các job trong hàng đợi,
+// sau đó truy vấn database nếu cần thiết để lấy thông tin chi tiết và phát ra các sự kiện realtime đến client thông qua Socket.IO,
+// bao gồm cập nhật kết quả AI cho reading, phát cảnh báo mới nếu có bất thường được phát hiện, và gửi notification đến người dùng liên quan.
 const attachAiQueueRealtimeBridge = ({ io, logEvent }) => {
     ecgInferenceQueueEvents.on("completed", async ({ jobId, returnvalue }) => {
         try {
             const payload = returnvalue || {}
             const recipients = Array.isArray(payload.recipients) ? payload.recipients : []
 
-            // Phát sự kiện cập nhật kết quả AI cho reading đến các client của user liên quan thông qua Socket.IO
             emitToUsers(io, recipients, "reading-ai-updated", {
                 reading_id: payload.readingId,
                 user_id: payload.userId,
@@ -31,6 +28,7 @@ const attachAiQueueRealtimeBridge = ({ io, logEvent }) => {
                 ai_status: payload.aiStatus || "DONE",
                 ai_result: payload.aiResult || null,
                 abnormal_detected: Boolean(payload.abnormalDetected),
+                heart_rate: Number.isInteger(Number(payload.heartRate)) ? Number(payload.heartRate) : 0,
                 timestamp: payload.completedAt || new Date().toISOString(),
             })
 
@@ -89,6 +87,7 @@ const attachAiQueueRealtimeBridge = ({ io, logEvent }) => {
                 ai_status: "FAILED",
                 ai_result: null,
                 abnormal_detected: false,
+                heart_rate: 0,
                 ai_error: failedReason || "UNKNOWN",
                 timestamp: new Date().toISOString(),
             })

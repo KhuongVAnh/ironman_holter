@@ -1,10 +1,10 @@
-const IORedis = require("ioredis")
+﻿const IORedis = require("ioredis")
 const { Worker } = require("bullmq")
 const prisma = require("../prismaClient")
 const { NotificationType } = require("@prisma/client")
 const { predictFromReading } = require("../services/ecgCnnService")
 const { persistNotification } = require("../services/notificationService")
-const { getRecipientIdsByPatientCached } = require("../services/telemetryRuntimeCacheService")
+const { deriveHeartRateFromBeatCount } = require("../services/telemetrySignalService")
 
 const connection = new IORedis(process.env.REDIS_URL, {
     maxRetriesPerRequest: null,
@@ -31,8 +31,6 @@ const getAlertTypeFromGroup = (group) => {
 // Hàm để xây dựng thông điệp cảnh báo từ nhóm bất thường và nhịp tim
 const buildAlertMessageFromGroup = (group, heartRate) => {
     const alertType = getAlertTypeFromGroup(group)
-    const startSample = Number(group?.start_sample)
-    const endSample = Number(group?.end_sample)
     const segmentCount = Number(group?.segment_count || 1)
     return `Phát hiện ${alertType} (${segmentCount} segment). Nhịp tim ${heartRate} bpm`
 }
@@ -75,8 +73,8 @@ const createGroupedAlerts = async (userId, readingId, heartRate, abnormalGroups)
 }
 
 console.log("ECG Inference Worker started!!!\n")
-// Worker để xử lý các job AI inference cho ECG readings, 
-// bao gồm cập nhật kết quả AI cho reading, phát cảnh báo mới nếu có bất thường được phát hiện, 
+// Worker để xử lý các job AI inference cho ECG readings,
+// bao gồm cập nhật kết quả AI cho reading, phát cảnh báo mới nếu có bất thường được phát hiện,
 // và gửi notification đến người dùng liên quan.
 const worker = new Worker(
     queueName,
@@ -86,6 +84,7 @@ const worker = new Worker(
             userId,
             serialNumber,
             ecgSignal,
+            sampleRateHz,
             providedHeartRate,
             recipients,
             source,
@@ -118,11 +117,19 @@ const worker = new Worker(
             const aiResultSummary = toAiResultSummary(aiResult)
             const abnormalGroups = Array.isArray(aiResult?.abnormal_groups) ? aiResult.abnormal_groups : []
             const abnormalDetected = abnormalGroups.length > 0
+            const resolvedHeartRate =
+                Number.isInteger(Number(providedHeartRate)) && Number(providedHeartRate) > 0
+                    ? Number(providedHeartRate)
+                    : deriveHeartRateFromBeatCount(
+                        aiResult?.beat_count,
+                        Array.isArray(ecgSignal) ? ecgSignal.length : 0,
+                        sampleRateHz
+                    ) ?? 0
 
             const updatedReading = await prisma.reading.update({
                 where: { reading_id: Number(readingId) },
                 data: {
-                    heart_rate: Number.isInteger(Number(providedHeartRate)) ? Number(providedHeartRate) : 0,
+                    heart_rate: resolvedHeartRate,
                     ai_result: aiResultSummary,
                     abnormal_detected: abnormalDetected,
                     ai_status: "DONE",
@@ -168,6 +175,7 @@ const worker = new Worker(
                 aiStatus: "DONE",
                 aiResult: aiResultSummary,
                 abnormalDetected,
+                heartRate: updatedReading.heart_rate,
                 alertIds: createdAlerts.map((item) => item.alert_id),
                 notificationId: notificationResult?.notification?.notification_id || null,
                 recipients,

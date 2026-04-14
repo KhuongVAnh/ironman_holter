@@ -81,7 +81,7 @@ const buildAlertToastMessage = (alertData = {}) => {
 const PatientDashboard = () => {
   const { user } = useAuth()
   const lastAlertToastKeyRef = useRef(null)
-  const [currentHeartRate, setCurrentHeartRate] = useState(75)
+  const [currentHeartRate, setCurrentHeartRate] = useState(null)
   const [ecgRealtimeState, setEcgRealtimeState] = useState({
     sampleRateHz: DEFAULT_SAMPLE_RATE_HZ,
     buffer: [],
@@ -103,7 +103,10 @@ const PatientDashboard = () => {
     socketClient.on("disconnect", () => setIsConnected(false))
 
     const handleEcgData = (data) => {
-      setCurrentHeartRate(data.heart_rate)
+      const nextRealtimeHeartRate = Number.parseInt(data.heart_rate, 10)
+      if (Number.isInteger(nextRealtimeHeartRate) && nextRealtimeHeartRate > 0) {
+        setCurrentHeartRate(nextRealtimeHeartRate)
+      }
       const nextSampleRateHz = normalizeSampleRateHz(data.sample_rate_hz)
       const bufferSampleLimit = Math.max(1, Math.round(nextSampleRateHz * BUFFER_WINDOW_SECONDS))
 
@@ -126,6 +129,10 @@ const PatientDashboard = () => {
 
     const handleReadingAiUpdated = (event) => {
       const payload = event.detail || {}
+      const nextCompletedHeartRate = Number.parseInt(payload.heart_rate, 10)
+      if (Number.isInteger(nextCompletedHeartRate) && nextCompletedHeartRate > 0) {
+        setCurrentHeartRate(nextCompletedHeartRate)
+      }
 
       setAnalysisState((currentState) => {
         const latestReadingId = currentState?.readingId
@@ -264,7 +271,7 @@ const PatientDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-ink-500">Nhịp tim hiện tại</p>
                 <div className="mt-3 flex items-end gap-3">
-                  <span className="text-6xl font-black tracking-tighter text-ink-900">{currentHeartRate}</span>
+                  <span className="text-6xl font-black tracking-tighter text-ink-900">{currentHeartRate ?? "--"}</span>
                   <span className="pb-2 text-lg font-bold text-brand-600">BPM</span>
                 </div>
               </div>

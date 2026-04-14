@@ -1,15 +1,15 @@
-/*
+﻿/*
 Tác dụng:
 - Chứa các helper chuẩn hóa tín hiệu ECG, heart rate và metadata realtime cho luồng ingest telemetry.
 
 Vấn đề file này giải quyết:
 - Telemetry từ thiết bị có thể gửi ECG, heart rate hoặc metadata sample rate/duration sai định dạng, nên cần một lớp chuẩn hóa nhỏ gọn dùng lại ở nhiều nơi.
-- Cách làm: parse input về mảng số hợp lệ, chuẩn hóa BPM, suy ra BPM từ số beat khi cần, và chuẩn hóa metadata sample rate/chunk duration cho socket realtime.
+- Cách làm: parse input về mảng số hợp lệ, chuẩn hóa BPM, suy ra BPM từ số beat khi có sẵn, và chuẩn hóa metadata sample rate/chunk duration cho socket realtime.
 
 Function chính:
 - normalizeEcgSignal: chuyển input ECG về mảng số hợp lệ.
 - toHeartRate: chuẩn hóa `heart_rate` về số nguyên dương hợp lệ.
-- deriveHeartRateFromBeatCount: tính BPM từ số beat và số mẫu tín hiệu.
+- deriveHeartRateFromBeatCount: tính BPM từ số beat và độ dài tín hiệu.
 - resolveTelemetrySampleRate: suy ra tần số lấy mẫu ECG từ payload telemetry.
 - resolveTelemetryChunkDurationSec: suy ra thời lượng chunk ECG từ metadata explicit hoặc số mẫu.
 - buildRealtimeEcgMeta: tạo metadata realtime chuẩn hóa để emit cho frontend.
@@ -46,7 +46,7 @@ const toHeartRate = (value) => {
   return parsed
 }
 
-// Hàm tính BPM từ số beat và độ dài tín hiệu khi telemetry không gửi heart_rate.
+// Hàm tính BPM từ số beat và độ dài tín hiệu khi đã có sẵn số beat hợp lệ.
 const deriveHeartRateFromBeatCount = (
   beatCount,
   sampleCount,
