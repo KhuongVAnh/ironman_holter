@@ -28,16 +28,37 @@ const {
 } = require("./services/mqttTelemetryService")
 const { ingestTelemetry } = require("./services/telemetryIngestService")
 const { attachAiQueueRealtimeBridge } = require("./services/aiQueueRealtimeBridgeService")
+const { attachDirectMessageNotificationBridge } = require("./services/directMessageNotificationBridgeService")
+
+const allowedClientOrigins = [process.env.CLIENT_URL, process.env.CLIENT_URL2]
+  .map((origin) => origin?.trim())
+  .filter(Boolean)
+
+// Hàm kiểm tra origin gửi lên có nằm trong danh sách frontend được phép hay không.
+// Cho phép request không có Origin như Postman hoặc server-to-server để tránh chặn nhầm luồng nội bộ.
+const isAllowedClientOrigin = (origin) => {
+  if (!origin) {
+    return true
+  }
+
+  return allowedClientOrigins.includes(origin)
+}
 
 const app = express()
 const server = http.createServer(app)
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin(origin, callback) {
+      if (isAllowedClientOrigin(origin)) {
+        return callback(null, true)
+      }
+
+      return callback(new Error(`CORS chặn Socket.IO origin: ${origin}`))
+    },
     methods: ["GET", "POST"],
+    credentials: true,
   },
 })
-
 // View engine
 app.set("views", path.join(__dirname, "views"))
 app.set("view engine", "ejs")
@@ -45,7 +66,14 @@ app.set("view engine", "ejs")
 // Middleware
 app.use(helmet())
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  // Chỉ cho phép hai frontend đã cấu hình trong env truy cập có credentials, để cookie refresh token được browser chấp nhận.
+  origin(origin, callback) {
+    if (isAllowedClientOrigin(origin)) {
+      return callback(null, true)
+    }
+
+    return callback(new Error(`CORS chặn HTTP origin: ${origin}`))
+  },
   credentials: true,
 }))
 app.use(cookieParser())
