@@ -28,7 +28,6 @@ const {
 } = require("./services/mqttTelemetryService")
 const { ingestTelemetry } = require("./services/telemetryIngestService")
 const { attachAiQueueRealtimeBridge } = require("./services/aiQueueRealtimeBridgeService")
-const { attachDirectMessageNotificationBridge } = require("./services/directMessageNotificationBridgeService")
 
 const allowedClientOrigins = [process.env.CLIENT_URL, process.env.CLIENT_URL2]
   .map((origin) => origin?.trim())
