@@ -29,7 +29,7 @@ const {
 const { ingestTelemetry } = require("./services/telemetryIngestService")
 const { attachAiQueueRealtimeBridge } = require("./services/aiQueueRealtimeBridgeService")
 
-const allowedClientOrigins = [process.env.CLIENT_URL, process.env.CLIENT_URL2]
+const allowedClientOrigins = [process.env.CLIENT_URL, process.env.CLIENT_URL2, process.env.CLIENT_URL3, process.env.CLIENT_URL4, process.env.CLIENT_URL5]
   .map((origin) => origin?.trim())
   .filter(Boolean)
 
