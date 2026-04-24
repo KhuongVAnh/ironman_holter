@@ -1,4 +1,4 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { usersApi } from "../../services/api"
@@ -79,10 +79,10 @@ const PatientProfile = () => {
             </form>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-[24px] bg-surface p-5"><p className="text-sm text-ink-500">Ho va ten</p><p className="mt-2 text-lg font-bold text-ink-900">{user?.name}</p></div>
-              <div className="rounded-[24px] bg-surface p-5"><p className="text-sm text-ink-500">Email</p><p className="mt-2 text-lg font-bold text-ink-900">{user?.email}</p></div>
-              <div className="rounded-[24px] bg-surface p-5"><p className="text-sm text-ink-500">Vai tro</p><div className="mt-3">{getRoleBadge(user?.role)}</div></div>
-              <div className="rounded-[24px] bg-surface p-5"><p className="text-sm text-ink-500">Trang thai</p><span className="mt-3 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Hoat dong</span></div>
+              <div className="rounded-xl bg-surface-soft p-5"><p className="text-sm text-ink-500">Ho va ten</p><p className="mt-2 text-lg font-bold text-ink-900">{user?.name}</p></div>
+              <div className="rounded-xl bg-surface-soft p-5"><p className="text-sm text-ink-500">Email</p><p className="mt-2 text-lg font-bold text-ink-900">{user?.email}</p></div>
+              <div className="rounded-xl bg-surface-soft p-5"><p className="text-sm text-ink-500">Vai tro</p><div className="mt-3">{getRoleBadge(user?.role)}</div></div>
+              <div className="rounded-xl bg-surface-soft p-5"><p className="text-sm text-ink-500">Trang thai</p><span className="mt-3 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Hoat dong</span></div>
             </div>
           )}
         </div>
@@ -96,8 +96,8 @@ const PatientProfile = () => {
           </div>
         </div>
         <div className="app-card-body space-y-4 text-sm text-ink-700">
-          <div className="rounded-[24px] bg-surface p-5"><i className="fas fa-key me-2 text-brand-600"></i>Mật khẩu được mã hóa và lưu bảo mật.</div>
-          <div className="rounded-[24px] bg-surface p-5"><i className="fas fa-clock me-2 text-brand-600"></i>Đăng nhập gần nhất: Hôm nay</div>
+          <div className="rounded-xl bg-surface-soft p-5"><i className="fas fa-key me-2 text-brand-600"></i>Mật khẩu được mã hóa và lưu bảo mật.</div>
+          <div className="rounded-xl bg-surface-soft p-5"><i className="fas fa-clock me-2 text-brand-600"></i>Đăng nhập gần nhất: Hôm nay</div>
           <button type="button" className="btn btn-outline-warning w-100" onClick={() => setShowPasswordModal(true)}><i className="fas fa-lock me-2"></i>Đổi mật khẩu</button>
         </div>
       </aside>

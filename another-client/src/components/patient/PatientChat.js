@@ -1,7 +1,71 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { chatApi } from "../../services/api"
+
+// Hàm sắp xếp danh sách contact theo thời điểm có tin nhắn cuối mới nhất.
+const sortContactsByLastActivity = (contacts = []) => {
+  return [...contacts].sort((left, right) => {
+    if (!left.last_message_at && !right.last_message_at) return left.name.localeCompare(right.name)
+    if (!left.last_message_at) return 1
+    if (!right.last_message_at) return -1
+    return new Date(right.last_message_at) - new Date(left.last_message_at)
+  })
+}
+
+// Hàm thêm message vào danh sách nếu chưa có và giữ thứ tự tăng dần theo thời gian tạo.
+const appendMessageIfMissing = (messages = [], nextMessage) => {
+  if (!nextMessage?.message_id) return messages
+  if (messages.some((item) => item.message_id === nextMessage.message_id)) return messages
+
+  return [...messages, nextMessage].sort((left, right) => {
+    const leftTime = new Date(left.created_at).getTime()
+    const rightTime = new Date(right.created_at).getTime()
+    if (leftTime !== rightTime) return leftTime - rightTime
+    return Number(left.message_id) - Number(right.message_id)
+  })
+}
+
+// Hàm prepend một page message cũ hơn vào đầu danh sách hiện tại mà không tạo bản ghi trùng.
+const prependOlderMessages = (currentMessages = [], olderMessages = []) => {
+  const existingIds = new Set(currentMessages.map((item) => item.message_id))
+  const nextMessages = olderMessages.filter((item) => !existingIds.has(item.message_id))
+  return [...nextMessages, ...currentMessages]
+}
+
+// Hàm đánh dấu unread của contact đang mở về 0 trong state cục bộ.
+const markContactReadLocally = (contacts = [], contactId) => {
+  return contacts.map((contact) => (
+    contact.user_id === contactId
+      ? { ...contact, unread_count: 0 }
+      : contact
+  ))
+}
+
+// Hàm cập nhật preview contact khi có direct message mới mà không cần refetch toàn bộ danh sách contact.
+const updateContactsFromRealtimeMessage = (contacts = [], messageData, currentUserId, activeContactId) => {
+  if (!messageData?.message_id) return contacts
+
+  const partnerId = messageData.sender_id === currentUserId
+    ? messageData.receiver_id
+    : messageData.sender_id
+
+  const nextContacts = contacts.map((contact) => {
+    if (contact.user_id !== partnerId) return contact
+
+    const isIncomingForInactiveConversation =
+      messageData.receiver_id === currentUserId && partnerId !== activeContactId
+
+    return {
+      ...contact,
+      last_message: messageData.message,
+      last_message_at: messageData.created_at,
+      unread_count: isIncomingForInactiveConversation ? Number(contact.unread_count || 0) + 1 : 0,
+    }
+  })
+
+  return sortContactsByLastActivity(nextContacts)
+}
 
 const PatientChat = () => {
   const { user } = useAuth()
@@ -11,44 +75,78 @@ const PatientChat = () => {
   const [inputMessage, setInputMessage] = useState("")
   const [loadingContacts, setLoadingContacts] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
+  const [loadingOlderMessages, setLoadingOlderMessages] = useState(false)
   const [sending, setSending] = useState(false)
+  const [historyCursor, setHistoryCursor] = useState(null)
+  const [hasMoreHistory, setHasMoreHistory] = useState(false)
   const messagesEndRef = useRef(null)
 
-  const selectedContact = useMemo(() => contacts.find((item) => item.user_id === selectedContactId) || null, [contacts, selectedContactId])
+  const selectedContact = useMemo(
+    () => contacts.find((item) => item.user_id === selectedContactId) || null,
+    [contacts, selectedContactId]
+  )
 
   useEffect(() => { fetchContacts() }, [])
-  useEffect(() => { selectedContactId ? fetchMessages(selectedContactId) : setMessages([]) }, [selectedContactId])
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
 
   useEffect(() => {
-    const onDirectMessage = async (event) => {
+    if (selectedContactId) {
+      loadConversation(selectedContactId)
+    } else {
+      setMessages([])
+      setHistoryCursor(null)
+      setHasMoreHistory(false)
+    }
+  }, [selectedContactId])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  useEffect(() => {
+    const onDirectMessage = (event) => {
       const messageData = event.detail
       if (!messageData?.message_id) return
-      const isCurrentConversation = selectedContactId && (messageData.sender_id === selectedContactId || messageData.receiver_id === selectedContactId)
+
+      const isCurrentConversation =
+        selectedContactId &&
+        (messageData.sender_id === selectedContactId || messageData.receiver_id === selectedContactId)
 
       if (isCurrentConversation) {
-        setMessages((prev) => prev.some((item) => item.message_id === messageData.message_id) ? prev : [...prev, messageData])
-        if (messageData.sender_id === selectedContactId && messageData.receiver_id === user?.user_id) await markRead(selectedContactId, false)
+        // Nếu người dùng đang mở đúng hội thoại thì chỉ cần append tại chỗ và đánh dấu đã đọc cục bộ.
+        setMessages((prev) => appendMessageIfMissing(prev, messageData))
+        setContacts((prev) => markContactReadLocally(updateContactsFromRealtimeMessage(prev, messageData, user?.user_id, selectedContactId), selectedContactId))
+
+        if (messageData.sender_id === selectedContactId && messageData.receiver_id === user?.user_id) {
+          void markRead(selectedContactId, false)
+        }
+        return
       }
 
-      fetchContacts(false)
+      // Nếu tin nhắn thuộc hội thoại khác, chỉ cập nhật preview và unread count cục bộ.
+      setContacts((prev) => updateContactsFromRealtimeMessage(prev, messageData, user?.user_id, selectedContactId))
     }
 
     window.addEventListener("directChatMessage", onDirectMessage)
     return () => window.removeEventListener("directChatMessage", onDirectMessage)
   }, [selectedContactId, user?.user_id])
 
+  // Hàm tải danh sách bác sĩ có quyền chat và giữ contact đang được chọn nếu còn tồn tại.
   const fetchContacts = async (showLoading = true) => {
     try {
       if (showLoading) setLoadingContacts(true)
       const response = await chatApi.getContacts()
-      const list = response.data?.contacts || []
+      const list = sortContactsByLastActivity(response.data?.contacts || [])
       setContacts(list)
+
       if (list.length === 0) {
         setSelectedContactId(null)
         return
       }
-      setSelectedContactId((current) => !current ? list[0].user_id : (list.some((item) => item.user_id === current) ? current : list[0].user_id))
+
+      setSelectedContactId((current) => {
+        if (!current) return list[0].user_id
+        return list.some((item) => item.user_id === current) ? current : list[0].user_id
+      })
     } catch (error) {
       console.error("Lỗi tải danh sách bác sĩ:", error)
       toast.error("Không thể tải danh sách bác sĩ")
@@ -57,22 +155,58 @@ const PatientChat = () => {
     }
   }
 
-  const fetchMessages = async (doctorId) => {
+  // Hàm tải lịch sử hội thoại, hỗ trợ cả lần tải đầu và lần tải thêm các message cũ hơn bằng cursor.
+  const fetchMessages = async (doctorId, { cursor = null, append = false } = {}) => {
     try {
-      setLoadingMessages(true)
-      const response = await chatApi.getDirectHistory(doctorId, { limit: 200 })
-      setMessages(response.data?.messages || [])
+      if (append) {
+        setLoadingOlderMessages(true)
+      } else {
+        setLoadingMessages(true)
+      }
+
+      const response = await chatApi.getDirectHistory(doctorId, {
+        limit: 50,
+        ...(cursor ? { cursor } : {}),
+      })
+
+      const nextMessages = Array.isArray(response.data?.messages) ? response.data.messages : []
+      const nextCursor = response.data?.next_cursor || null
+      const nextHasMore = Boolean(response.data?.has_more)
+
+      setMessages((prev) => (append ? prependOlderMessages(prev, nextMessages) : nextMessages))
+      setHistoryCursor(nextCursor)
+      setHasMoreHistory(nextHasMore)
+      setContacts((prev) => markContactReadLocally(prev, doctorId))
       await markRead(doctorId, false)
-      await fetchContacts(false)
     } catch (error) {
       console.error("Lỗi tải lịch sử chat:", error)
       toast.error(error.response?.data?.message || "Không thể tải lịch sử chat")
-      setMessages([])
+      if (!append) {
+        setMessages([])
+        setHistoryCursor(null)
+        setHasMoreHistory(false)
+      }
     } finally {
       setLoadingMessages(false)
+      setLoadingOlderMessages(false)
     }
   }
 
+  // Hàm tải trạng thái ban đầu của hội thoại đang chọn.
+  const loadConversation = async (doctorId) => {
+    setMessages([])
+    setHistoryCursor(null)
+    setHasMoreHistory(false)
+    await fetchMessages(doctorId)
+  }
+
+  // Hàm tải thêm các tin nhắn cũ hơn ở đầu hội thoại bằng cursor pagination.
+  const loadOlderMessages = async () => {
+    if (!selectedContactId || !historyCursor || loadingOlderMessages) return
+    await fetchMessages(selectedContactId, { cursor: historyCursor, append: true })
+  }
+
+  // Hàm đánh dấu các tin nhắn incoming trong hội thoại là đã đọc.
   const markRead = async (contactId, notify = false) => {
     try {
       await chatApi.markDirectRead(contactId)
@@ -81,15 +215,21 @@ const PatientChat = () => {
     }
   }
 
+  // Hàm gửi direct message, append optimistic theo response và cập nhật preview contact cục bộ.
   const sendMessage = async () => {
     if (!selectedContact || !inputMessage.trim() || sending) return
+
     try {
       setSending(true)
       const response = await chatApi.sendDirect(selectedContact.user_id, inputMessage.trim())
       const sentMessage = response.data?.data
-      if (sentMessage?.message_id) setMessages((prev) => prev.some((item) => item.message_id === sentMessage.message_id) ? prev : [...prev, sentMessage])
+
+      if (sentMessage?.message_id) {
+        setMessages((prev) => appendMessageIfMissing(prev, sentMessage))
+        setContacts((prev) => markContactReadLocally(updateContactsFromRealtimeMessage(prev, sentMessage, user?.user_id, selectedContact.user_id), selectedContact.user_id))
+      }
+
       setInputMessage("")
-      fetchContacts(false)
     } catch (error) {
       console.error("Lỗi gửi tin nhắn:", error)
       toast.error(error.response?.data?.message || "Không thể gửi tin nhắn")
@@ -98,6 +238,7 @@ const PatientChat = () => {
     }
   }
 
+  // Hàm hỗ trợ Enter để gửi và Shift+Enter để xuống dòng.
   const handleKeyDown = (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault()
@@ -105,6 +246,7 @@ const PatientChat = () => {
     }
   }
 
+  // Hàm format thời gian hiển thị trên bubble chat.
   const formatTime = (timestamp) => new Date(timestamp).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })
 
   if (loadingContacts) return <div className="flex justify-center py-14"><div className="spinner-border" role="status" /></div>
@@ -156,7 +298,15 @@ const PatientChat = () => {
           </div>
         ) : (
           <>
-            <div className="h-[520px] overflow-y-auto bg-surface px-6 py-5">
+            <div className="h-[520px] overflow-y-auto bg-surface-soft px-6 py-5">
+              {hasMoreHistory ? (
+                <div className="mb-4 flex justify-center">
+                  <button type="button" className="btn btn-light" onClick={loadOlderMessages} disabled={loadingOlderMessages}>
+                    {loadingOlderMessages ? "Đang tải tin nhắn cũ..." : "Tải tin nhắn cũ hơn"}
+                  </button>
+                </div>
+              ) : null}
+
               {loadingMessages ? (
                 <div className="flex justify-center py-14"><div className="spinner-border" role="status" /></div>
               ) : messages.length === 0 ? (
@@ -170,7 +320,7 @@ const PatientChat = () => {
                 const isMine = message.sender_id === user?.user_id
                 return (
                   <div key={message.message_id} className={`mb-4 flex ${isMine ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[78%] rounded-[24px] px-4 py-3 shadow-soft ${isMine ? "bg-brand-600 text-white" : "bg-white text-ink-800"}`}>
+                    <div className={`max-w-[78%] rounded-2xl px-4 py-3 shadow-soft ${isMine ? "bg-brand-600 text-white" : "border border-surface-line bg-white text-ink-800"}`}>
                       <div className="whitespace-pre-wrap text-sm leading-6">{message.message}</div>
                       <div className={`mt-2 text-[11px] ${isMine ? "text-white/70" : "text-ink-500"}`}>{formatTime(message.created_at)}</div>
                     </div>

@@ -196,7 +196,7 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
         <div className="alert alert-danger">{errorMessage}</div>
       ) : reading ? (
         <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-            <div className="rounded-[24px] bg-surface p-5 text-sm text-ink-700">
+            <div className="rounded-xl bg-surface-soft p-5 text-sm text-ink-700">
             <p className="mb-2"><strong className="text-ink-900">Reading ID:</strong> {reading.reading_id}</p>
             <p className="mb-2"><strong className="text-ink-900">Thoi gian:</strong> {new Date(reading.timestamp).toLocaleString("vi-VN")}</p>
             <p className="mb-2"><strong className="text-ink-900">Nhip tim:</strong> {reading.heart_rate} BPM</p>
@@ -209,10 +209,10 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
             <small className="text-muted">{reading.patient?.email || ""}</small>
           </div>
           <div className="space-y-4">
-            <div className="rounded-[24px] border border-surface-line bg-white p-4 shadow-soft">
+            <div className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
               <ECGChart data={ecgSignal} highlights={highlightSegments} />
             </div>
-            <div className="rounded-[24px] border border-surface-line bg-surface p-4">
+            <div className="rounded-xl border border-surface-line bg-surface-soft p-4">
               <h4 className="mb-3 text-base font-bold text-ink-900">Chú thích bất thường</h4>
               {aiStatus === "PENDING" ? (
                 <p className="text-sm text-ink-600">Đang chờ AI hoàn tất.</p>

@@ -1,6 +1,5 @@
-﻿import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "react-toastify"
-import { useRef } from "react"
 import io from "socket.io-client"
 import { API_BASE_URL } from "../../config/env"
 import { useAuth } from "../../contexts/AuthContext"
@@ -11,6 +10,7 @@ import ECGChart from "./ECGChart"
 import useECGStream from "./useECGStream"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
 import RecentAlertsPanel, { getAlertTypeLabel } from "../shared/RecentAlertsPanel"
+import { buildAlertKey, showToastOnce } from "../../utils/realtimeDedupe"
 
 const DEFAULT_SAMPLE_RATE_HZ = 250
 const DISPLAY_WINDOW_SECONDS = 5
@@ -80,7 +80,6 @@ const buildAlertToastMessage = (alertData = {}) => {
 
 const PatientDashboard = () => {
   const { user } = useAuth()
-  const lastAlertToastKeyRef = useRef(null)
   const [currentHeartRate, setCurrentHeartRate] = useState(null)
   const [ecgRealtimeState, setEcgRealtimeState] = useState({
     sampleRateHz: DEFAULT_SAMPLE_RATE_HZ,
@@ -148,34 +147,25 @@ const PatientDashboard = () => {
       })
     }
 
-    const handleAlert = (alertData) => {
-      if (alertData.user_id === user.user_id) {
-        const firstAlert = Array.isArray(alertData.alerts) ? alertData.alerts[0] : null
-        const toastKey = [
-          Number.isInteger(Number(alertData.reading_id)) ? Number(alertData.reading_id) : "unknown-reading",
-          firstAlert?.alert_id || "no-alert-id",
-          Number(alertData.abnormal_count) || 0,
-        ].join(":")
-
-        if (lastAlertToastKeyRef.current !== toastKey) {
-          lastAlertToastKeyRef.current = toastKey
-          toast.error(`Cảnh báo: ${buildAlertToastMessage(alertData)}`)
-        }
+    const handleAlert = (event) => {
+      const alertData = event.detail || {}
+      if (String(alertData.user_id) === String(user.user_id)) {
+        showToastOnce(buildAlertKey(alertData), "error", `Cảnh báo: ${buildAlertToastMessage(alertData)}`, { autoClose: 6000 }, 30000)
         fetchRecentAlerts()
       }
     }
 
     socketClient.on("reading-update", handleEcgData)
-    socketClient.on("alert", handleAlert)
     window.addEventListener("readingAiUpdated", handleReadingAiUpdated)
+    window.addEventListener("appAlert", handleAlert)
 
     fetchRecentAlerts()
     fetchSupervisingDoctors()
 
     return () => {
       socketClient.off("reading-update", handleEcgData)
-      socketClient.off("alert", handleAlert)
       window.removeEventListener("readingAiUpdated", handleReadingAiUpdated)
+      window.removeEventListener("appAlert", handleAlert)
       socketClient.close()
     }
   }, [user.user_id])
@@ -271,11 +261,11 @@ const PatientDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-ink-500">Nhịp tim hiện tại</p>
                 <div className="mt-3 flex items-end gap-3">
-                  <span className="text-6xl font-black tracking-tighter text-ink-900">{currentHeartRate ?? "--"}</span>
+                  <span className="text-5xl font-bold text-ink-900">{currentHeartRate ?? "--"}</span>
                   <span className="pb-2 text-lg font-bold text-brand-600">BPM</span>
                 </div>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-brand-700">
+              <div className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-bold uppercase text-brand-700">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75"></span>
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600"></span>
@@ -288,7 +278,7 @@ const PatientDashboard = () => {
           <div className="app-card md:col-span-2 p-5">
             <div className="flex items-center gap-2 text-brand-600">
               <i className="fas fa-link text-sm"></i>
-              <p className="text-xs font-bold uppercase tracking-[0.18em]">Thiết bị</p>
+              <p className="text-xs font-bold uppercase">Thiết bị</p>
             </div>
             <div className="mt-3 flex items-center gap-2">
               <span className={`inline-flex h-3 w-3 rounded-full ${isConnected ? "bg-emerald-500" : "bg-red-500"}`}></span>
@@ -298,42 +288,42 @@ const PatientDashboard = () => {
           </div>
 
           <div className="app-card md:col-span-2 p-5">
-              <div className={`flex items-center gap-4 rounded-[22px] px-4 py-4 ${aiCard.tone}`}>
-                <div className="rounded-full bg-brand-50 p-3 text-brand-600"><i className="fas fa-brain"></i></div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em]">Phân tích Ironman AI</p>
-                  <p className="mt-1 text-base font-bold">{aiCard.title}</p>
-                  <p className="mt-1 text-sm opacity-80">{aiCard.detail}</p>
-                  {analysisState?.time ? (
-                    <p className="mt-2 text-xs opacity-70">{new Date(analysisState.time).toLocaleString("vi-VN")}</p>
-                  ) : null}
-                </div>
-                <i className="fas fa-badge-check opacity-60"></i>
+            <div className={`flex items-center gap-4 rounded-xl px-4 py-4 ${aiCard.tone}`}>
+              <div className="rounded-full bg-brand-50 p-3 text-brand-600"><i className="fas fa-brain"></i></div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold uppercase">Phân tích Ironman AI</p>
+                <p className="mt-1 text-base font-bold">{aiCard.title}</p>
+                <p className="mt-1 text-sm opacity-80">{aiCard.detail}</p>
+                {analysisState?.time ? (
+                  <p className="mt-2 text-xs opacity-70">{new Date(analysisState.time).toLocaleString("vi-VN")}</p>
+                ) : null}
               </div>
+              <i className="fas fa-badge-check opacity-60"></i>
+            </div>
           </div>
         </div>
 
         <div className="app-card flex min-h-[430px] flex-col overflow-hidden xl:min-h-[470px]">
-          <div className="flex items-center justify-between border-b border-surface-line px-5 py-4">
+          <div className="flex items-center justify-between border-b border-surface-line px-4 py-3">
             <div className="flex items-center gap-3">
               <i className="fas fa-heart-pulse text-brand-600"></i>
               <h3 className="text-lg font-bold">Biểu đồ điện tâm đồ (ECG)</h3>
             </div>
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em]">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase">
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-md bg-brand-600 px-3 py-2 text-white shadow-soft transition hover:bg-brand-700"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-3 py-2 text-white transition hover:bg-brand-700"
                 onClick={generateFakeData}
               >
                 <i className="fas fa-play text-[10px]"></i>
                 Mô phỏng
               </button>
-              <span className="rounded-md bg-brand-50 px-3 py-1 text-brand-700">25 mm/s</span>
-              <span className="rounded-md bg-surface px-3 py-1 text-ink-500">10 mm/mV</span>
+              <span className="rounded-full bg-surface-soft px-3 py-1 text-ink-700">25 mm/s</span>
+              <span className="rounded-full bg-surface-soft px-3 py-1 text-ink-500">10 mm/mV</span>
             </div>
           </div>
           <div className="flex-1 p-4">
-            <div className="h-full rounded-[28px] border border-brand-100/80 bg-[linear-gradient(rgba(253,164,175,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(253,164,175,0.7)_1px,transparent_1px),linear-gradient(rgba(254,202,202,0.6)_0.5px,transparent_0.5px),linear-gradient(90deg,rgba(254,202,202,0.6)_0.5px,transparent_0.5px)] bg-[size:50px_50px,50px_50px,10px_10px,10px_10px]">
+            <div className="h-full rounded-xl border border-brand-100 bg-[linear-gradient(rgba(225,29,72,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(225,29,72,0.14)_1px,transparent_1px),linear-gradient(rgba(225,29,72,0.08)_0.5px,transparent_0.5px),linear-gradient(90deg,rgba(225,29,72,0.08)_0.5px,transparent_0.5px)] bg-[size:50px_50px,50px_50px,10px_10px,10px_10px]">
               <ECGChart
                 data={streamedEcgData}
                 sampleRate={ecgRealtimeState.sampleRateHz}
@@ -370,7 +360,7 @@ const PatientDashboard = () => {
         <div className="app-card p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-ink-900">Bác sĩ phụ trách</h3>
-            <span className="text-xs font-bold uppercase tracking-[0.16em] text-brand-600">{supervisingDoctors.length} người</span>
+            <span className="text-xs font-bold uppercase text-brand-600">{supervisingDoctors.length} người</span>
           </div>
           <div className="mt-5 space-y-4">
             {supervisingDoctors.length > 0 ? supervisingDoctors.map((doctor) => (
@@ -386,7 +376,7 @@ const PatientDashboard = () => {
                   <i className="fas fa-comment-medical"></i>
                 </button>
               </div>
-            )) : <p className="rounded-[20px] bg-surface px-4 py-4 text-sm text-ink-600">Chưa có bác sĩ nào đang theo dõi dữ liệu của bạn.</p>}
+            )) : <p className="rounded-2xl bg-surface-soft px-4 py-4 text-sm text-ink-600">Chưa có bác sĩ nào đang theo dõi dữ liệu của bạn.</p>}
           </div>
         </div>
       </section>

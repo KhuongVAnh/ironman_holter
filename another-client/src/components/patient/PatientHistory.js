@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { readingsApi } from "../../services/api"
@@ -116,8 +116,8 @@ const PatientHistory = () => {
     <div className="space-y-6">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-600">Patient data</p>
-          <h1 className="mt-2 text-3xl font-black text-ink-900">Lịch sử theo dõi</h1>
+          <p className="text-sm font-medium text-ink-600">Patient data</p>
+          <h1 className="mt-2 text-2xl font-bold text-ink-900">Lịch sử theo dõi</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-ink-600">Tra cứu các phiên đo trước đây, kiểm tra nhịp tim trung bình và mở nhanh bản ghi ECG chi tiết khi cần.</p>
         </div>
         <button className="btn btn-outline-primary" onClick={fetchReadings}>
@@ -127,9 +127,9 @@ const PatientHistory = () => {
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Số bản ghi trang này</p><p className="mt-2 text-3xl font-black text-ink-900">{readings.length}</p></div>
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Trang hiện tại</p><p className="mt-2 text-3xl font-black text-ink-900">{currentPage}/{totalPages}</p></div>
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Bản ghi bất thường</p><p className="mt-2 text-3xl font-black text-red-600">{readings.filter((item) => isReadingAbnormal(item)).length}</p></div>
+        <div className="app-card p-5"><p className="text-sm text-ink-500">Số bản ghi trang này</p><p className="mt-2 text-2xl font-bold text-ink-900">{readings.length}</p></div>
+        <div className="app-card p-5"><p className="text-sm text-ink-500">Trang hiện tại</p><p className="mt-2 text-2xl font-bold text-ink-900">{currentPage}/{totalPages}</p></div>
+        <div className="app-card p-5"><p className="text-sm text-ink-500">Bản ghi bất thường</p><p className="mt-2 text-2xl font-bold text-red-600">{readings.filter((item) => isReadingAbnormal(item)).length}</p></div>
       </section>
 
       <section className="app-card overflow-hidden">
@@ -153,7 +153,7 @@ const PatientHistory = () => {
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-surface-line text-sm">
                   <thead>
-                    <tr className="text-left text-xs font-bold uppercase tracking-[0.18em] text-ink-500">
+                    <tr className="text-left text-xs font-bold uppercase text-ink-500">
                       <th className="pb-4 pr-4">Thời gian</th>
                       <th className="pb-4 pr-4">Nhịp tim</th>
                       <th className="pb-4 pr-4">Đánh giá AI</th>
@@ -191,7 +191,7 @@ const PatientHistory = () => {
                   <div className="flex flex-wrap items-center gap-2">
                     <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1}>Trước</button>
                     {pageWindow.map((page) => (
-                      <button key={page} type="button" className={`inline-flex h-10 min-w-10 items-center justify-center rounded-2xl px-3 text-sm font-semibold ${page === currentPage ? "bg-brand-600 text-white shadow-float" : "border border-surface-line bg-white text-ink-700 hover:bg-surface"}`} onClick={() => setCurrentPage(page)}>{page}</button>
+                      <button key={page} type="button" className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 text-sm font-semibold ${page === currentPage ? "bg-brand-600 text-white" : "border border-surface-line bg-white text-ink-700 hover:bg-surface-soft"}`} onClick={() => setCurrentPage(page)}>{page}</button>
                     ))}
                     <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>Sau</button>
                   </div>

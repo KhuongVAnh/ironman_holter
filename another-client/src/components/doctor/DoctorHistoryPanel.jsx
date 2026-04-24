@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
@@ -139,7 +139,7 @@ const DoctorHistoryPanel = () => {
               {alerts.map((alert) => {
                 const isDisabled = !alert.reading_id
                 return (
-                  <button key={alert.alert_id} type="button" className={`alert-clickable-surface w-100 rounded-[24px] p-5 text-start ${isDisabled ? "is-disabled" : ""}`} disabled={isDisabled} onClick={() => setSelectedReadingId(alert.reading_id)}>
+                  <button key={alert.alert_id} type="button" className={`alert-clickable-surface w-100 rounded-xl p-5 text-start ${isDisabled ? "is-disabled" : ""}`} disabled={isDisabled} onClick={() => setSelectedReadingId(alert.reading_id)}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="mb-2 flex flex-wrap items-center gap-2">

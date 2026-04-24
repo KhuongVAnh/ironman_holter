@@ -76,29 +76,29 @@ const Chatbot = ({ userId, userRole }) => {
   return (
     <>
       <div className="fixed bottom-5 right-5 z-40">
-        <button type="button" className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-600 text-xl text-white shadow-float transition hover:scale-105" onClick={() => setIsOpen((prev) => !prev)}>
+        <button type="button" className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-lg text-white shadow-float transition hover:bg-brand-700" onClick={() => setIsOpen((prev) => !prev)}>
           <i className={`fas ${isOpen ? "fa-xmark" : "fa-robot"}`}></i>
         </button>
       </div>
 
       {isOpen ? (
-        <div className="fixed bottom-24 right-5 z-40 flex h-[520px] w-[400px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[30px] border border-surface-line bg-white shadow-panel">
+        <div className="fixed bottom-24 right-5 z-40 flex h-[520px] w-[400px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-surface-line bg-white shadow-panel">
           <div className="flex items-center justify-between bg-brand-600 px-5 py-4 text-white">
             <div>
               <p className="text-sm font-bold">Tro ly AI Ironman</p>
               <p className="text-xs text-white/75">Ho tro tim mach 24/7</p>
             </div>
             <div className="relative">
-              <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10" onClick={() => setShowMenu((prev) => !prev)}>
+              <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-white/20" onClick={() => setShowMenu((prev) => !prev)}>
                 <i className="fas fa-ellipsis"></i>
               </button>
               {showMenu ? (
-                <div className="absolute right-0 top-12 w-52 rounded-2xl border border-surface-line bg-white p-2 text-sm text-ink-700 shadow-soft">
-                  <button type="button" className="flex w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-surface" onClick={() => { clearChat(); setShowMenu(false) }}>
+                <div className="absolute right-0 top-12 w-52 rounded-2xl border border-surface-line bg-white p-2 text-sm text-ink-700 shadow-panel">
+                  <button type="button" className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-surface-soft" onClick={() => { clearChat(); setShowMenu(false) }}>
                     <i className="fas fa-trash"></i>
                     Xoa cuoc tro chuyen
                   </button>
-                  <button type="button" className="flex w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-surface" onClick={() => { setIsOpen(false); setShowMenu(false) }}>
+                  <button type="button" className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-surface-soft" onClick={() => { setIsOpen(false); setShowMenu(false) }}>
                     <i className="fas fa-xmark"></i>
                     Dong chat
                   </button>
@@ -107,12 +107,12 @@ const Chatbot = ({ userId, userRole }) => {
             </div>
           </div>
 
-          <div className="flex-1 space-y-4 overflow-y-auto bg-surface px-4 py-4">
-            {messages.length === 0 ? <div className="rounded-[24px] border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">{getWelcomeMessage()}</div> : null}
+          <div className="flex-1 space-y-4 overflow-y-auto bg-surface-soft px-4 py-4">
+            {messages.length === 0 ? <div className="rounded-xl border border-brand-100 bg-brand-50 p-4 text-sm text-ink-800">{getWelcomeMessage()}</div> : null}
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[82%] rounded-[24px] px-4 py-3 text-sm shadow-soft ${message.sender === "user" ? "bg-brand-600 text-white" : "bg-white text-ink-800"}`}>
-                  {message.sender === "bot" ? <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-600">AI</div> : null}
+                <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm shadow-soft ${message.sender === "user" ? "bg-brand-600 text-white" : "border border-surface-line bg-white text-ink-800"}`}>
+                  {message.sender === "bot" ? <div className="mb-1 text-[11px] font-semibold uppercase text-brand-600">AI</div> : null}
                   <div className="whitespace-pre-wrap">{message.text}</div>
                   <div className={`mt-2 text-[11px] ${message.sender === "user" ? "text-white/70" : "text-ink-500"}`}>{formatTime(message.timestamp)}</div>
                 </div>
@@ -120,7 +120,7 @@ const Chatbot = ({ userId, userRole }) => {
             ))}
             {isLoading ? (
               <div className="flex justify-start">
-                <div className="rounded-[24px] bg-white px-4 py-3 shadow-soft">
+                <div className="rounded-2xl border border-surface-line bg-white px-4 py-3 shadow-soft">
                   <div className="flex items-center gap-2 text-sm text-ink-600"><div className="spinner-border spinner-border-sm"></div>Dang suy nghi...</div>
                 </div>
               </div>

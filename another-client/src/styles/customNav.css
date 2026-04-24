@@ -1,5 +1,6 @@
 .custom-navbar {
-  background: linear-gradient(90deg, #0066ff, #0099ff);
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .custom-link {
@@ -8,13 +9,14 @@
 }
 
 .custom-link:hover {
-  color: #fff !important;
-  transform: translateY(-1px);
+  color: #0f0f0f !important;
+  background: #fff1f2;
 }
 
 .custom-link.active {
   font-weight: 600;
-  color: #ffe082 !important; /* vàng nhạt highlight */
+  color: #be123c !important;
+  background: #fff1f2;
 }
 
 .user-avatar {
@@ -22,7 +24,7 @@
   height: 28px;
   border-radius: 50%;
   background: #fff;
-  color: #0066ff;
+  color: #e11d48;
   display: flex;
   align-items: center;
   justify-content: center;

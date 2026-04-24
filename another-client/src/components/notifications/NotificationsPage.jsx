@@ -1,9 +1,11 @@
 ﻿import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useRef } from "react"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { notificationsApi } from "../../services/api"
 import { ROLE } from "../../services/string"
+import { buildNotificationKey } from "../../utils/realtimeDedupe"
 
 const TYPE_OPTIONS = [
   { value: "all", label: "Tất cả" },
@@ -26,6 +28,7 @@ const NotificationsPage = () => {
   const [offset, setOffset] = useState(0)
   const [limit] = useState(20)
   const [hasMore, setHasMore] = useState(false)
+  const handledRealtimeKeysRef = useRef(new Set())
 
   const unreadOnPage = useMemo(() => notifications.filter((item) => !item.is_read).length, [notifications])
 
@@ -67,8 +70,11 @@ const NotificationsPage = () => {
   }, [offset, filterRead, filterType])
 
   useEffect(() => {
-    const handleRealtimeNotification = () => {
+    const handleRealtimeNotification = (event) => {
       if (offset !== 0) return
+      const notificationKey = buildNotificationKey(event.detail || {})
+      if (handledRealtimeKeysRef.current.has(notificationKey)) return
+      handledRealtimeKeysRef.current.add(notificationKey)
       fetchNotifications()
     }
     window.addEventListener("appNotificationNew", handleRealtimeNotification)
@@ -144,8 +150,8 @@ const NotificationsPage = () => {
     <div className="space-y-6">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-600">Inbox</p>
-          <h1 className="mt-2 text-3xl font-black text-ink-900">Thông báo hệ thống</h1>
+          <p className="text-sm font-medium text-ink-600">Inbox</p>
+          <h1 className="mt-2 text-2xl font-bold text-ink-900">Thông báo hệ thống</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-ink-600">Theo dõi cảnh báo, yêu cầu truy cập và tin nhắn mới trong một hộp thư thống nhất.</p>
         </div>
         <button type="button" className="btn btn-outline-primary" onClick={markAllRead} disabled={unreadOnPage === 0}>
@@ -155,9 +161,9 @@ const NotificationsPage = () => {
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Tổng trên trang</p><p className="mt-2 text-3xl font-black text-ink-900">{notifications.length}</p></div>
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Chưa đọc</p><p className="mt-2 text-3xl font-black text-brand-600">{unreadOnPage}</p></div>
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Bộ lọc hiện tại</p><p className="mt-2 text-lg font-black text-ink-900">{TYPE_OPTIONS.find((item) => item.value === filterType)?.label || "Tất cả"}</p></div>
+        <div className="app-card p-5"><p className="text-sm text-ink-500">Tổng trên trang</p><p className="mt-2 text-2xl font-bold text-ink-900">{notifications.length}</p></div>
+        <div className="app-card p-5"><p className="text-sm text-ink-500">Chưa đọc</p><p className="mt-2 text-2xl font-bold text-brand-600">{unreadOnPage}</p></div>
+        <div className="app-card p-5"><p className="text-sm text-ink-500">Bộ lọc hiện tại</p><p className="mt-2 text-lg font-bold text-ink-900">{TYPE_OPTIONS.find((item) => item.value === filterType)?.label || "Tất cả"}</p></div>
       </section>
 
       <section className="app-card p-6">
@@ -200,7 +206,7 @@ const NotificationsPage = () => {
                   <button type="button" className="min-w-0 flex-1 text-left" onClick={() => handleOpenNotification(notification)}>
                     <div className="flex flex-wrap items-center gap-2">
                       {!notification.is_read ? <span className="inline-flex rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white">Mới</span> : null}
-                      <span className="inline-flex rounded-full bg-surface px-3 py-1 text-xs font-bold text-ink-600">{getTypeLabel(notification.type)}</span>
+                      <span className="inline-flex rounded-full bg-category-50 px-3 py-1 text-xs font-bold text-category-500">{getTypeLabel(notification.type)}</span>
                     </div>
                     <h3 className="mt-3 text-base font-bold text-ink-900">{notification.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-ink-600">{notification.message}</p>

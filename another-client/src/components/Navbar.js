@@ -3,14 +3,10 @@ import { useEffect, useState } from "react"
 import { NavLink, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { toast } from "react-toastify"
-import io from "socket.io-client"
-import { API_BASE_URL } from "../config/env"
 import { accessApi } from "../services/api"
 import { ROLE, getDashboardPath } from "../services/string"
 import NotificationBell from "./notifications/NotificationBell"
 import "../styles/customNav.css"
-
-const socket = io(API_BASE_URL)
 
 const Navbar = () => {
   const { user, logout } = useAuth()
@@ -31,7 +27,6 @@ const Navbar = () => {
   // --- Fetch số lượng yêu cầu chờ ---
   useEffect(() => {
     if (!user) return
-    socket.emit("join-user-room", user.user_id)
     if (user.role !== ROLE.BAC_SI && user.role !== ROLE.GIA_DINH) return
 
     const fetchPending = async () => {
@@ -46,21 +41,26 @@ const Navbar = () => {
     fetchPending()
 
     // --- Lắng nghe realtime socket ---
-    socket.on("access-request", (data) => {
-      if (data.viewer_id === user.user_id) {
+    const handleAccessRequest = (event) => {
+      const data = event.detail || {}
+      if (String(data.viewer_id) === String(user.user_id)) {
         setPendingCount((prev) => prev + 1)
       }
-    })
+    }
 
-    socket.on("access-response", (data) => {
-      if (data.viewer_id === user.user_id) {
+    const handleAccessResponse = (event) => {
+      const data = event.detail || {}
+      if (String(data.viewer_id) === String(user.user_id)) {
         setPendingCount((prev) => Math.max(prev - 1, 0))
       }
-    })
+    }
+
+    window.addEventListener("appAccessRequest", handleAccessRequest)
+    window.addEventListener("appAccessResponse", handleAccessResponse)
 
     return () => {
-      socket.off("access-request")
-      socket.off("access-response")
+      window.removeEventListener("appAccessRequest", handleAccessRequest)
+      window.removeEventListener("appAccessResponse", handleAccessResponse)
     }
   }, [user])
 

@@ -22,7 +22,7 @@ const ModalFrame = ({ show, title, onClose, size = "md", children, footer = null
     <div className="modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className={`modal-panel ${sizeClass}`} onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
-          <h3 className="text-xl font-bold text-ink-900">{title}</h3>
+          <h3 className="text-xl font-medium text-ink-900">{title}</h3>
           <button type="button" className="btn-close" onClick={onClose} aria-label="Dong" />
         </div>
         <div className="modal-body">{children}</div>

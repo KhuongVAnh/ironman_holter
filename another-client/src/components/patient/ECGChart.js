@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useMemo, useRef } from "react"
 import {
@@ -156,8 +156,8 @@ const ECGChart = ({
       {
         label: "ECG Signal",
         data: visibleData,
-        borderColor: "#dc3545",
-        backgroundColor: "rgba(220, 53, 69, 0.1)",
+        borderColor: "#E11D48",
+        backgroundColor: "rgba(13, 148, 136, 0.08)",
         fill: false,
         borderWidth: 1.5,
         pointRadius: 0,
@@ -202,15 +202,15 @@ const ECGChart = ({
       x: {
         display: true,
         title: { display: true, text: "Thời gian (s)" },
-        ticks: { maxTicksLimit: 10, color: "#666" },
-        grid: { color: "#e0e0e0", lineWidth: 0.5 },
+        ticks: { maxTicksLimit: 10, color: "#6B7280" },
+        grid: { color: "#FFE4E6", lineWidth: 0.5 },
       },
       y: {
         min: -2,
         max: 2,
         title: { display: true, text: "Biên độ (mV)" },
-        ticks: { stepSize: 0.5, color: "#666", font: { size: 10 } },
-        grid: { color: "#e0e0e0", lineWidth: 0.5 },
+        ticks: { stepSize: 0.5, color: "#6B7280", font: { size: 10 } },
+        grid: { color: "#FFE4E6", lineWidth: 0.5 },
       },
     },
     plugins: {
@@ -232,27 +232,27 @@ const ECGChart = ({
   }), [pointLabelMap])
 
   return (
-    <div className="h-full rounded-[24px] border border-white/70 bg-white/15 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-[1px]">
+    <div className="h-full rounded-xl border border-surface-line bg-white p-3 shadow-soft">
       <div style={{ height: `${height}px`, position: "relative" }}>
         {visibleData.length > 0 ? (
           <Line ref={chartRef} data={chartData} options={options} plugins={[highlightBackgroundPlugin]} />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <div className="w-full max-w-sm rounded-[28px] border border-brand-100/80 bg-white/80 px-6 py-7 text-center shadow-soft backdrop-blur-sm">
-              <div className="mx-auto inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-brand-700">
+            <div className="w-full max-w-sm rounded-2xl border border-surface-line bg-white px-6 py-7 text-center shadow-soft">
+              <div className="mx-auto inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-[11px] font-bold uppercase text-brand-700">
                 <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-70"></span>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-600 opacity-40"></span>
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-600"></span>
                 </span>
                 Đang chờ tín hiệu
               </div>
 
               <div className="mt-5 flex items-end justify-center gap-1" aria-hidden="true">
-                <span className="h-5 w-2 animate-pulse rounded-full bg-gradient-to-t from-brand-600 via-brand-400 to-brand-200"></span>
-                <span className="h-8 w-2 animate-pulse rounded-full bg-gradient-to-t from-brand-600 via-brand-400 to-brand-200 [animation-delay:120ms]"></span>
-                <span className="h-11 w-2 animate-pulse rounded-full bg-gradient-to-t from-brand-600 via-brand-400 to-brand-200 [animation-delay:240ms]"></span>
-                <span className="h-7 w-2 animate-pulse rounded-full bg-gradient-to-t from-brand-600 via-brand-400 to-brand-200 [animation-delay:360ms]"></span>
-                <span className="h-4 w-2 animate-pulse rounded-full bg-gradient-to-t from-brand-600 via-brand-400 to-brand-200 [animation-delay:480ms]"></span>
+                <span className="h-5 w-2 animate-pulse rounded-full bg-brand-600"></span>
+                <span className="h-8 w-2 animate-pulse rounded-full bg-brand-600 [animation-delay:120ms]"></span>
+                <span className="h-11 w-2 animate-pulse rounded-full bg-brand-600 [animation-delay:240ms]"></span>
+                <span className="h-7 w-2 animate-pulse rounded-full bg-brand-600 [animation-delay:360ms]"></span>
+                <span className="h-4 w-2 animate-pulse rounded-full bg-brand-600 [animation-delay:480ms]"></span>
               </div>
 
               <p className="mt-5 text-lg font-bold text-ink-900">Chưa có dữ liệu ECG trực tiếp</p>
@@ -260,7 +260,7 @@ const ECGChart = ({
                 Hệ thống sẽ hiển thị sóng ngay khi thiết bị gửi tín hiệu hoặc khi bạn tạo dữ liệu mô phỏng.
               </p>
 
-              <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-xs font-medium text-ink-600">
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-surface-soft px-4 py-2 text-xs font-medium text-ink-600">
                 <i className="fas fa-wave-square text-brand-600"></i>
                 Chế độ xem sẽ tự cập nhật theo thời gian thực
               </div>

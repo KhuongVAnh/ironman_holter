@@ -1,12 +1,8 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "react-toastify"
-import io from "socket.io-client"
 import { useAuth } from "../../contexts/AuthContext"
-import { API_BASE_URL } from "../../config/env"
 import { accessApi } from "../../services/api"
 import { ACCESS_ROLE, ACCESS_STATUS } from "../../services/string"
-
-const socket = io(API_BASE_URL)
 
 const badgeTone = (status) => {
   if (status === ACCESS_STATUS.ACCEPTED) return "bg-emerald-100 text-emerald-700"
@@ -22,29 +18,28 @@ const PatientAccess = () => {
 
   useEffect(() => {
     if (!user) return
-    socket.emit("join-user-room", user.user_id)
     fetchAccessList()
 
-    const handleResponse = (data) => {
-      if (data.patient_id === user.user_id) {
-        toast.info("Một yêu cầu truy cập đã được phản hồi")
+    const handleResponse = (event) => {
+      const data = event.detail || {}
+      if (String(data.patient_id) === String(user.user_id)) {
         fetchAccessList()
       }
     }
-    const handleRevoke = (data) => {
-      if (data.patient_id === user.user_id) {
-        toast.warning("Một quyền truy cập đã bị thu hồi")
+    const handleRevoke = (event) => {
+      const data = event.detail || {}
+      if (String(data.patient_id) === String(user.user_id)) {
         fetchAccessList()
       }
     }
 
-    socket.on("access-response", handleResponse)
-    socket.on("access-revoke", handleRevoke)
+    window.addEventListener("appAccessResponse", handleResponse)
+    window.addEventListener("appAccessRevoke", handleRevoke)
     return () => {
-      socket.off("access-response", handleResponse)
-      socket.off("access-revoke", handleRevoke)
+      window.removeEventListener("appAccessResponse", handleResponse)
+      window.removeEventListener("appAccessRevoke", handleRevoke)
     }
-  }, [user])
+  }, [user?.user_id])
 
   const fetchAccessList = async () => {
     try {

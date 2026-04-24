@@ -1,10 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
-import io from "socket.io-client"
-import { API_BASE_URL } from "../../config/env"
 import { useAuth } from "../../contexts/AuthContext"
 import { alertsApi, familyApi } from "../../services/api"
 import { ACCESS_STATUS } from "../../services/string"
@@ -17,6 +15,8 @@ const FamilyDashboard = () => {
   const [recentAlerts, setRecentAlerts] = useState([])
   const [selectedReadingId, setSelectedReadingId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const familyMembersRef = useRef([])
+  const familyMemberIdsRef = useRef(new Set())
 
   const fetchRecentAlerts = async (members = familyMembers) => {
     try {
@@ -62,6 +62,8 @@ const FamilyDashboard = () => {
       }))
 
       setFamilyMembers(patients)
+      familyMembersRef.current = patients
+      familyMemberIdsRef.current = new Set(patients.map((patient) => String(patient.user_id)))
       await fetchRecentAlerts(patients)
     } catch (error) {
       console.error("Lỗi tải dashboard:", error)
@@ -72,24 +74,20 @@ const FamilyDashboard = () => {
   }
 
   useEffect(() => {
-    const socketClient = io(API_BASE_URL)
-
-    socketClient.on("connect", () => {
-      socketClient.emit("join-user-room", user.user_id)
-    })
-
-    socketClient.on("alert", (alertData) => {
-      const isFamilyMemberAlert = familyMembers.some((member) => member.user_id === alertData.user_id)
+    const handleAlert = (event) => {
+      const alertData = event.detail || {}
+      const isFamilyMemberAlert = familyMemberIdsRef.current.has(String(alertData.user_id))
       if (isFamilyMemberAlert) {
         toast.warning(`Cảnh báo từ người thân: ${alertData.message}`)
-        fetchRecentAlerts()
+        fetchRecentAlerts(familyMembersRef.current)
       }
-    })
+    }
 
     fetchDashboardData()
+    window.addEventListener("appAlert", handleAlert)
 
     return () => {
-      socketClient.close()
+      window.removeEventListener("appAlert", handleAlert)
     }
   }, [user.user_id])
 
