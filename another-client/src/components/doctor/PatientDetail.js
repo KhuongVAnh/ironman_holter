@@ -12,6 +12,7 @@ import MedicalVisitList from "../shared/MedicalVisitList"
 import MedicationPlanForm from "../shared/MedicationPlanForm"
 import MedicationPlanList from "../shared/MedicationPlanList"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
+import { formatAiResultForDisplay } from "../../strings/ecgAiStrings"
 import {
   ClinicalTabs,
   DoctorStatCard,
@@ -298,7 +299,13 @@ const PatientDetail = () => {
                       <tr key={reading.reading_id}>
                         <td>{formatDateTime(reading.timestamp)}</td>
                         <td className={`font-bold ${getHeartRateTone(reading.heart_rate)}`}>{reading.heart_rate} BPM</td>
-                        <td>{reading.ai_result || reading.ai_status || "-"}</td>
+                        <td>
+                          {String(reading.ai_status || "").toUpperCase() === "PENDING"
+                            ? "Đang phân tích"
+                            : String(reading.ai_status || "").toUpperCase() === "FAILED"
+                              ? (reading.ai_error || "Phân tích thất bại")
+                              : formatAiResultForDisplay(reading.ai_result)}
+                        </td>
                         <td><span className={`rounded-full px-3 py-1 text-xs font-bold ${reading.abnormal_detected ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{reading.abnormal_detected ? "Bất thường" : "Bình thường"}</span></td>
                         <td className="text-end"><button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button></td>
                       </tr>

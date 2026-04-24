@@ -50,10 +50,17 @@ const normalizeHighlights = (highlights = []) => {
         end_sample: endSample,
         label_code: labelCode,
         label_text: item?.label_text || getAiLabelFromCode(labelCode),
+        confidence: Number.isFinite(Number(item?.confidence))
+          ? Number(item.confidence)
+          : Number.isFinite(Number(item?.score))
+            ? Number(item.score)
+            : null,
       }
     })
     .filter(Boolean)
 }
+
+const formatSeconds = (value) => `${Number(value).toFixed(2)}s`
 
 const buildHighlightPlugin = (ranges) => ({
   hooks: {
@@ -250,6 +257,30 @@ const ECGChart = ({
   return (
     <div className="ecg-paper-surface w-full rounded-2xl border border-brand-100 p-1 sm:p-1.5 shadow-soft">
       <div ref={containerRef} className="ecg-uplot w-full min-w-0" />
+      {prepared.visibleRanges.length > 0 && (
+        <div className="mt-2 rounded-xl border border-brand-100 bg-white/85 px-3 py-2">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-ink-500">Kết quả AI trong khung đang xem</p>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            {prepared.visibleRanges.slice(0, 6).map((range, index) => (
+              <span
+                key={`${range.label_code}-${range.start_sample}-${range.end_sample}-${index}`}
+                className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold"
+                style={{
+                  borderColor: toRgba(getAiColorByCode(range.label_code), 0.4),
+                  color: getAiColorByCode(range.label_code),
+                  backgroundColor: toRgba(getAiColorByCode(range.label_code), 0.12),
+                }}
+              >
+                <span>{range.label_text}</span>
+                <span className="text-ink-600">{formatSeconds(range.start_time)} - {formatSeconds(range.end_time)}</span>
+                {range.confidence !== null && (
+                  <span className="text-ink-700">{Math.round(range.confidence * 100)}%</span>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

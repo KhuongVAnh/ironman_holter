@@ -223,7 +223,7 @@ const PatientDashboard = () => {
   const aiCard = useMemo(() => {
     if (!analysisState || analysisState.status === "PENDING") {
       return {
-        title: "Đang phân tích",
+        title: "Đang phân tích AI",
         detail: "Tín hiệu ECG đã đến, hệ thống đang chờ AI hoàn tất kết luận.",
         tone: "bg-slate-100 text-slate-700",
       }
@@ -239,7 +239,7 @@ const PatientDashboard = () => {
 
     if (analysisState.abnormal) {
       return {
-        title: "Cần lưu ý",
+        title: "Phát hiện bất thường",
         detail: analysisState.result,
         tone: "bg-amber-50 text-amber-700",
       }
@@ -289,10 +289,15 @@ const PatientDashboard = () => {
                     <span className="text-base font-bold text-ink-900">{currentHeartRate ?? "--"}</span>
                     <span className="text-xs font-bold text-red-700">BPM</span>
                   </div>
-                  <div className={`pointer-events-auto inline-flex max-w-[min(560px,calc(100vw-3rem))] items-center gap-2 rounded-full border bg-white/95 px-3 py-2 text-sm shadow-medium backdrop-blur ${analysisState?.status === "FAILED" ? "border-red-100" : analysisState?.abnormal ? "border-amber-100" : "border-emerald-100"}`}>
+                  <div className={`pointer-events-auto flex max-w-[min(560px,calc(100vw-3rem))] items-start gap-2 rounded-2xl border bg-white/95 px-3 py-2 text-sm shadow-medium backdrop-blur ${analysisState?.status === "FAILED" ? "border-red-100" : analysisState?.abnormal ? "border-amber-100" : "border-emerald-100"}`}>
                     <i className={`fas fa-brain ${analysisState?.status === "FAILED" ? "text-red-600" : analysisState?.abnormal ? "text-amber-600" : "text-emerald-600"}`}></i>
-                    <span className="text-xs font-bold uppercase tracking-[0.08em] text-ink-500">AI</span>
-                    <span className="truncate font-bold text-ink-900">{aiCard.title}</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-[0.08em] text-ink-500">AI</span>
+                        <span className="font-bold text-ink-900">{aiCard.title}</span>
+                      </div>
+                      <p className="mt-0.5 max-w-[min(480px,calc(100vw-8rem))] break-words text-xs leading-5 text-ink-700">{aiCard.detail}</p>
+                    </div>
                   </div>
                 </div>
               </div>
