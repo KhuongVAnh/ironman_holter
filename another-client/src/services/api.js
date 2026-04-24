@@ -135,12 +135,19 @@ export const chatApi = {
   markDirectRead: (otherUserId) => api.put(`/chat/direct/${otherUserId}/read`),
 }
 
-// ========== History (Medical) ==========
-export const historyApi = {
-  getByUser: (userId) => api.get(`/history/${userId}`),
-  create: (data) => api.post("/history", data),
-  update: (id, data) => api.put(`/history/${id}`, data),
-  delete: (id) => api.delete(`/history/${id}`),
+// ========== Medical records ==========
+export const medicalVisitsApi = {
+  getByUser: (userId) => api.get(`/medical-visits/patient/${userId}`),
+  create: (data) => api.post("/medical-visits", data),
+  update: (id, data) => api.put(`/medical-visits/${id}`, data),
+  delete: (id) => api.delete(`/medical-visits/${id}`),
+}
+
+export const medicationPlansApi = {
+  getByUser: (userId) => api.get(`/medication-plans/patient/${userId}`),
+  create: (data) => api.post("/medication-plans", data),
+  update: (id, data) => api.put(`/medication-plans/${id}`, data),
+  delete: (id) => api.delete(`/medication-plans/${id}`),
 }
 
 // ========== Reports ==========

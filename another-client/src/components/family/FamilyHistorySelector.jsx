@@ -29,7 +29,7 @@ const FamilyHistorySelector = () => {
 
   return (
     <section className="app-card">
-      <div className="app-card-header"><div><h1 className="section-title"><i className="fas fa-book-medical me-2 text-brand-600"></i>Bệnh sử người thân</h1><p className="section-subtitle">Chọn bệnh nhân đã được cấp quyền để mở bệnh sử chi tiết.</p></div></div>
+      <div className="app-card-header"><div><h1 className="section-title"><i className="fas fa-book-medical me-2 text-brand-600"></i>Hồ sơ y tế người thân</h1><p className="section-subtitle">Chọn bệnh nhân đã được cấp quyền để mở hồ sơ y tế chi tiết.</p></div></div>
       <div className="app-card-body table-responsive">
         {loading ? <div className="flex justify-center py-8"><div className="spinner-border"></div></div> : (
           <table className="table table-hover align-middle">
@@ -40,7 +40,7 @@ const FamilyHistorySelector = () => {
                   <td>{index + 1}</td>
                   <td>{item.patient?.name}</td>
                   <td>{item.patient?.email}</td>
-                  <td className="text-end"><button type="button" className="btn btn-outline-primary btn-sm" onClick={() => navigate(`/family/history/${item.patient.user_id}`)}><i className="fas fa-folder-open me-1"></i>Xem bệnh sử</button></td>
+                  <td className="text-end"><button type="button" className="btn btn-outline-primary btn-sm" onClick={() => navigate(`/family/history/${item.patient.user_id}`)}><i className="fas fa-folder-open me-1"></i>Xem hồ sơ</button></td>
                 </tr>
               ))}
             </tbody>

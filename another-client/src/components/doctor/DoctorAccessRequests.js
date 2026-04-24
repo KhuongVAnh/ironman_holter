@@ -1,41 +1,38 @@
 import { useEffect, useState } from "react"
-import { toast } from "react-toastify"
 import { useNavigate } from "react-router-dom"
+import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { accessApi, doctorApi } from "../../services/api"
 import { ACCESS_STATUS } from "../../services/string"
-
-const badgeTone = (status) => status === ACCESS_STATUS.PENDING ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+import { EmptyState, PatientAvatar, formatDate, getPatientFromAccess } from "./DoctorUi"
 
 const DoctorAccessRequests = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [requests, setRequests] = useState([])
   const [patients, setPatients] = useState([])
   const [respondingId, setRespondingId] = useState(null)
-  const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!user) return
-    fetchPendingRequests()
-    fetchAcceptedPatients()
+    fetchAll()
   }, [user])
 
-  const fetchPendingRequests = async () => {
+  const fetchAll = async () => {
     try {
-      const response = await accessApi.getPending()
-      setRequests(response.data || [])
+      setLoading(true)
+      const [pendingResponse, patientsResponse] = await Promise.all([
+        accessApi.getPending(),
+        doctorApi.getPatients(user.user_id),
+      ])
+      setRequests(pendingResponse.data || [])
+      setPatients(patientsResponse.data || [])
     } catch (error) {
-      console.error(error)
-    }
-  }
-
-  const fetchAcceptedPatients = async () => {
-    try {
-      const response = await doctorApi.getPatients(user.user_id)
-      setPatients(response.data || [])
-    } catch (error) {
-      console.error("Lỗi tải danh sách bệnh nhân:", error)
-      toast.error("Không thể tải danh sách bệnh nhân")
+      console.error("Lỗi tải quyền truy cập:", error)
+      toast.error("Không thể tải yêu cầu truy cập")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -44,8 +41,7 @@ const DoctorAccessRequests = () => {
       setRespondingId(permissionId)
       const response = await accessApi.respond(permissionId, action)
       toast.success(response.data?.message || (action === "accept" ? "Đã chấp nhận" : "Đã từ chối"))
-      await fetchPendingRequests()
-      await fetchAcceptedPatients()
+      await fetchAll()
     } catch (error) {
       console.error("Lỗi xử lý yêu cầu:", error)
       toast.error(error.response?.data?.error || "Không thể xử lý yêu cầu")
@@ -54,51 +50,99 @@ const DoctorAccessRequests = () => {
     }
   }
 
+  if (loading) return <div className="flex min-h-[55vh] items-center justify-center"><div className="spinner-border"></div></div>
+
   return (
     <div className="space-y-6">
-      <section className="app-card">
-        <div className="app-card-header"><div><h1 className="section-title"><i className="fas fa-user-check me-2 text-brand-600"></i>Yêu cầu truy cập bệnh nhân</h1><p className="section-subtitle">Duyệt quyền truy cập và mở hồ sơ bệnh nhân sau khi chấp nhận.</p></div></div>
-        <div className="app-card-body table-responsive">
-          <table className="table table-hover align-middle">
-            <thead><tr><th>#</th><th>Bệnh nhân</th><th>Vai trò</th><th>Trạng thái</th><th className="text-end">Thao tác</th></tr></thead>
-            <tbody>
-              {requests.length === 0 ? <tr><td colSpan="5" className="text-center text-muted py-4">Không có yêu cầu đang chờ xử lý</td></tr> : requests.map((item, index) => (
-                <tr key={item.permission_id}>
-                  <td>{index + 1}</td>
-                  <td>{item.patient?.name}</td>
-                  <td>{item.role}</td>
-                  <td><span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeTone(item.status)}`}>{item.status}</span></td>
-                  <td className="text-end">
-                    {item.status === ACCESS_STATUS.PENDING ? (
-                      <div className="btn-group justify-end">
-                        <button type="button" className="btn btn-outline-success btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "accept")}><i className="fas fa-check me-1"></i>Đồng ý</button>
-                        <button type="button" className="btn btn-outline-danger btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "reject")}><i className="fas fa-xmark me-1"></i>Từ chối</button>
-                      </div>
-                    ) : <span className="text-muted">-</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <section className="app-card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-brand-700">Access control</p>
+            <h1 className="mt-1 text-3xl font-bold text-ink-950">Yêu cầu truy cập bệnh nhân</h1>
+            <p className="mt-2 text-sm text-ink-600">Duyệt quyền theo dõi, sau đó mở workspace lâm sàng của bệnh nhân.</p>
+          </div>
+          <button type="button" className="btn btn-primary" onClick={fetchAll}>
+            <i className="fas fa-rotate me-2"></i>Làm mới
+          </button>
         </div>
       </section>
 
-      <section className="app-card">
-        <div className="app-card-header"><div><h2 className="section-title"><i className="fas fa-users me-2 text-brand-600"></i>Bệnh nhân đang được theo dõi</h2><p className="section-subtitle">Truy cập nhanh hồ sơ và lịch sử làm sàng của từng bệnh nhân.</p></div></div>
-        <div className="app-card-body table-responsive">
-          <table className="table table-hover align-middle">
-            <thead><tr><th>#</th><th>Tên bệnh nhân</th><th>Email</th><th className="text-end">Mở hồ sơ</th></tr></thead>
-            <tbody>
-              {patients.length === 0 ? <tr><td colSpan="4" className="text-center text-muted py-4">Chưa có bệnh nhân nào được cấp quyền</td></tr> : patients.map((item, index) => (
-                <tr key={item.patient?.user_id}>
-                  <td>{index + 1}</td>
-                  <td>{item.patient?.name}</td>
-                  <td>{item.patient?.email}</td>
-                  <td className="text-end"><button type="button" className="btn btn-outline-primary btn-sm" onClick={() => navigate(`/doctor/history/${item.patient.user_id}`)}><i className="fas fa-folder-open me-1"></i>Xem ho so</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <section className="app-card overflow-hidden">
+        <div className="app-card-header">
+          <div>
+            <h2 className="section-title">Đang chờ duyệt</h2>
+            <p className="section-subtitle">{requests.length} yêu cầu cần phản hồi.</p>
+          </div>
+        </div>
+        <div className="app-card-body">
+          {requests.length ? (
+            <div className="space-y-3">
+              {requests.map((item) => {
+                const patient = item.patient
+                return (
+                  <article key={item.permission_id} className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <PatientAvatar name={patient?.name} />
+                        <div>
+                          <p className="font-bold text-ink-950">{patient?.name || "Bệnh nhân"}</p>
+                          <p className="text-sm text-ink-500">{patient?.email || "-"}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">{item.status}</span>
+                        {item.status === ACCESS_STATUS.PENDING ? (
+                          <>
+                            <button type="button" className="btn btn-outline-success btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "accept")}>
+                              <i className="fas fa-check me-1"></i>Đồng ý
+                            </button>
+                            <button type="button" className="btn btn-outline-danger btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "reject")}>
+                              <i className="fas fa-xmark me-1"></i>Từ chối
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          ) : (
+            <EmptyState icon="fas fa-inbox" title="Không có yêu cầu đang chờ" description="Các yêu cầu mới sẽ xuất hiện tại đây." />
+          )}
+        </div>
+      </section>
+
+      <section className="app-card overflow-hidden">
+        <div className="app-card-header">
+          <div>
+            <h2 className="section-title">Đã cấp quyền</h2>
+            <p className="section-subtitle">Bệnh nhân đang cho phép bác sĩ theo dõi.</p>
+          </div>
+        </div>
+        <div className="app-card-body space-y-3">
+          {patients.length ? patients.map((item) => {
+            const patient = getPatientFromAccess(item)
+            return (
+              <article key={patient.user_id} className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <PatientAvatar name={patient.name} />
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-ink-950">{patient.name}</p>
+                      <p className="truncate text-sm text-ink-500">{patient.email}</p>
+                      <p className="mt-1 text-xs font-medium text-ink-500">Cấp quyền: {formatDate(item.created_at)}</p>
+                    </div>
+                  </div>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate(`/doctor/patient/${patient.user_id}`)}>
+                    <i className="fas fa-folder-open me-1"></i>Mở workspace
+                  </button>
+                </div>
+              </article>
+            )
+          }) : (
+            <EmptyState icon="fas fa-user-lock" title="Chưa có bệnh nhân được cấp quyền" description="Khi bệnh nhân chấp nhận chia sẻ, họ sẽ xuất hiện tại đây." />
+          )}
         </div>
       </section>
     </div>

@@ -122,7 +122,7 @@ const Navbar = () => {
                   "nav-link custom-link" + (isActive ? " active" : "")
                 }
               >
-                <i className="fas fa-notes-medical me-2"></i> Bệnh sử
+                <i className="fas fa-notes-medical me-2"></i> Hồ sơ y tế
               </NavLink>
             </li>
 
@@ -199,7 +199,7 @@ const Navbar = () => {
                   "nav-link custom-link" + (isActive ? " active" : "")
                 }
               >
-                <i className="fas fa-heartbeat me-2"></i> Bệnh sử người thân
+                <i className="fas fa-heartbeat me-2"></i> Hồ sơ y tế người thân
               </NavLink>
             </li>
           </>

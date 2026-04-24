@@ -12,7 +12,7 @@ const NAV_ITEMS = {
     { to: "/history", label: "Lịch sử đo", icon: "fas fa-clock-rotate-left" },
     { to: "/alerts", label: "Cảnh báo", icon: "fas fa-triangle-exclamation" },
     { to: "/patient/access", label: "Cấp quyền truy cập", icon: "fas fa-key" },
-    { to: "/patient/history", label: "Bệnh sử", icon: "fas fa-notes-medical" },
+    { to: "/patient/history", label: "Hồ sơ y tế", icon: "fas fa-notes-medical" },
     { to: "/chat", label: "Tư vấn", icon: "fas fa-comments" },
     { to: "/patient/devices", label: "Thiết bị", icon: "fas fa-microchip" },
   ],
@@ -27,7 +27,7 @@ const NAV_ITEMS = {
     { to: "/family/dashboard", label: "Tổng quan", icon: "fas fa-house-medical" },
     { to: "/family/monitoring", label: "Theo dõi", icon: "fas fa-heart-pulse" },
     { to: "/family/access-requests", label: "Yêu cầu truy cập", icon: "fas fa-user-shield", pending: true },
-    { to: "/family/history", label: "Bệnh sử", icon: "fas fa-book-medical" },
+    { to: "/family/history", label: "Hồ sơ y tế", icon: "fas fa-book-medical" },
   ],
   [ROLE.ADMIN]: [
     { to: "/admin/dashboard", label: "Tổng quan", icon: "fas fa-chart-pie" },
@@ -42,9 +42,11 @@ const PAGE_TITLES = [
   { match: "/history", title: "Lịch sử và dữ liệu" },
   { match: "/alerts", title: "Cảnh báo tim mạch" },
   { match: "/patient/access", title: "Cấp quyền truy cập" },
-  { match: "/patient/history", title: "Bệnh sử cá nhân" },
+  { match: "/patient/history", title: "Hồ sơ y tế cá nhân" },
   { match: "/patient/devices", title: "Quản lý thiết bị" },
   { match: "/doctor/dashboard", title: "Điều phối lâm sàng" },
+  { match: "/doctor/patient", title: "Workspace bệnh nhân" },
+  { match: "/doctor/history", title: "Hồ sơ y tế bệnh nhân" },
   { match: "/doctor/patients", title: "Danh sách bệnh nhân" },
   { match: "/doctor/access-requests", title: "Yêu cầu truy cập" },
   { match: "/doctor/reports", title: "Báo cáo chuyên môn" },
@@ -52,7 +54,7 @@ const PAGE_TITLES = [
   { match: "/family/dashboard", title: "Tổng quan người thân" },
   { match: "/family/monitoring", title: "Giám sát sức khỏe" },
   { match: "/family/access-requests", title: "Yêu cầu theo dõi" },
-  { match: "/family/history", title: "Bệnh sử người thân" },
+  { match: "/family/history", title: "Hồ sơ y tế người thân" },
   { match: "/admin/dashboard", title: "Điều hành hệ thống" },
   { match: "/admin/users", title: "Quản trị người dùng" },
   { match: "/admin/devices", title: "Quản trị thiết bị" },
@@ -140,7 +142,10 @@ const AppShell = ({ children }) => {
 
       <nav className="flex-1 space-y-1 px-2 py-3">
         {navItems.map((item) => {
-          const active = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)
+          const active =
+            location.pathname === item.to ||
+            location.pathname.startsWith(`${item.to}/`) ||
+            (item.to === "/doctor/patients" && location.pathname.startsWith("/doctor/patient/"))
           return (
             <NavLink
               key={item.to}

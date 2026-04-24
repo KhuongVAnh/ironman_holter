@@ -1,12 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
 import { reportsApi } from "../../services/api"
+import ModalFrame from "../shared/ModalFrame"
+import { DoctorStatCard, EmptyState, formatDateTime, normalizeText } from "./DoctorUi"
 
 const DoctorReports = () => {
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedReport, setSelectedReport] = useState(null)
 
   useEffect(() => {
     fetchReports()
@@ -16,7 +21,7 @@ const DoctorReports = () => {
     try {
       setLoading(true)
       const response = await reportsApi.getDoctorReports()
-      setReports(response.data.reports)
+      setReports(response.data?.reports || [])
     } catch (error) {
       console.error("Lỗi lấy báo cáo:", error)
       toast.error("Không thể tải danh sách báo cáo")
@@ -25,88 +30,107 @@ const DoctorReports = () => {
     }
   }
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("vi-VN")
-  }
+  const filteredReports = useMemo(() => {
+    const keyword = normalizeText(searchTerm)
+    if (!keyword) return reports
+    return reports.filter((report) => normalizeText(`${report.summary} ${report.patient?.name} ${report.patient?.email}`).includes(keyword))
+  }, [reports, searchTerm])
 
-  if (loading) {
-    return (
-      <div className="container py-4">
-        <div className="d-flex justify-content-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const reportsToday = reports.filter((report) => new Date(report.created_at).toDateString() === new Date().toDateString())
+
+  if (loading) return <div className="flex min-h-[55vh] items-center justify-center"><div className="spinner-border"></div></div>
 
   return (
-    <div className="container py-4">
-      <div className="row">
-        <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1 className="h3 mb-0">
-              <i className="fas fa-file-medical me-2 text-success"></i>
-              Báo cáo của tôi
-            </h1>
-            <button className="btn btn-outline-primary" onClick={fetchReports}>
-              <i className="fas fa-sync-alt me-1"></i>
-              Làm mới
-            </button>
+    <div className="space-y-6">
+      <section className="app-card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-brand-700">Clinical reports</p>
+            <h1 className="mt-1 text-3xl font-bold text-ink-950">Báo cáo chuyên môn</h1>
+            <p className="mt-2 text-sm text-ink-600">Tra cứu báo cáo đã tạo, mở hồ sơ bệnh nhân và xem lại nội dung chi tiết.</p>
           </div>
+          <button type="button" className="btn btn-primary" onClick={fetchReports}>
+            <i className="fas fa-rotate me-2"></i>Làm mới
+          </button>
         </div>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <DoctorStatCard icon="fas fa-file-lines" label="Tổng báo cáo" value={reports.length} tone="brand" />
+        <DoctorStatCard icon="fas fa-calendar-day" label="Hôm nay" value={reportsToday.length} tone="emerald" />
+        <DoctorStatCard icon="fas fa-filter" label="Kết quả lọc" value={filteredReports.length} tone="sky" />
       </div>
 
-      <div className="row">
-        <div className="col-12">
-          {reports.length > 0 ? (
-            <div className="row g-4">
-              {reports.map((report) => (
-                <div key={report.report_id} className="col-md-6 col-lg-4">
-                  <div className="card border-0 shadow-sm h-100">
-                    <div className="card-body">
-                      <div className="d-flex justify-content-between align-items-start mb-3">
-                        <h6 className="card-title">Báo cáo #{report.report_id}</h6>
-                        <small className="text-muted">{formatDate(report.created_at)}</small>
-                      </div>
+      <section className="app-card overflow-hidden">
+        <div className="app-card-header">
+          <div>
+            <h2 className="section-title">Danh sách báo cáo</h2>
+            <p className="section-subtitle">Tìm theo bệnh nhân, email hoặc nội dung báo cáo.</p>
+          </div>
+        </div>
+        <div className="app-card-body space-y-4">
+          <div className="relative">
+            <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"></i>
+            <input className="form-control pl-11" placeholder="Tìm kiếm báo cáo..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
+          </div>
 
-                      <div className="mb-3">
-                        <strong>Bệnh nhân:</strong>
-                        <div className="text-muted">{report.Patient?.name}</div>
-                        <small className="text-muted">{report.Patient?.email}</small>
-                      </div>
-
-                      <div className="mb-3">
-                        <strong>Nội dung:</strong>
-                        <p className="text-muted mt-1" style={{ fontSize: "0.9rem" }}>
-                          {report.summary.length > 150 ? `${report.summary.substring(0, 150)}...` : report.summary}
-                        </p>
-                      </div>
-
-                      <div className="d-flex justify-content-between align-items-center">
-                        <span className="badge bg-success">Đã hoàn thành</span>
-                        <button className="btn btn-outline-primary btn-sm">
-                          <i className="fas fa-eye me-1"></i>
-                          Xem chi tiết
-                        </button>
-                      </div>
+          {filteredReports.length ? (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {filteredReports.map((report) => (
+                <article key={report.report_id} className="rounded-xl border border-surface-line bg-white p-5 shadow-soft">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-brand-700">Báo cáo #{report.report_id}</p>
+                      <h3 className="mt-1 font-bold text-ink-950">{report.patient?.name || "Bệnh nhân"}</h3>
+                      <p className="text-sm text-ink-500">{report.patient?.email || "-"}</p>
+                    </div>
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">Hoàn thành</span>
+                  </div>
+                  <p className="mt-4 line-clamp-3 text-sm leading-6 text-ink-700">{report.summary}</p>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-surface-line pt-4">
+                    <span className="text-xs font-medium text-ink-500">{formatDateTime(report.created_at)}</span>
+                    <div className="flex gap-2">
+                      {report.user_id ? <Link to={`/doctor/patient/${report.user_id}`} className="btn btn-outline-primary btn-sm">Mở hồ sơ</Link> : null}
+                      <button type="button" className="btn btn-primary btn-sm" onClick={() => setSelectedReport(report)}>Chi tiết</button>
                     </div>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           ) : (
-            <div className="card border-0 shadow-sm">
-              <div className="card-body text-center py-5">
-                <i className="fas fa-file-medical fa-3x text-muted mb-3"></i>
-                <h5 className="text-muted">Chưa có báo cáo nào</h5>
-                <p className="text-muted">Bạn chưa tạo báo cáo nào. Hãy vào trang quản lý bệnh nhân để tạo báo cáo.</p>
-              </div>
-            </div>
+            <EmptyState icon="fas fa-file-circle-xmark" title="Không có báo cáo" description="Tạo báo cáo từ workspace bệnh nhân hoặc thay đổi từ khóa tìm kiếm." />
           )}
         </div>
-      </div>
+      </section>
+
+      <ModalFrame
+        show={Boolean(selectedReport)}
+        onClose={() => setSelectedReport(null)}
+        title={selectedReport ? `Báo cáo #${selectedReport.report_id}` : "Báo cáo"}
+        size="lg"
+        footer={<button type="button" className="btn btn-primary" onClick={() => setSelectedReport(null)}>Đóng</button>}
+      >
+        {selectedReport ? (
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl bg-surface-soft p-4">
+                <p className="text-sm text-ink-500">Bệnh nhân</p>
+                <p className="mt-1 font-bold text-ink-950">{selectedReport.patient?.name || "-"}</p>
+                <p className="text-sm text-ink-600">{selectedReport.patient?.email || "-"}</p>
+              </div>
+              <div className="rounded-xl bg-surface-soft p-4">
+                <p className="text-sm text-ink-500">Bác sĩ</p>
+                <p className="mt-1 font-bold text-ink-950">{selectedReport.doctor?.name || "-"}</p>
+                <p className="text-sm text-ink-600">{formatDateTime(selectedReport.created_at)}</p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-surface-line bg-white p-4">
+              <p className="mb-2 font-bold text-ink-950">Nội dung</p>
+              <p className="whitespace-pre-line text-sm leading-6 text-ink-700">{selectedReport.summary}</p>
+            </div>
+          </div>
+        ) : null}
+      </ModalFrame>
     </div>
   )
 }

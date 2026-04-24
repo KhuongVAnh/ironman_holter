@@ -78,7 +78,7 @@ const FamilyAccessRequests = () => {
       </section>
 
       <section className="app-card">
-        <div className="app-card-header"><div><h2 className="section-title"><i className="fas fa-heart-pulse me-2 text-brand-600"></i>Người thân đang theo dõi</h2><p className="section-subtitle">Mở nhanh hồ sơ bệnh sử của từng bệnh nhân đã được cấp quyền.</p></div></div>
+        <div className="app-card-header"><div><h2 className="section-title"><i className="fas fa-heart-pulse me-2 text-brand-600"></i>Người thân đang theo dõi</h2><p className="section-subtitle">Mở nhanh hồ sơ y tế của từng bệnh nhân đã được cấp quyền.</p></div></div>
         <div className="app-card-body table-responsive">
           <table className="table table-hover align-middle">
             <thead><tr><th>#</th><th>Tên bệnh nhân</th><th>Email</th><th className="text-end">Mở hồ sơ</th></tr></thead>
@@ -88,7 +88,7 @@ const FamilyAccessRequests = () => {
                   <td>{index + 1}</td>
                   <td>{item.patient?.name}</td>
                   <td>{item.patient?.email}</td>
-                  <td className="text-end"><button type="button" className="btn btn-outline-primary btn-sm" onClick={() => navigate(`/family/history/${item.patient.user_id}`)}><i className="fas fa-folder-open me-1"></i>Xem ho so</button></td>
+                  <td className="text-end"><button type="button" className="btn btn-outline-primary btn-sm" onClick={() => navigate(`/family/history/${item.patient.user_id}`)}><i className="fas fa-folder-open me-1"></i>Xem hồ sơ</button></td>
                 </tr>
               ))}
             </tbody>

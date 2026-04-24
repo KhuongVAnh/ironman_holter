@@ -1,42 +1,29 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { useEffect, useMemo, useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { doctorApi } from "../../services/api"
+import { DoctorStatCard, EmptyState, PatientAvatar, formatDate, getPatientFromAccess, normalizeText } from "./DoctorUi"
 
 const DoctorPatients = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [patients, setPatients] = useState([])
-  const [filteredPatients, setFilteredPatients] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
 
   useEffect(() => {
-    if (user?.user_id) {
-      fetchPatients()
-    }
+    if (user?.user_id) fetchPatients()
   }, [user?.user_id])
-
-  useEffect(() => {
-    filterPatients()
-  }, [patients, searchTerm, statusFilter])
 
   const fetchPatients = async () => {
     try {
-      if (!user?.user_id) return
-
       setLoading(true)
       const response = await doctorApi.getPatients(user.user_id)
-      const accessList = Array.isArray(response.data) ? response.data : []
-
-      const allPatients = accessList
-        .map((item) => item?.patient)
-        .filter(Boolean)
-
-      setPatients(allPatients)
+      setPatients((response.data || []).map(getPatientFromAccess).filter(Boolean))
     } catch (error) {
       console.error("Lỗi lấy danh sách bệnh nhân:", error)
       toast.error("Không thể tải danh sách bệnh nhân")
@@ -45,182 +32,104 @@ const DoctorPatients = () => {
     }
   }
 
-  const filterPatients = () => {
-    let filtered = patients
-
-    // Filter by search term
-    if (searchTerm) {
-      const keyword = searchTerm.toLowerCase()
-      filtered = filtered.filter(
-        (patient) =>
-          (patient.name || "").toLowerCase().includes(keyword) ||
-          (patient.email || "").toLowerCase().includes(keyword),
-      )
-    }
-
-    // Filter by status
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((patient) => {
-        if (statusFilter === "active") return patient.is_active
-        if (statusFilter === "inactive") return !patient.is_active
-        return true
-      })
-    }
-
-    setFilteredPatients(filtered)
-  }
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "-"
-    return new Date(dateString).toLocaleDateString("vi-VN")
-  }
+  const filteredPatients = useMemo(() => {
+    const keyword = normalizeText(searchTerm)
+    return patients.filter((patient) => {
+      const matchesSearch = !keyword || normalizeText(`${patient.name} ${patient.email}`).includes(keyword)
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && patient.is_active) ||
+        (statusFilter === "inactive" && !patient.is_active)
+      return matchesSearch && matchesStatus
+    })
+  }, [patients, searchTerm, statusFilter])
 
   if (loading) {
-    return (
-      <div className="container py-4">
-        <div className="d-flex justify-content-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
-        </div>
-      </div>
-    )
+    return <div className="flex min-h-[55vh] items-center justify-center"><div className="spinner-border"></div></div>
   }
 
   return (
-    <div className="container py-4">
-      <div className="row">
-        <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1 className="h3 mb-0">
-              <i className="fas fa-users me-2 text-primary"></i>
-              Quản lý bệnh nhân
-            </h1>
-            <button className="btn btn-outline-primary" onClick={fetchPatients}>
-              <i className="fas fa-sync-alt me-1"></i>
-              Làm mới
-            </button>
+    <div className="space-y-6">
+      <section className="app-card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-brand-700">Patient directory</p>
+            <h1 className="mt-1 text-3xl font-bold text-ink-950">Bệnh nhân đang theo dõi</h1>
+            <p className="mt-2 text-sm text-ink-600">Mở workspace, tạo báo cáo hoặc chuyển sang trao đổi trực tiếp với từng bệnh nhân.</p>
           </div>
+          <button type="button" className="btn btn-primary" onClick={fetchPatients}>
+            <i className="fas fa-rotate me-2"></i>Làm mới
+          </button>
         </div>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <DoctorStatCard icon="fas fa-user-group" label="Tổng bệnh nhân" value={patients.length} tone="brand" />
+        <DoctorStatCard icon="fas fa-user-check" label="Đang hoạt động" value={patients.filter((item) => item.is_active).length} tone="emerald" />
+        <DoctorStatCard icon="fas fa-filter" label="Kết quả lọc" value={filteredPatients.length} tone="sky" />
       </div>
 
-      {/* Search and Filter */}
-      <div className="row mb-4">
-        <div className="col-md-6">
-          <div className="input-group">
-            <span className="input-group-text">
-              <i className="fas fa-search"></i>
-            </span>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Tìm kiếm theo tên hoặc email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      <section className="app-card overflow-hidden">
+        <div className="app-card-header">
+          <div>
+            <h2 className="section-title">Danh sách bệnh nhân</h2>
+            <p className="section-subtitle">Tìm theo tên, email hoặc lọc trạng thái tài khoản.</p>
           </div>
         </div>
-        <div className="col-md-3">
-          <select className="form-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang hoạt động</option>
-            <option value="inactive">Ngưng hoạt động</option>
-          </select>
-        </div>
-        <div className="col-md-3">
-          <div className="text-muted">
-            Tổng: <strong>{filteredPatients.length}</strong> bệnh nhân
-          </div>
-        </div>
-      </div>
-
-      {/* Patients Table */}
-      <div className="row">
-        <div className="col-12">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              {filteredPatients.length > 0 ? (
-                <div className="table-responsive">
-                  <table className="table table-hover">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Bệnh nhân</th>
-                        <th>Email</th>
-                        <th>Trạng thái</th>
-                        <th>Ngày đăng ký</th>
-                        <th>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredPatients.map((patient) => (
-                        <tr key={patient.user_id}>
-                          <td>
-                            <div className="d-flex align-items-center">
-                              <div className="avatar-circle bg-primary text-white me-3">
-                                {(patient.name || "?").charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                <h6 className="mb-0">{patient.name}</h6>
-                                <small className="text-muted">ID: {patient.user_id}</small>
-                              </div>
-                            </div>
-                          </td>
-                          <td>{patient.email}</td>
-                          <td>
-                            {patient.is_active ? (
-                              <span className="badge bg-success">
-                                <i className="fas fa-check-circle me-1"></i>
-                                Hoạt động
-                              </span>
-                            ) : (
-                              <span className="badge bg-secondary">
-                                <i className="fas fa-pause-circle me-1"></i>
-                                Ngưng
-                              </span>
-                            )}
-                          </td>
-                          <td>{formatDate(patient.created_at)}</td>
-                          <td>
-                            <div className="btn-group" role="group">
-                              <Link
-                                to={`/doctor/patient/${patient.user_id}`}
-                                className="btn btn-outline-primary btn-sm"
-                                title="Xem chi tiết"
-                              >
-                                <i className="fas fa-eye"></i>
-                              </Link>
-                              <button
-                                className="btn btn-outline-success btn-sm"
-                                title="Tạo báo cáo"
-                                onClick={() => {
-                                  // Navigate to create report
-                                  window.location.href = `/doctor/patient/${patient.user_id}#create-report`
-                                }}
-                              >
-                                <i className="fas fa-file-medical"></i>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-5">
-                  <i className="fas fa-user-friends fa-3x text-muted mb-3"></i>
-                  <h5 className="text-muted">Không tìm thấy bệnh nhân nào</h5>
-                  <p className="text-muted">
-                    {searchTerm || statusFilter !== "all"
-                      ? "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm"
-                      : "Chưa có bệnh nhân nào trong hệ thống"}
-                  </p>
-                </div>
-              )}
+        <div className="app-card-body space-y-4">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+            <div className="relative">
+              <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"></i>
+              <input
+                className="form-control pl-11"
+                placeholder="Tìm kiếm bệnh nhân..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
             </div>
+            <select className="form-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <option value="all">Tất cả trạng thái</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="inactive">Ngưng hoạt động</option>
+            </select>
           </div>
+
+          {filteredPatients.length ? (
+            <div className="space-y-3">
+              {filteredPatients.map((patient) => (
+                <article key={patient.user_id} className="rounded-xl border border-surface-line bg-white p-4 shadow-soft transition hover:border-brand-200 hover:shadow-medium">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <PatientAvatar name={patient.name} />
+                      <div className="min-w-0">
+                        <h3 className="truncate text-lg font-bold text-ink-950">{patient.name}</h3>
+                        <p className="truncate text-sm text-ink-500">{patient.email}</p>
+                        <p className="mt-1 text-xs font-medium text-ink-500">Tham gia: {formatDate(patient.created_at)}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-3 py-1 text-xs font-bold ${patient.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"}`}>
+                        {patient.is_active ? "Hoạt động" : "Ngưng"}
+                      </span>
+                      <Link to={`/doctor/patient/${patient.user_id}`} className="btn btn-primary btn-sm">
+                        <i className="fas fa-folder-open me-1"></i>Workspace
+                      </Link>
+                      <button type="button" className="btn btn-outline-success btn-sm" onClick={() => navigate(`/doctor/patient/${patient.user_id}#create-report`)}>
+                        <i className="fas fa-file-medical me-1"></i>Báo cáo
+                      </button>
+                      <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => navigate("/doctor/chat", { state: { patientId: patient.user_id } })}>
+                        <i className="fas fa-message me-1"></i>Chat
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState icon="fas fa-user-magnifying-glass" title="Không tìm thấy bệnh nhân" description="Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc trạng thái." />
+          )}
         </div>
-      </div>
+      </section>
     </div>
   )
 }
