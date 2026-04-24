@@ -28,6 +28,7 @@ const {
 } = require("./services/mqttTelemetryService")
 const { ingestTelemetry } = require("./services/telemetryIngestService")
 const { attachAiQueueRealtimeBridge } = require("./services/aiQueueRealtimeBridgeService")
+const { attachDirectMessageNotificationBridge } = require("./services/directMessageNotificationBridgeService")
 
 const allowedClientOrigins = [process.env.CLIENT_URL, process.env.CLIENT_URL2, process.env.CLIENT_URL3, process.env.CLIENT_URL4, process.env.CLIENT_URL5]
   .map((origin) => origin?.trim())
@@ -145,6 +146,11 @@ const logServerEvent = (event, payload = {}) => {
   - log sự kiện này để theo dõi lifecycle của job và tương tác realtime
 */
 attachAiQueueRealtimeBridge({
+  io,
+  logEvent: logServerEvent,
+})
+
+attachDirectMessageNotificationBridge({
   io,
   logEvent: logServerEvent,
 })
