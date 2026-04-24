@@ -25,7 +25,7 @@ const Chatbot = ({ userId, userRole }) => {
       const history = response.data.history || []
       setMessages(history.map((chat) => ({ id: `${chat.role}-${chat.chat_id}`, text: chat.message, sender: chat.role, timestamp: new Date(chat.timestamp) })))
     } catch (error) {
-      console.error("Loi tai lich su chat:", error)
+      console.error("Lỗi tải lịch sử chat:", error)
     }
   }
 
@@ -39,8 +39,8 @@ const Chatbot = ({ userId, userRole }) => {
       const response = await chatApi.send(content)
       setMessages((prev) => [...prev, { id: `bot-${Date.now()}`, text: response.data.response, sender: "bot", timestamp: new Date() }])
     } catch (error) {
-      console.error("Loi gui tin nhan:", error)
-      toast.error("Khong the gui tin nhan. Vui long thu lai.")
+      console.error("Lỗi gửi tin nhắn:", error)
+      toast.error("Không thể gửi tin nhắn. Vui lòng thử lại.")
       setMessages((prev) => [...prev, { id: `bot-error-${Date.now()}`, text: "Xin loi, toi dang gap su co ky thuat. Vui long thu lai sau.", sender: "bot", timestamp: new Date() }])
     } finally {
       setIsLoading(false)
@@ -100,7 +100,7 @@ const Chatbot = ({ userId, userRole }) => {
                   </button>
                   <button type="button" className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-surface-soft" onClick={() => { setIsOpen(false); setShowMenu(false) }}>
                     <i className="fas fa-xmark"></i>
-                    Dong chat
+                    Đóng chat
                   </button>
                 </div>
               ) : null}
@@ -121,7 +121,7 @@ const Chatbot = ({ userId, userRole }) => {
             {isLoading ? (
               <div className="flex justify-start">
                 <div className="rounded-2xl border border-surface-line bg-white px-4 py-3 shadow-soft">
-                  <div className="flex items-center gap-2 text-sm text-ink-600"><div className="spinner-border spinner-border-sm"></div>Dang suy nghi...</div>
+                  <div className="flex items-center gap-2 text-sm text-ink-600"><div className="spinner-border spinner-border-sm"></div>Đang suy nghĩ...</div>
                 </div>
               </div>
             ) : null}

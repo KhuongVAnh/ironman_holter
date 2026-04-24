@@ -238,23 +238,23 @@ const PatientDetail = () => {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(340px,0.85fr)]">
-            <section className="app-card overflow-hidden">
-              <div className="app-card-header">
+            <section className="clinical-panel overflow-hidden">
+              <div className="clinical-panel-header">
                 <div>
                   <h2 className="section-title">ECG gần nhất</h2>
                   <p className="section-subtitle">{latestReading ? formatDateTime(latestReading.timestamp) : "Chưa có dữ liệu đo"}</p>
                 </div>
                 {latestReading ? <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReadingId(latestReading.reading_id)}>Mở chi tiết</button> : null}
               </div>
-              <div className="app-card-body">
+              <div className="clinical-panel-body">
                 {latestReading ? <ECGChart data={latestReading.ecg_signal || []} /> : <EmptyState icon="fas fa-wave-square" title="Chưa có dữ liệu ECG" />}
               </div>
             </section>
 
             <div className="space-y-6">
-              <section className="app-card overflow-hidden">
-                <div className="app-card-header"><div><h2 className="section-title">Cảnh báo gần đây</h2><p className="section-subtitle">Ưu tiên cảnh báo chưa xử lý.</p></div></div>
-                <div className="app-card-body space-y-3">
+              <section className="clinical-panel overflow-hidden">
+                <div className="clinical-panel-header"><div><h2 className="section-title">Cảnh báo gần đây</h2><p className="section-subtitle">Ưu tiên cảnh báo chưa xử lý.</p></div></div>
+                <div className="clinical-panel-body space-y-3">
                   {alerts.slice(0, 4).map((alert) => (
                     <button key={alert.alert_id} type="button" className="w-full rounded-xl border border-surface-line bg-white p-4 text-left shadow-soft" onClick={() => alert.reading_id && setSelectedReadingId(alert.reading_id)}>
                       <div className="flex items-center justify-between gap-3">
@@ -268,9 +268,9 @@ const PatientDetail = () => {
                 </div>
               </section>
 
-              <section className="app-card overflow-hidden">
-                <div className="app-card-header"><div><h2 className="section-title">Thuốc đang dùng</h2><p className="section-subtitle">Kế hoạch thuốc active.</p></div></div>
-                <div className="app-card-body space-y-3">
+              <section className="clinical-panel overflow-hidden">
+                <div className="clinical-panel-header"><div><h2 className="section-title">Thuốc đang dùng</h2><p className="section-subtitle">Kế hoạch thuốc đang hoạt động.</p></div></div>
+                <div className="clinical-panel-body space-y-3">
                   {activePlans.slice(0, 3).map((plan) => (
                     <div key={plan.plan_id} className="rounded-xl border border-surface-line bg-surface-soft p-4">
                       <p className="font-bold text-ink-900">{plan.title}</p>
@@ -286,9 +286,9 @@ const PatientDetail = () => {
       ) : null}
 
       {activeTab === "readings" ? (
-        <section className="app-card overflow-hidden">
-          <div className="app-card-header"><div><h2 className="section-title">Dữ liệu ECG</h2><p className="section-subtitle">Click từng lần đo để xem đồ thị và segment cảnh báo.</p></div></div>
-          <div className="app-card-body">
+        <section className="clinical-panel overflow-hidden">
+          <div className="clinical-panel-header"><div><h2 className="section-title">Dữ liệu ECG</h2><p className="section-subtitle">Nhấn từng lần đo để xem đồ thị và segment cảnh báo.</p></div></div>
+          <div className="clinical-panel-body">
             {readings.length ? (
               <div className="overflow-x-auto">
                 <table className="table align-middle">
@@ -312,8 +312,8 @@ const PatientDetail = () => {
       ) : null}
 
       {activeTab === "alerts" ? (
-        <section className="app-card overflow-hidden">
-          <div className="app-card-header">
+        <section className="clinical-panel overflow-hidden">
+          <div className="clinical-panel-header">
             <div><h2 className="section-title">Cảnh báo</h2><p className="section-subtitle">Lọc, mở ECG và đánh dấu xử lý.</p></div>
             <select className="form-select w-auto" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value)}>
               <option value="open">Chưa xử lý</option>
@@ -321,7 +321,7 @@ const PatientDetail = () => {
               <option value="all">Tất cả</option>
             </select>
           </div>
-          <div className="app-card-body space-y-3">
+          <div className="clinical-panel-body space-y-3">
             {filteredAlerts.length ? filteredAlerts.map((alert) => (
               <article key={alert.alert_id} className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -343,22 +343,22 @@ const PatientDetail = () => {
 
       {activeTab === "records" ? (
         <div className="space-y-6">
-          <section className="app-card"><div className="app-card-body"><MedicalVisitList visits={visits} onCreate={() => setShowVisitForm(true)} onEdit={(record) => { setEditVisit(record); setShowVisitForm(true) }} onDelete={handleVisitDelete} role={ROLE.BAC_SI} /></div></section>
-          <section className="app-card overflow-hidden">
-            <div className="app-card-header">
+          <section className="clinical-panel"><div className="clinical-panel-body"><MedicalVisitList visits={visits} onCreate={() => setShowVisitForm(true)} onEdit={(record) => { setEditVisit(record); setShowVisitForm(true) }} onDelete={handleVisitDelete} role={ROLE.BAC_SI} /></div></section>
+          <section className="clinical-panel overflow-hidden">
+            <div className="clinical-panel-header">
               <div><h2 className="section-title">Đơn thuốc và kế hoạch thuốc</h2><p className="section-subtitle">Quản lý thuốc đang dùng và các đợt điều trị cũ.</p></div>
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowPlanForm(true)}><i className="fas fa-plus me-1"></i>Thêm đơn thuốc</button>
             </div>
-            <div className="app-card-body"><MedicationPlanList plans={plans} role={ROLE.BAC_SI} onEdit={(record) => { setEditPlan(record); setShowPlanForm(true) }} onDelete={handlePlanDelete} /></div>
+            <div className="clinical-panel-body"><MedicationPlanList plans={plans} role={ROLE.BAC_SI} onEdit={(record) => { setEditPlan(record); setShowPlanForm(true) }} onDelete={handlePlanDelete} /></div>
           </section>
         </div>
       ) : null}
 
       {activeTab === "reports" ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-          <section className="app-card overflow-hidden">
-            <div className="app-card-header"><div><h2 className="section-title">Báo cáo đã tạo</h2><p className="section-subtitle">Lịch sử nhận định chuyên môn cho bệnh nhân.</p></div></div>
-            <div className="app-card-body space-y-3">
+          <section className="clinical-panel overflow-hidden">
+            <div className="clinical-panel-header"><div><h2 className="section-title">Báo cáo đã tạo</h2><p className="section-subtitle">Lịch sử nhận định chuyên môn cho bệnh nhân.</p></div></div>
+            <div className="clinical-panel-body space-y-3">
               {reports.length ? reports.map((report) => (
                 <article key={report.report_id} className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -372,9 +372,9 @@ const PatientDetail = () => {
             </div>
           </section>
 
-          <aside className="app-card overflow-hidden" id="create-report">
-            <div className="app-card-header"><div><h2 className="section-title">Tạo báo cáo</h2><p className="section-subtitle">Ghi nhận nhận định và khuyến nghị chuyên môn.</p></div></div>
-            <div className="app-card-body">
+          <aside className="clinical-panel overflow-hidden" id="create-report">
+            <div className="clinical-panel-header"><div><h2 className="section-title">Tạo báo cáo</h2><p className="section-subtitle">Ghi nhận nhận định và khuyến nghị chuyên môn.</p></div></div>
+            <div className="clinical-panel-body">
               <form className="space-y-4" onSubmit={createReport}>
                 <textarea className="form-control min-h-[220px]" value={reportForm.summary} onChange={(event) => setReportForm({ summary: event.target.value })} placeholder="Nhập nội dung báo cáo..." />
                 <button type="submit" className="btn btn-primary w-100"><i className="fas fa-plus me-2"></i>Tạo báo cáo</button>

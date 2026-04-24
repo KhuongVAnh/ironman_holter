@@ -122,7 +122,7 @@ const PatientAlerts = () => {
 
   const handleViewReading = (alert) => {
     if (!alert?.reading_id) {
-      toast.warning("Cảnh báo này không có reading tương ứng để xem đồ thị")
+      toast.warning("Cảnh báo này không có bản ghi tương ứng để xem đồ thị")
       return
     }
     setSelectedReadingId(alert.reading_id)
@@ -130,51 +130,60 @@ const PatientAlerts = () => {
 
   if (loading) {
     return (
-      <div className="container py-4">
-        <div className="d-flex justify-content-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
+      <div className="page-shell">
+        <div className="empty-state-rich">
+          <div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div>
+          <h3>Đang tải cảnh báo</h3>
+          <p>Hệ thống đang lấy các cảnh báo nhịp tim mới nhất.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container py-4">
-      <div className="alert-page-header mb-4">
-        <div>
-          <h1 className="h3 mb-1">
-            <i className="fas fa-triangle-exclamation me-2 text-warning"></i>
-            Cảnh báo sức khỏe
-          </h1>
-          <p className="alert-page-subtitle mb-0">
-            Theo dõi cảnh báo theo mức độ để ưu tiên xử lý và mở nhanh đồ thị ECG liên quan.
-          </p>
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-triangle-exclamation"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">Cảnh báo sức khỏe</p>
+          <h1 className="page-hero-title">Ưu tiên cảnh báo ECG cần xử lý</h1>
+          <p className="page-hero-subtitle">Theo dõi cảnh báo theo mức độ để ưu tiên xử lý và mở nhanh đồ thị ECG liên quan.</p>
         </div>
         <button className="btn btn-outline-primary" onClick={fetchAlerts}>
           <i className="fas fa-rotate-right me-2"></i>
           Làm mới
         </button>
-      </div>
+      </section>
 
-      <div className="alert-summary-strip mb-4">
-        <div className="alert-summary-item">
-          <span className="alert-summary-label">Tổng cảnh báo</span>
-          <span className="alert-summary-value">{summary.total}</span>
+      <section className="metric-grid">
+        <div className="priority-metric metric-info">
+          <div className="metric-icon"><i className="fas fa-list-check"></i></div>
+          <p className="metric-label">Tổng cảnh báo</p>
+          <p className="metric-value">{summary.total}</p>
+          <p className="metric-helper">Theo bộ lọc hiện tại</p>
         </div>
-        <div className="alert-summary-item">
-          <span className="alert-summary-label">Chưa xử lý</span>
-          <span className="alert-summary-value text-danger">{summary.unresolved}</span>
+        <div className="priority-metric metric-danger">
+          <div className="metric-icon"><i className="fas fa-bell"></i></div>
+          <p className="metric-label">Chưa xử lý</p>
+          <p className="metric-value">{summary.unresolved}</p>
+          <p className="metric-helper">Cần xem trước tiên</p>
         </div>
-        <div className="alert-summary-item">
-          <span className="alert-summary-label">Đã xử lý</span>
-          <span className="alert-summary-value text-success">{summary.resolved}</span>
+        <div className="priority-metric metric-success">
+          <div className="metric-icon"><i className="fas fa-circle-check"></i></div>
+          <p className="metric-label">Đã xử lý</p>
+          <p className="metric-value">{summary.resolved}</p>
+          <p className="metric-helper">Đã được ghi nhận</p>
         </div>
-      </div>
+      </section>
 
-      <div className="alert-filter-row mb-4">
-        <div className="alert-filter-group" role="tablist" aria-label="Lọc cảnh báo">
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header">
+          <div>
+            <p className="panel-eyebrow">Bộ lọc</p>
+            <h2 className="section-title">Danh sách cảnh báo</h2>
+            <p className="section-subtitle">Nhấn một cảnh báo để xem chi tiết bản ghi ECG.</p>
+          </div>
+          <div className="alert-filter-group" role="tablist" aria-label="Lọc cảnh báo">
           {FILTER_ITEMS.map((item) => (
             <button
               key={item.key}
@@ -185,23 +194,22 @@ const PatientAlerts = () => {
               {item.label}
             </button>
           ))}
+          </div>
         </div>
-      </div>
+        <div className="clinical-panel-body">
 
       {alerts.length === 0 ? (
-        <div className="card border-0 shadow-sm">
-          <div className="card-body text-center py-5">
-            <i className="fas fa-shield-heart fa-3x text-success mb-3"></i>
-            <h5 className="text-muted mb-2">
+            <div className="empty-state-rich">
+              <div className="empty-state-rich-icon success"><i className="fas fa-shield-heart"></i></div>
+              <h3>
               {filter === "all"
                 ? "Hiện chưa có cảnh báo"
                 : filter === "resolved"
                   ? "Không có cảnh báo đã xử lý"
                   : "Không có cảnh báo chờ xử lý"}
-            </h5>
-            <p className="text-muted mb-0">Dữ liệu cảnh báo sẽ xuất hiện tại đây khi có biến động nhịp tim.</p>
-          </div>
-        </div>
+              </h3>
+              <p>Dữ liệu cảnh báo sẽ xuất hiện tại đây khi có biến động nhịp tim.</p>
+            </div>
       ) : (
         Object.keys(SEVERITY_META).map((severityKey) => {
           const items = groupedAlerts[severityKey]
@@ -220,17 +228,17 @@ const PatientAlerts = () => {
                   <p className="alert-group-subtitle mb-0">{meta.subtitle}</p>
                 </div>
               </div>
-              <div className="row g-3">
+              <div className="grid gap-3 lg:grid-cols-2">
                 {items.map((alert) => {
                   const hasReading = Boolean(alert.reading_id)
                   return (
-                    <div key={alert.alert_id} className="col-12 col-lg-6">
+                    <div key={alert.alert_id}>
                       <button
                         type="button"
                         className={`alert-clinical-card ${meta.className} ${!hasReading ? "alert-card-disabled" : ""}`}
                         onClick={() => handleViewReading(alert)}
                         disabled={!hasReading}
-                        title={hasReading ? "Nhấn để xem đồ thị ECG" : "Không có reading tương ứng"}
+                        title={hasReading ? "Nhấn để xem đồ thị ECG" : "Không có bản ghi tương ứng"}
                       >
                         <div className="alert-card-head">
                           <div className="alert-card-type">{getAlertTypeLabel(alert.alert_type)}</div>
@@ -245,7 +253,7 @@ const PatientAlerts = () => {
                             {formatDate(alert.timestamp)}
                           </span>
                           <span className="alert-action-hint">
-                            {hasReading ? "Nhấn để xem đồ thị ECG" : "Không có reading"}
+                            {hasReading ? "Nhấn để xem đồ thị ECG" : "Không có bản ghi"}
                           </span>
                         </div>
                       </button>
@@ -257,6 +265,8 @@ const PatientAlerts = () => {
           )
         })
       )}
+        </div>
+      </section>
 
       <ReadingDetailModal
         show={Boolean(selectedReadingId)}

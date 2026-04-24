@@ -62,7 +62,7 @@ const buildAnalysisStateFromRealtime = (data = {}, currentState = null) => {
     rawResult: status === "DONE" ? aiResultText : null,
     time: data.timestamp || currentState?.time || null,
     abnormal,
-    error: status === "FAILED" ? String(data.ai_error || "Phan tich AI that bai") : null,
+    error: status === "FAILED" ? String(data.ai_error || "Phân tích AI thất bại") : null,
   }
 }
 
@@ -232,7 +232,7 @@ const PatientDashboard = () => {
     if (analysisState.status === "FAILED") {
       return {
         title: "Phân tích thất bại",
-        detail: analysisState.error || "Khong the hoan tat suy luan AI cho reading nay.",
+        detail: analysisState.error || "Không thể hoàn tất suy luận AI cho bản ghi này.",
         tone: "bg-rose-50 text-rose-700",
       }
     }
@@ -253,133 +253,100 @@ const PatientDashboard = () => {
   }, [analysisState])
 
   return (
-    <div className="space-y-6">
-      <section className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-stretch">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2 content-start">
-          <div className="app-card md:col-span-2 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-ink-500">Nhịp tim hiện tại</p>
-                <div className="mt-3 flex items-end gap-3">
-                  <span className="text-5xl font-bold text-ink-900">{currentHeartRate ?? "--"}</span>
-                  <span className="pb-2 text-lg font-bold text-brand-600">BPM</span>
-                </div>
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-bold uppercase text-brand-700">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75"></span>
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600"></span>
-                </span>
-                Trực tiếp
-              </div>
-            </div>
-          </div>
-
-          <div className="app-card md:col-span-2 p-5">
-            <div className="flex items-center gap-2 text-brand-600">
-              <i className="fas fa-link text-sm"></i>
-              <p className="text-xs font-bold uppercase">Thiết bị</p>
-            </div>
-            <div className="mt-3 flex items-center gap-2">
-              <span className={`inline-flex h-3 w-3 rounded-full ${isConnected ? "bg-emerald-500" : "bg-red-500"}`}></span>
-              <span className="text-base font-bold text-ink-900">{isConnected ? "Đang kết nối" : "Mất kết nối"}</span>
-            </div>
-            <p className="mt-2 text-xs text-ink-500">Thiết bị cần duy trì kết nối để dữ liệu ECG không bị đứt quãng.</p>
-          </div>
-
-          <div className="app-card md:col-span-2 p-5">
-            <div className={`flex items-center gap-4 rounded-xl px-4 py-4 ${aiCard.tone}`}>
-              <div className="rounded-full bg-brand-50 p-3 text-brand-600"><i className="fas fa-brain"></i></div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold uppercase">Phân tích Ironman AI</p>
-                <p className="mt-1 text-base font-bold">{aiCard.title}</p>
-                <p className="mt-1 text-sm opacity-80">{aiCard.detail}</p>
-                {analysisState?.time ? (
-                  <p className="mt-2 text-xs opacity-70">{new Date(analysisState.time).toLocaleString("vi-VN")}</p>
-                ) : null}
-              </div>
-              <i className="fas fa-badge-check opacity-60"></i>
-            </div>
-          </div>
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-heart-pulse"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">Dashboard bệnh nhân</p>
+          <h1 className="page-hero-title">Theo dõi ECG trực tiếp</h1>
+          <p className="page-hero-subtitle">Biểu đồ ECG là vùng chính; nhịp tim và kết luận AI được đặt ngay trong cùng khung để đọc nhanh.</p>
         </div>
+      </section>
 
-        <div className="app-card flex min-h-[430px] flex-col overflow-hidden xl:min-h-[470px]">
-          <div className="flex items-center justify-between border-b border-surface-line px-4 py-3">
-            <div className="flex items-center gap-3">
-              <i className="fas fa-heart-pulse text-brand-600"></i>
-              <h3 className="text-lg font-bold">Biểu đồ điện tâm đồ (ECG)</h3>
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="clinical-panel overflow-hidden">
+          <div className="clinical-panel-header py-3">
+            <div>
+              <p className="panel-eyebrow">ECG realtime</p>
+              <h2 className="text-xl font-bold text-ink-900">Biểu đồ điện tâm đồ</h2>
             </div>
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase">
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-3 py-2 text-white transition hover:bg-brand-700"
-                onClick={generateFakeData}
-              >
-                <i className="fas fa-play text-[10px]"></i>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="pointer-events-auto inline-flex min-h-10 items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-white shadow-float transition hover:bg-brand-700" onClick={generateFakeData}>
+                <i className="fas fa-play text-xs"></i>
                 Mô phỏng
               </button>
-              <span className="rounded-full bg-surface-soft px-3 py-1 text-ink-700">25 mm/s</span>
-              <span className="rounded-full bg-surface-soft px-3 py-1 text-ink-500">10 mm/mV</span>
+              <span className="status-chip is-info">25 mm/s</span>
+              <span className="status-chip is-neutral">10 mm/mV</span>
             </div>
           </div>
-          <div className="flex-1 p-4">
-            <div className="h-full rounded-xl border border-brand-100 bg-[linear-gradient(rgba(225,29,72,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(225,29,72,0.14)_1px,transparent_1px),linear-gradient(rgba(225,29,72,0.08)_0.5px,transparent_0.5px),linear-gradient(90deg,rgba(225,29,72,0.08)_0.5px,transparent_0.5px)] bg-[size:50px_50px,50px_50px,10px_10px,10px_10px]">
+          <div className="p-2">
+            <div className="relative w-full">
+              <div className="pointer-events-none absolute left-2 right-2 top-2 z-10 flex flex-wrap items-start justify-between gap-2">
+                <div className="flex max-w-full flex-wrap gap-2">
+                  <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-red-100 bg-white/95 px-3 py-2 text-sm shadow-medium backdrop-blur">
+                    <i className="fas fa-heartbeat text-red-600"></i>
+                    <span className="text-xs font-bold uppercase tracking-[0.08em] text-red-700">Nhịp tim</span>
+                    <span className="text-base font-bold text-ink-900">{currentHeartRate ?? "--"}</span>
+                    <span className="text-xs font-bold text-red-700">BPM</span>
+                  </div>
+                  <div className={`pointer-events-auto inline-flex max-w-[min(560px,calc(100vw-3rem))] items-center gap-2 rounded-full border bg-white/95 px-3 py-2 text-sm shadow-medium backdrop-blur ${analysisState?.status === "FAILED" ? "border-red-100" : analysisState?.abnormal ? "border-amber-100" : "border-emerald-100"}`}>
+                    <i className={`fas fa-brain ${analysisState?.status === "FAILED" ? "text-red-600" : analysisState?.abnormal ? "text-amber-600" : "text-emerald-600"}`}></i>
+                    <span className="text-xs font-bold uppercase tracking-[0.08em] text-ink-500">AI</span>
+                    <span className="truncate font-bold text-ink-900">{aiCard.title}</span>
+                  </div>
+                </div>
+              </div>
               <ECGChart
                 data={streamedEcgData}
                 sampleRate={ecgRealtimeState.sampleRateHz}
                 displayWindowSeconds={DISPLAY_WINDOW_SECONDS}
-                height={360}
+                height={350}
               />
             </div>
           </div>
         </div>
-      </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1fr_320px]">
-        <div className="app-card">
-          <div className="app-card-header">
-            <div>
-              <h2 className="section-title">Cảnh báo gần nhất</h2>
-              <p className="section-subtitle">Ưu tiên xử lý cảnh báo nguy cơ cao trước, sau đó kiểm tra bản ghi ECG liên quan.</p>
-            </div>
-          </div>
-          <div className="app-card-body">
-            <RecentAlertsPanel
-              title=""
-              subtitle=""
-              alerts={recentAlerts}
-              onAlertClick={(alert) => setSelectedReadingId(alert?.reading_id || null)}
-              getAlertTitle={(alert) => getAlertTypeLabel(alert.alert_type)}
-              getAlertStatus={(alert) => alert?.resolved ? { label: "Đã xử lý", variant: "is-resolved" } : { label: "Mới", variant: "is-pending" }}
-              getAlertHint={(_alert, disabled) => (disabled ? "Không có reading" : "Nhấn để xem đồ thị ECG")}
-              emptyText="Không có cảnh báo nào"
-            />
-          </div>
-        </div>
-
-        <div className="app-card p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-ink-900">Bác sĩ phụ trách</h3>
-            <span className="text-xs font-bold uppercase text-brand-600">{supervisingDoctors.length} người</span>
-          </div>
-          <div className="mt-5 space-y-4">
-            {supervisingDoctors.length > 0 ? supervisingDoctors.map((doctor) => (
-              <div key={doctor.id} className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-brand-700">
-                  <i className="fas fa-user-doctor"></i>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-ink-900">{doctor.name}</p>
-                  <p className="text-xs text-ink-500">{doctor.specialty}</p>
-                </div>
-                <button type="button" className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100">
-                  <i className="fas fa-comment-medical"></i>
-                </button>
+        <aside className="space-y-5">
+          <section className="clinical-panel overflow-hidden">
+            <div className="clinical-panel-header">
+              <div>
+                <p className="panel-eyebrow">Bác sĩ phụ trách</p>
+                <h2 className="section-title">{supervisingDoctors.length} người</h2>
               </div>
-            )) : <p className="rounded-2xl bg-surface-soft px-4 py-4 text-sm text-ink-600">Chưa có bác sĩ nào đang theo dõi dữ liệu của bạn.</p>}
-          </div>
-        </div>
+            </div>
+            <div className="clinical-panel-body space-y-3">
+              {supervisingDoctors.length > 0 ? supervisingDoctors.map((doctor) => (
+                <div key={doctor.id} className="flex items-center gap-3 rounded-2xl border border-surface-line bg-white p-3 shadow-soft">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-100 text-brand-700">
+                    <i className="fas fa-user-doctor"></i>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-ink-900">{doctor.name}</p>
+                    <p className="truncate text-xs text-ink-500">{doctor.specialty}</p>
+                  </div>
+                </div>
+              )) : (
+                <div className="empty-state-rich py-6">
+                  <div className="empty-state-rich-icon info"><i className="fas fa-user-doctor"></i></div>
+                  <p className="mt-3 text-sm text-ink-600">Chưa có bác sĩ nào đang theo dõi dữ liệu của bạn.</p>
+                </div>
+              )}
+            </div>
+          </section>
+        </aside>
       </section>
+
+      <RecentAlertsPanel
+        title="Cảnh báo gần nhất"
+        subtitle="Ưu tiên xử lý cảnh báo nguy cơ cao trước, sau đó kiểm tra bản ghi ECG liên quan."
+        alerts={recentAlerts}
+        viewAllLink={{ to: "/alerts", label: "Xem tất cả" }}
+        onAlertClick={(alert) => setSelectedReadingId(alert?.reading_id || null)}
+        getAlertTitle={(alert) => getAlertTypeLabel(alert.alert_type)}
+        getAlertStatus={(alert) => alert?.resolved ? { label: "Đã xử lý", variant: "is-resolved" } : { label: "Mới", variant: "is-pending" }}
+        getAlertHint={(_alert, disabled) => (disabled ? "Không có bản ghi" : "Nhấn để xem đồ thị ECG")}
+        emptyText="Không có cảnh báo nào"
+      />
 
       <ReadingDetailModal show={Boolean(selectedReadingId)} readingId={selectedReadingId} onHide={() => setSelectedReadingId(null)} />
     </div>

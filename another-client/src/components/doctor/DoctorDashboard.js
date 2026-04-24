@@ -73,18 +73,13 @@ const DoctorDashboard = () => {
       .slice(0, 6)
   }, [patients, unresolvedAlerts])
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[55vh] items-center justify-center">
-        <div className="spinner-border"></div>
-      </div>
-    )
-  }
+  if (loading) return <div className="page-shell"><div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div><h3>Đang tải điều phối</h3><p>Hệ thống đang tổng hợp bệnh nhân, cảnh báo và báo cáo.</p></div></div>
 
   return (
-    <div className="space-y-6">
-      <section className="app-card p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-user-doctor"></i></div>
+        <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-brand-700">Clinical command center</p>
             <h1 className="mt-1 text-3xl font-bold text-ink-950">Điều phối hôm nay</h1>
@@ -109,15 +104,15 @@ const DoctorDashboard = () => {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(360px,0.9fr)]">
-        <section className="app-card overflow-hidden">
-          <div className="app-card-header">
+        <section className="clinical-panel overflow-hidden">
+          <div className="clinical-panel-header">
             <div>
               <h2 className="section-title"><i className="fas fa-bell me-2 text-red-600"></i>Hàng đợi cảnh báo</h2>
               <p className="section-subtitle">Cảnh báo mới nhất từ các bệnh nhân đang được theo dõi.</p>
             </div>
             <Link to="/doctor/patients" className="btn btn-outline-primary btn-sm">Mở danh sách</Link>
           </div>
-          <div className="app-card-body">
+          <div className="clinical-panel-body">
             {alerts.length ? (
               <div className="space-y-3">
                 {alerts.slice(0, 8).map((alert) => (
@@ -139,7 +134,7 @@ const DoctorDashboard = () => {
                       </div>
                       <div className="text-right text-xs font-medium text-ink-500">
                         <p>{formatDateTime(alert.timestamp)}</p>
-                        <p className="mt-2 text-brand-700">{alert.reading_id ? "Mở ECG" : "Không có reading"}</p>
+                        <p className="mt-2 text-brand-700">{alert.reading_id ? "Mở ECG" : "Không có bản ghi"}</p>
                       </div>
                     </div>
                   </button>
@@ -151,14 +146,14 @@ const DoctorDashboard = () => {
           </div>
         </section>
 
-        <section className="app-card overflow-hidden">
-          <div className="app-card-header">
+        <section className="clinical-panel overflow-hidden">
+          <div className="clinical-panel-header">
             <div>
               <h2 className="section-title"><i className="fas fa-users-viewfinder me-2 text-brand-600"></i>Watchlist</h2>
               <p className="section-subtitle">Bệnh nhân cần xem nhanh trong hôm nay.</p>
             </div>
           </div>
-          <div className="app-card-body space-y-3">
+          <div className="clinical-panel-body space-y-3">
             {watchlist.length ? watchlist.map((patient) => (
               <div key={patient.user_id} className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
                 <div className="flex items-start gap-3">

@@ -7,7 +7,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="space-y-3 text-center"><div className="mx-auto spinner-border"></div><p className="text-sm font-semibold text-ink-600">Dang tai du lieu...</p></div>
+        <div className="space-y-3 text-center"><div className="mx-auto spinner-border"></div><p className="text-sm font-semibold text-ink-600">Đang tải dữ liệu...</p></div>
       </div>
     )
   }

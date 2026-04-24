@@ -35,14 +35,14 @@ const FamilyHistoryPanel = () => {
   }
 
   return (
-    <section className="app-card">
-      <div className="app-card-header">
+    <section className="clinical-panel">
+      <div className="clinical-panel-header">
         <div>
           <h1 className="section-title"><i className="fas fa-heart-pulse me-2 text-brand-600"></i>Hồ sơ y tế bệnh nhân #{patientId}</h1>
           <p className="section-subtitle">Bạn xem được lịch sử khám chữa bệnh và đơn thuốc đã được bệnh nhân chia sẻ.</p>
         </div>
       </div>
-      <div className="app-card-body space-y-4">
+      <div className="clinical-panel-body space-y-4">
         <div className="inline-flex rounded-xl border border-surface-line bg-surface-soft p-1">
           <button type="button" className={`rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === "visits" ? "bg-white text-brand-700 shadow-soft" : "text-ink-600"}`} onClick={() => setActiveTab("visits")}>
             Lịch sử khám bệnh

@@ -50,12 +50,13 @@ const DoctorAccessRequests = () => {
     }
   }
 
-  if (loading) return <div className="flex min-h-[55vh] items-center justify-center"><div className="spinner-border"></div></div>
+  if (loading) return <div className="page-shell"><div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div><h3>Đang tải yêu cầu</h3><p>Hệ thống đang kiểm tra các quyền truy cập đang chờ.</p></div></div>
 
   return (
-    <div className="space-y-6">
-      <section className="app-card p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-user-shield"></i></div>
+        <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-brand-700">Access control</p>
             <h1 className="mt-1 text-3xl font-bold text-ink-950">Yêu cầu truy cập bệnh nhân</h1>
@@ -67,14 +68,14 @@ const DoctorAccessRequests = () => {
         </div>
       </section>
 
-      <section className="app-card overflow-hidden">
-        <div className="app-card-header">
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header">
           <div>
             <h2 className="section-title">Đang chờ duyệt</h2>
             <p className="section-subtitle">{requests.length} yêu cầu cần phản hồi.</p>
           </div>
         </div>
-        <div className="app-card-body">
+        <div className="clinical-panel-body">
           {requests.length ? (
             <div className="space-y-3">
               {requests.map((item) => {
@@ -90,7 +91,7 @@ const DoctorAccessRequests = () => {
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">{item.status}</span>
+                        <span className="status-chip is-warning">Đang chờ</span>
                         {item.status === ACCESS_STATUS.PENDING ? (
                           <>
                             <button type="button" className="btn btn-outline-success btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "accept")}>
@@ -113,14 +114,14 @@ const DoctorAccessRequests = () => {
         </div>
       </section>
 
-      <section className="app-card overflow-hidden">
-        <div className="app-card-header">
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header">
           <div>
             <h2 className="section-title">Đã cấp quyền</h2>
             <p className="section-subtitle">Bệnh nhân đang cho phép bác sĩ theo dõi.</p>
           </div>
         </div>
-        <div className="app-card-body space-y-3">
+        <div className="clinical-panel-body space-y-3">
           {patients.length ? patients.map((item) => {
             const patient = getPatientFromAccess(item)
             return (

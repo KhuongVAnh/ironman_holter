@@ -38,12 +38,13 @@ const DoctorReports = () => {
 
   const reportsToday = reports.filter((report) => new Date(report.created_at).toDateString() === new Date().toDateString())
 
-  if (loading) return <div className="flex min-h-[55vh] items-center justify-center"><div className="spinner-border"></div></div>
+  if (loading) return <div className="page-shell"><div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div><h3>Đang tải báo cáo</h3><p>Hệ thống đang lấy danh sách báo cáo chuyên môn.</p></div></div>
 
   return (
-    <div className="space-y-6">
-      <section className="app-card p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-file-medical"></i></div>
+        <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-brand-700">Clinical reports</p>
             <h1 className="mt-1 text-3xl font-bold text-ink-950">Báo cáo chuyên môn</h1>
@@ -61,14 +62,14 @@ const DoctorReports = () => {
         <DoctorStatCard icon="fas fa-filter" label="Kết quả lọc" value={filteredReports.length} tone="sky" />
       </div>
 
-      <section className="app-card overflow-hidden">
-        <div className="app-card-header">
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header">
           <div>
             <h2 className="section-title">Danh sách báo cáo</h2>
             <p className="section-subtitle">Tìm theo bệnh nhân, email hoặc nội dung báo cáo.</p>
           </div>
         </div>
-        <div className="app-card-body space-y-4">
+        <div className="clinical-panel-body space-y-4">
           <div className="relative">
             <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"></i>
             <input className="form-control pl-11" placeholder="Tìm kiếm báo cáo..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />

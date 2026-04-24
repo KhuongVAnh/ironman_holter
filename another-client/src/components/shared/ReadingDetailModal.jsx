@@ -53,6 +53,78 @@ const normalizeHighlightSegments = (alerts = [], signalLength = 0) => {
   }).filter(Boolean)
 }
 
+const formatDateTime = (value) => {
+  if (!value) return "-"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "-"
+  return date.toLocaleString("vi-VN")
+}
+
+const getAiStatusMeta = (aiStatus, aiAbnormal) => {
+  if (aiStatus === "PENDING") {
+    return {
+      label: "Đang phân tích",
+      icon: "fas fa-spinner",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
+      dotClassName: "bg-amber-500",
+    }
+  }
+
+  if (aiStatus === "FAILED") {
+    return {
+      label: "Phân tích thất bại",
+      icon: "fas fa-circle-exclamation",
+      className: "border-red-200 bg-red-50 text-red-700",
+      dotClassName: "bg-red-500",
+    }
+  }
+
+  if (aiAbnormal) {
+    return {
+      label: "Phát hiện bất thường",
+      icon: "fas fa-triangle-exclamation",
+      className: "border-brand-200 bg-brand-50 text-brand-700",
+      dotClassName: "bg-brand-600",
+    }
+  }
+
+  return {
+    label: "Bình thường",
+    icon: "fas fa-circle-check",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    dotClassName: "bg-emerald-500",
+  }
+}
+
+const getHeartRateMeta = (heartRate) => {
+  const value = Number(heartRate)
+  if (!Number.isFinite(value)) {
+    return { label: "-", tone: "text-ink-900", helper: "Chưa có dữ liệu" }
+  }
+  if (value < 60) return { label: `${Math.round(value)} BPM`, tone: "text-amber-700", helper: "Thấp hơn khoảng nghỉ thường gặp" }
+  if (value > 100) return { label: `${Math.round(value)} BPM`, tone: "text-brand-700", helper: "Cao hơn khoảng nghỉ thường gặp" }
+  return { label: `${Math.round(value)} BPM`, tone: "text-emerald-700", helper: "Trong khoảng nghỉ thường gặp" }
+}
+
+const SummaryChip = ({ icon, label, value, tone = "text-ink-900", className = "bg-white" }) => (
+  <div className={`flex min-w-0 items-center gap-3 rounded-xl border border-surface-line px-3 py-2 ${className}`}>
+    <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-surface-soft text-brand-700">
+      <i className={`${icon} text-sm`}></i>
+    </span>
+    <span className="min-w-0">
+      <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500">{label}</span>
+      <span className={`block truncate text-sm font-bold ${tone}`}>{value || "-"}</span>
+    </span>
+  </div>
+)
+
+const DetailLine = ({ label, value }) => (
+  <div className="flex items-start justify-between gap-4 border-b border-surface-line py-2.5 last:border-b-0">
+    <span className="text-xs font-semibold uppercase tracking-[0.06em] text-ink-500">{label}</span>
+    <span className="max-w-[62%] break-words text-right text-sm font-semibold text-ink-900">{value || "-"}</span>
+  </div>
+)
+
 const ReadingDetailModal = ({ show, onHide, readingId }) => {
   const [loading, setLoading] = useState(false)
   const [reading, setReading] = useState(null)
@@ -67,7 +139,7 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
     }
     if (!readingId) {
       setReading(null)
-      setErrorMessage("Khong co reading de hien thi")
+      setErrorMessage("Không có bản ghi để hiển thị")
       return
     }
 
@@ -79,8 +151,8 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
         const response = await readingsApi.getDetail(readingId)
         setReading(response.data?.reading || null)
       } catch (error) {
-        console.error("Loi tai chi tiet reading:", error)
-        const message = error.response?.data?.message || "Khong the tai chi tiet reading"
+        console.error("Lỗi tải chi tiết bản ghi:", error)
+        const message = error.response?.data?.message || "Không thể tải chi tiết bản ghi ECG"
         setErrorMessage(message)
         toast.error(message)
       } finally {
@@ -110,7 +182,7 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
           setReading(response.data?.reading || null)
           setErrorMessage("")
         } catch (error) {
-          console.error("Loi tai lai reading sau khi AI hoan tat:", error)
+          console.error("Lỗi tải lại bản ghi sau khi AI hoàn tất:", error)
         }
         return
       }
@@ -164,80 +236,157 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
   const analysisSummary = useMemo(() => {
     if (aiStatus === "PENDING") {
       return {
-        result: "Dang phan tich",
-        status: "Dang cho AI hoan tat",
+        result: "Đang phân tích",
+        status: "Đang chờ AI hoàn tất",
       }
     }
 
     if (aiStatus === "FAILED") {
       return {
-        result: "Phan tich that bai",
-        status: reading?.ai_error || "Khong the hoan tat suy luan AI",
+        result: "Phân tích thất bại",
+        status: reading?.ai_error || "Không thể hoàn tất suy luận AI",
       }
     }
 
     return {
       result: aiResultDisplay,
-      status: aiAbnormal ? "Bat thuong" : "Binh thuong",
+      status: aiAbnormal ? "Bất thường" : "Bình thường",
     }
   }, [aiStatus, aiResultDisplay, aiAbnormal, reading?.ai_error])
+
+  const aiStatusMeta = useMemo(() => getAiStatusMeta(aiStatus, aiAbnormal), [aiStatus, aiAbnormal])
+  const heartRateMeta = useMemo(() => getHeartRateMeta(reading?.heart_rate), [reading?.heart_rate])
+  const durationSeconds = ecgSignal.length > 0 ? (ecgSignal.length / 250).toFixed(1) : "-"
 
   return (
     <ModalFrame
       show={show}
       onClose={onHide}
-      title="Chi tiet reading ECG"
+      title="Chi tiết bản ghi ECG"
       size="xl"
-      footer={<button type="button" className="btn btn-outline-secondary" onClick={onHide}>Dong</button>}
+      footer={<button type="button" className="btn btn-outline-secondary" onClick={onHide}>Đóng</button>}
     >
       {loading ? (
-        <div className="flex justify-center py-8"><div className="spinner-border" /></div>
-      ) : errorMessage ? (
-        <div className="alert alert-danger">{errorMessage}</div>
-      ) : reading ? (
-        <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-            <div className="rounded-xl bg-surface-soft p-5 text-sm text-ink-700">
-            <p className="mb-2"><strong className="text-ink-900">Reading ID:</strong> {reading.reading_id}</p>
-            <p className="mb-2"><strong className="text-ink-900">Thoi gian:</strong> {new Date(reading.timestamp).toLocaleString("vi-VN")}</p>
-            <p className="mb-2"><strong className="text-ink-900">Nhip tim:</strong> {reading.heart_rate} BPM</p>
-            <p className="mb-2"><strong className="text-ink-900">AI status:</strong> {aiStatus}</p>
-            <p className="mb-2"><strong className="text-ink-900">Ket qua AI:</strong> {analysisSummary.result}</p>
-            <p className="mb-2"><strong className="text-ink-900">Trang thai:</strong> {analysisSummary.status}</p>
-            <p className="mb-2"><strong className="text-ink-900">AI completed:</strong> {reading?.ai_completed_at ? new Date(reading.ai_completed_at).toLocaleString("vi-VN") : "-"}</p>
-            <p className="mb-2"><strong className="text-ink-900">Serial:</strong> {reading.device?.serial_number || "-"}</p>
-            <p className="mb-0"><strong className="text-ink-900">Benh nhan:</strong> {reading.patient?.name || "-"}</p>
-            <small className="text-muted">{reading.patient?.email || ""}</small>
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="h-16 animate-pulse rounded-xl bg-surface-soft"></div>
+            <div className="h-16 animate-pulse rounded-xl bg-surface-soft"></div>
+            <div className="h-16 animate-pulse rounded-xl bg-surface-soft"></div>
           </div>
-          <div className="space-y-4">
-            <div className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
-              <ECGChart data={ecgSignal} highlights={highlightSegments} />
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="h-[330px] animate-pulse rounded-xl bg-surface-soft"></div>
+            <div className="h-[330px] animate-pulse rounded-xl bg-surface-soft"></div>
+          </div>
+        </div>
+      ) : errorMessage ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">
+          <i className="fas fa-circle-exclamation mr-2"></i>
+          {errorMessage}
+        </div>
+      ) : reading ? (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-surface-line bg-white p-3 shadow-soft">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-brand-700">Chi tiết ECG</p>
+                <h4 className="truncate text-base font-bold text-ink-900">Bản ghi #{reading.reading_id}</h4>
+              </div>
+              <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${aiStatusMeta.className}`}>
+                <span className={`h-2 w-2 rounded-full ${aiStatusMeta.dotClassName}`}></span>
+                <i className={`${aiStatusMeta.icon} ${aiStatus === "PENDING" ? "animate-spin" : ""}`}></i>
+                {aiStatusMeta.label}
+              </span>
             </div>
-            <div className="rounded-xl border border-surface-line bg-surface-soft p-4">
-              <h4 className="mb-3 text-base font-bold text-ink-900">Chú thích bất thường</h4>
-              {aiStatus === "PENDING" ? (
-                <p className="text-sm text-ink-600">Đang chờ AI hoàn tất.</p>
-              ) : aiStatus === "FAILED" ? (
-                <p className="text-sm text-ink-600">không có dữ liệu bất thường vì quá trình phân tích đã thất bại.</p>
-              ) : highlightLegend.length > 0 ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {highlightLegend.map((item) => (
-                    <div key={item.code} className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: item.color }} />
-                        <span className="text-sm text-ink-700">{item.label}</span>
-                      </div>
-                      <span className="text-xs font-semibold text-ink-500">{item.count}</span>
-                    </div>
-                  ))}
+            <div className="grid gap-2 md:grid-cols-[170px_minmax(0,1fr)_150px]">
+              <SummaryChip
+                icon="fas fa-heart-pulse"
+                label="Nhịp tim"
+                value={heartRateMeta.label}
+                tone={heartRateMeta.tone}
+                className="bg-brand-50/60"
+              />
+              <SummaryChip
+                icon="fas fa-brain"
+                label="Kết luận AI"
+                value={analysisSummary.result}
+                tone={aiAbnormal ? "text-brand-700" : aiStatus === "FAILED" ? "text-red-700" : "text-emerald-700"}
+              />
+              <SummaryChip
+                icon="fas fa-location-crosshairs"
+                label="Segment"
+                value={highlightSegments.length.toLocaleString("vi-VN")}
+                tone={highlightSegments.length > 0 ? "text-brand-700" : "text-ink-900"}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+            <section className="rounded-xl border border-surface-line bg-white p-3 shadow-soft">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-base font-bold text-ink-900">Đồ thị điện tâm đồ</h4>
+                  <p className="text-xs text-ink-600">Cửa sổ 5 giây gần nhất, vùng bất thường được tô màu theo lớp AI.</p>
                 </div>
-              ) : (
-                <p className="text-sm text-ink-600">Không có segment bất thường</p>
-              )}
-            </div>
+                <span className="inline-flex items-center gap-2 rounded-lg bg-surface-soft px-2.5 py-1.5 text-xs font-semibold text-ink-600">
+                  <i className="fas fa-chart-line text-brand-600"></i>
+                  {ecgSignal.length.toLocaleString("vi-VN")} mẫu · {durationSeconds}s
+                </span>
+              </div>
+              <ECGChart data={ecgSignal} highlights={highlightSegments} height={300} />
+            </section>
+
+            <aside className="space-y-3">
+              <section className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
+                <h4 className="text-sm font-bold text-ink-900">Thông tin bản ghi</h4>
+                <div className="mt-2">
+                  <DetailLine label="Thời gian" value={formatDateTime(reading.timestamp)} />
+                  <DetailLine label="Bệnh nhân" value={reading.patient?.name || "-"} />
+                  <DetailLine label="Email" value={reading.patient?.email || "-"} />
+                  <DetailLine label="Thiết bị" value={reading.device?.serial_number || "-"} />
+                  <DetailLine label="AI hoàn tất" value={formatDateTime(reading?.ai_completed_at)} />
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-surface-line bg-surface-soft p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-sm font-bold text-ink-900">Chú thích bất thường</h4>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-ink-600 shadow-soft">
+                    {highlightLegend.length.toLocaleString("vi-VN")} loại
+                  </span>
+                </div>
+                <div className="mt-3">
+                  {aiStatus === "PENDING" ? (
+                    <p className="rounded-lg bg-white px-3 py-2 text-sm text-ink-600 shadow-soft">Đang chờ AI hoàn tất phân tích.</p>
+                  ) : aiStatus === "FAILED" ? (
+                    <p className="rounded-lg bg-white px-3 py-2 text-sm text-ink-600 shadow-soft">Không có dữ liệu bất thường vì quá trình phân tích đã thất bại.</p>
+                  ) : highlightLegend.length > 0 ? (
+                    <div className="space-y-2">
+                      {highlightLegend.map((item) => (
+                        <div key={item.code} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 shadow-soft">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="inline-block h-3 w-3 flex-none rounded-full" style={{ backgroundColor: item.color }} />
+                            <span className="truncate text-sm font-semibold text-ink-900">{item.label}</span>
+                          </div>
+                          <span className="text-xs font-bold text-ink-500">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-lg bg-white px-3 py-2 text-sm text-ink-600 shadow-soft">Không có segment bất thường.</p>
+                  )}
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
+                <h4 className="text-sm font-bold text-ink-900">Diễn giải nhanh</h4>
+                <p className="mt-2 text-sm leading-6 text-ink-700">{analysisSummary.status}</p>
+                {heartRateMeta.helper ? <p className="mt-1 text-xs leading-5 text-ink-600">{heartRateMeta.helper}</p> : null}
+              </section>
+            </aside>
           </div>
         </div>
       ) : (
-        <div className="py-8 text-center text-sm text-ink-600">Không tìm thấy dữ liệu reading</div>
+        <div className="py-8 text-center text-sm text-ink-600">Không tìm thấy dữ liệu bản ghi.</div>
       )}
     </ModalFrame>
   )

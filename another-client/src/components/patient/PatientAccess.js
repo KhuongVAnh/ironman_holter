@@ -5,9 +5,21 @@ import { accessApi } from "../../services/api"
 import { ACCESS_ROLE, ACCESS_STATUS } from "../../services/string"
 
 const badgeTone = (status) => {
-  if (status === ACCESS_STATUS.ACCEPTED) return "bg-emerald-100 text-emerald-700"
-  if (status === ACCESS_STATUS.PENDING) return "bg-amber-100 text-amber-700"
-  return "bg-red-100 text-red-700"
+  if (status === ACCESS_STATUS.ACCEPTED) return "status-chip is-success"
+  if (status === ACCESS_STATUS.PENDING) return "status-chip is-warning"
+  return "status-chip is-danger"
+}
+
+const roleLabel = (value) => {
+  if (value === ACCESS_ROLE.BAC_SI) return "Bác sĩ"
+  if (value === ACCESS_ROLE.GIA_DINH) return "Gia đình"
+  return value || "Chưa rõ"
+}
+
+const statusLabel = (value) => {
+  if (value === ACCESS_STATUS.ACCEPTED) return "Đã chấp nhận"
+  if (value === ACCESS_STATUS.PENDING) return "Đang chờ"
+  return value || "Chưa rõ"
 }
 
 const PatientAccess = () => {
@@ -76,17 +88,59 @@ const PatientAccess = () => {
     }
   }
 
+  const acceptedCount = accessList.filter((item) => item.status === ACCESS_STATUS.ACCEPTED).length
+  const pendingCount = accessList.filter((item) => item.status === ACCESS_STATUS.PENDING).length
+
   return (
-    <div className="space-y-6">
-      <section className="app-card">
-        <div className="app-card-header">
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-key"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">Quyền truy cập</p>
+          <h1 className="page-hero-title">Chia sẻ dữ liệu ECG an toàn</h1>
+          <p className="page-hero-subtitle">Cấp quyền cho bác sĩ hoặc người thân theo email, theo dõi trạng thái duyệt và thu hồi khi cần.</p>
+        </div>
+      </section>
+
+      <section className="metric-grid">
+        <div className="priority-metric metric-info">
+          <div className="metric-icon"><i className="fas fa-users"></i></div>
+          <p className="metric-label">Tổng quyền</p>
+          <p className="metric-value">{accessList.length}</p>
+          <p className="metric-helper">Tất cả người được mời xem dữ liệu</p>
+        </div>
+        <div className="priority-metric metric-success">
+          <div className="metric-icon"><i className="fas fa-user-check"></i></div>
+          <p className="metric-label">Đã chấp nhận</p>
+          <p className="metric-value">{acceptedCount}</p>
+          <p className="metric-helper">Có thể theo dõi dữ liệu hiện tại</p>
+        </div>
+        <div className="priority-metric metric-warning">
+          <div className="metric-icon"><i className="fas fa-hourglass-half"></i></div>
+          <p className="metric-label">Đang chờ</p>
+          <p className="metric-value">{pendingCount}</p>
+          <p className="metric-helper">Cần người nhận phản hồi</p>
+        </div>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
+        <section className="clinical-panel overflow-hidden">
+          <div className="clinical-panel-header">
           <div>
-            <h1 className="section-title"><i className="fas fa-key me-2 text-brand-600"></i>Quản lý quyền truy cập</h1>
-            <p className="section-subtitle">Cấp quyền xem dữ liệu cho bác sĩ hoặc người thân theo từng email.</p>
+              <p className="panel-eyebrow">Cấp quyền mới</p>
+              <h2 className="section-title">Mời người theo dõi</h2>
+              <p className="section-subtitle">Email được mời sẽ nhận quyền theo vai trò bạn chọn.</p>
           </div>
         </div>
-        <div className="app-card-body">
-          <form className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_240px_180px]" onSubmit={handleShareAccess}>
+          <div className="clinical-panel-body">
+            <div className="highlight-band info mb-4">
+              <div className="highlight-band-icon"><i className="fas fa-shield-heart"></i></div>
+              <div>
+                <h3>Chỉ chia sẻ cho người tin cậy</h3>
+                <p>Bạn có thể thu hồi quyền bất kỳ lúc nào trong danh sách bên cạnh.</p>
+              </div>
+            </div>
+            <form className="space-y-4" onSubmit={handleShareAccess}>
             <div>
               <label className="form-label">Email người được cấp quyền</label>
               <input className="form-control" type="email" value={viewerEmail} onChange={(event) => setViewerEmail(event.target.value)} placeholder="doctor@example.com" required />
@@ -98,51 +152,53 @@ const PatientAccess = () => {
                 <option value={ACCESS_ROLE.GIA_DINH}>Gia đình</option>
               </select>
             </div>
-            <div className="flex items-end">
               <button type="submit" className="btn btn-primary w-100"><i className="fas fa-share-nodes me-2"></i>Gửi yêu cầu</button>
-            </div>
-          </form>
-        </div>
-      </section>
+            </form>
+          </div>
+        </section>
 
-      <section className="app-card">
-        <div className="app-card-header">
-          <div>
-            <h2 className="section-title"><i className="fas fa-user-shield me-2 text-brand-600"></i>Danh sách quyền đã cấp</h2>
-            <p className="section-subtitle">Theo dõi trạng thái phê duyệt và thu hồi khi cần.</p>
+        <section className="clinical-panel overflow-hidden">
+          <div className="clinical-panel-header">
+            <div>
+              <p className="panel-eyebrow">Danh sách hiện tại</p>
+              <h2 className="section-title">Quyền đã cấp</h2>
+              <p className="section-subtitle">Màu trạng thái cho biết ai đang truy cập được dữ liệu.</p>
+            </div>
           </div>
-        </div>
-        <div className="app-card-body">
-          <div className="table-responsive">
-            <table className="table table-hover align-middle">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Ten</th>
-                  <th>Email</th>
-                  <th>Vai tro</th>
-                  <th>Trang thai</th>
-                  <th className="text-end">Thao tac</th>
-                </tr>
-              </thead>
-              <tbody>
-                {accessList.length === 0 ? (
-                  <tr><td colSpan="6" className="text-center text-muted py-4">Chưa có ai được cấp quyền</td></tr>
-                ) : accessList.map((item, index) => (
-                  <tr key={item.permission_id}>
-                    <td>{index + 1}</td>
-                    <td>{item.viewer?.name}</td>
-                    <td>{item.viewer?.email}</td>
-                    <td>{item.role}</td>
-                    <td><span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeTone(item.status)}`}>{item.status}</span></td>
-                    <td className="text-end"><button type="button" className="btn btn-outline-danger btn-sm" onClick={() => handleRevoke(item.permission_id)}><i className="fas fa-user-slash me-1"></i>Thu hoi</button></td>
-                  </tr>
+          <div className="clinical-panel-body">
+            {accessList.length === 0 ? (
+              <div className="empty-state-rich">
+                <div className="empty-state-rich-icon success"><i className="fas fa-user-shield"></i></div>
+                <h3>Chưa có ai được cấp quyền</h3>
+                <p>Hãy gửi lời mời cho bác sĩ hoặc người thân để họ có thể theo dõi dữ liệu ECG khi cần.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {accessList.map((item) => (
+                  <div key={item.permission_id} className="flex flex-col gap-4 rounded-2xl border border-surface-line bg-white p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-100 font-bold text-brand-700">
+                        {item.viewer?.name?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-ink-900">{item.viewer?.name || "Chưa có tên"}</p>
+                        <p className="truncate text-sm text-ink-500">{item.viewer?.email}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span className="status-chip is-info">{roleLabel(item.role)}</span>
+                          <span className={badgeTone(item.status)}>{statusLabel(item.status)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" className="btn btn-outline-danger btn-sm sm:self-center" onClick={() => handleRevoke(item.permission_id)}>
+                      <i className="fas fa-user-slash me-1"></i>Thu hồi
+                    </button>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   )
 }

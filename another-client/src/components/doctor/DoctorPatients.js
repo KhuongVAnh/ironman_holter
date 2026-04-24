@@ -44,14 +44,13 @@ const DoctorPatients = () => {
     })
   }, [patients, searchTerm, statusFilter])
 
-  if (loading) {
-    return <div className="flex min-h-[55vh] items-center justify-center"><div className="spinner-border"></div></div>
-  }
+  if (loading) return <div className="page-shell"><div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div><h3>Đang tải bệnh nhân</h3><p>Danh sách theo dõi đang được cập nhật.</p></div></div>
 
   return (
-    <div className="space-y-6">
-      <section className="app-card p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-users-viewfinder"></i></div>
+        <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-brand-700">Patient directory</p>
             <h1 className="mt-1 text-3xl font-bold text-ink-950">Bệnh nhân đang theo dõi</h1>
@@ -69,14 +68,14 @@ const DoctorPatients = () => {
         <DoctorStatCard icon="fas fa-filter" label="Kết quả lọc" value={filteredPatients.length} tone="sky" />
       </div>
 
-      <section className="app-card overflow-hidden">
-        <div className="app-card-header">
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header">
           <div>
             <h2 className="section-title">Danh sách bệnh nhân</h2>
             <p className="section-subtitle">Tìm theo tên, email hoặc lọc trạng thái tài khoản.</p>
           </div>
         </div>
-        <div className="app-card-body space-y-4">
+        <div className="clinical-panel-body space-y-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
             <div className="relative">
               <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"></i>

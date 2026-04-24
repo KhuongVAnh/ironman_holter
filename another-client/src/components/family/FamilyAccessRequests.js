@@ -5,7 +5,7 @@ import { useAuth } from "../../contexts/AuthContext"
 import { accessApi, familyApi } from "../../services/api"
 import { ACCESS_STATUS } from "../../services/string"
 
-const badgeTone = (status) => status === ACCESS_STATUS.PENDING ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+const badgeTone = (status) => status === ACCESS_STATUS.PENDING ? "status-chip is-warning" : "status-chip is-success"
 
 const FamilyAccessRequests = () => {
   const { user } = useAuth()
@@ -56,43 +56,59 @@ const FamilyAccessRequests = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="app-card">
-        <div className="app-card-header"><div><h1 className="section-title"><i className="fas fa-user-shield me-2 text-brand-600"></i>Yêu cầu truy cập bệnh nhân</h1><p className="section-subtitle">Phê duyệt yêu cầu theo dõi người thân và đồng bộ danh sách được cấp quyền.</p></div></div>
-        <div className="app-card-body table-responsive">
-          <table className="table table-hover align-middle">
-            <thead><tr><th>#</th><th>Bệnh nhân</th><th>Vai trò</th><th>Trạng thái</th><th className="text-end">Thao tác</th></tr></thead>
-            <tbody>
-              {requests.length === 0 ? <tr><td colSpan="5" className="text-center text-muted py-4">Không có yêu cầu đang chờ xử lý</td></tr> : requests.map((item, index) => (
-                <tr key={item.permission_id}>
-                  <td>{index + 1}</td>
-                  <td>{item.patient?.name}</td>
-                  <td>{item.role}</td>
-                  <td><span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeTone(item.status)}`}>{item.status}</span></td>
-                  <td className="text-end">{item.status === ACCESS_STATUS.PENDING ? <div className="btn-group justify-end"><button type="button" className="btn btn-outline-success btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "accept")}><i className="fas fa-check me-1"></i>Đồng ý</button><button type="button" className="btn btn-outline-danger btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "reject")}><i className="fas fa-xmark me-1"></i>Từ chối</button></div> : <span className="text-muted">-</span>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-user-shield"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">Quyền theo dõi</p>
+          <h1 className="page-hero-title">Yêu cầu truy cập bệnh nhân</h1>
+          <p className="page-hero-subtitle">Phê duyệt yêu cầu theo dõi người thân và mở nhanh hồ sơ y tế đã được cấp quyền.</p>
         </div>
       </section>
 
-      <section className="app-card">
-        <div className="app-card-header"><div><h2 className="section-title"><i className="fas fa-heart-pulse me-2 text-brand-600"></i>Người thân đang theo dõi</h2><p className="section-subtitle">Mở nhanh hồ sơ y tế của từng bệnh nhân đã được cấp quyền.</p></div></div>
-        <div className="app-card-body table-responsive">
-          <table className="table table-hover align-middle">
-            <thead><tr><th>#</th><th>Tên bệnh nhân</th><th>Email</th><th className="text-end">Mở hồ sơ</th></tr></thead>
-            <tbody>
-              {patients.length === 0 ? <tr><td colSpan="4" className="text-center text-muted py-4">Chưa có bệnh nhân nào được cấp quyền</td></tr> : patients.map((item, index) => (
-                <tr key={item.patient?.user_id}>
-                  <td>{index + 1}</td>
-                  <td>{item.patient?.name}</td>
-                  <td>{item.patient?.email}</td>
-                  <td className="text-end"><button type="button" className="btn btn-outline-primary btn-sm" onClick={() => navigate(`/family/history/${item.patient.user_id}`)}><i className="fas fa-folder-open me-1"></i>Xem hồ sơ</button></td>
-                </tr>
+      <section className="metric-grid">
+        <div className="priority-metric metric-warning"><div className="metric-icon"><i className="fas fa-hourglass-half"></i></div><p className="metric-label">Đang chờ</p><p className="metric-value">{requests.length}</p><p className="metric-helper">Yêu cầu cần phản hồi</p></div>
+        <div className="priority-metric metric-success"><div className="metric-icon"><i className="fas fa-heart-pulse"></i></div><p className="metric-label">Đang theo dõi</p><p className="metric-value">{patients.length}</p><p className="metric-helper">Bệnh nhân đã cấp quyền</p></div>
+      </section>
+
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header"><div><h2 className="section-title">Yêu cầu đang chờ</h2><p className="section-subtitle">Chấp nhận để bắt đầu theo dõi dữ liệu sức khỏe.</p></div></div>
+        <div className="clinical-panel-body">
+          {requests.length === 0 ? (
+            <div className="empty-state-rich"><div className="empty-state-rich-icon success"><i className="fas fa-inbox"></i></div><h3>Không có yêu cầu đang chờ</h3><p>Các yêu cầu mới sẽ xuất hiện tại đây.</p></div>
+          ) : (
+            <div className="space-y-3">
+              {requests.map((item) => (
+                <article key={item.permission_id} className="flex flex-col gap-4 rounded-2xl border border-surface-line bg-white p-4 shadow-soft md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-bold text-ink-900">{item.patient?.name || "Bệnh nhân"}</p>
+                    <p className="text-sm text-ink-500">{item.patient?.email || "-"}</p>
+                    <div className="mt-2 flex flex-wrap gap-2"><span className="status-chip is-info">{item.role}</span><span className={badgeTone(item.status)}>{item.status === ACCESS_STATUS.PENDING ? "Đang chờ" : "Đã chấp nhận"}</span></div>
+                  </div>
+                  {item.status === ACCESS_STATUS.PENDING ? <div className="flex flex-wrap gap-2"><button type="button" className="btn btn-outline-success btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "accept")}><i className="fas fa-check me-1"></i>Đồng ý</button><button type="button" className="btn btn-outline-danger btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "reject")}><i className="fas fa-xmark me-1"></i>Từ chối</button></div> : null}
+                </article>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header"><div><h2 className="section-title">Người thân đang theo dõi</h2><p className="section-subtitle">Mở nhanh hồ sơ y tế của từng bệnh nhân đã được cấp quyền.</p></div></div>
+        <div className="clinical-panel-body">
+          {patients.length === 0 ? (
+            <div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-heart-pulse"></i></div><h3>Chưa có bệnh nhân nào</h3><p>Khi bệnh nhân cấp quyền, danh sách sẽ xuất hiện tại đây.</p></div>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {patients.map((item) => (
+                <article key={item.patient?.user_id} className="rounded-2xl border border-surface-line bg-white p-4 shadow-soft">
+                  <p className="font-bold text-ink-900">{item.patient?.name}</p>
+                  <p className="text-sm text-ink-500">{item.patient?.email}</p>
+                  <button type="button" className="btn btn-outline-primary btn-sm mt-4" onClick={() => navigate(`/family/history/${item.patient.user_id}`)}><i className="fas fa-folder-open me-1"></i>Xem hồ sơ</button>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>

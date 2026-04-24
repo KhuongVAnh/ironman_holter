@@ -119,183 +119,133 @@ const FamilyDashboard = () => {
 
   if (loading) {
     return (
-      <div className="container py-4">
-        <div className="d-flex justify-content-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
+      <div className="page-shell">
+        <div className="empty-state-rich">
+          <div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div>
+          <h3>Đang tải dashboard gia đình</h3>
+          <p>Hệ thống đang đồng bộ người thân và cảnh báo mới nhất.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container-fluid py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 mb-0">
-          <i className="fas fa-users me-2 text-info"></i>
-          Dashboard Gia đình
-        </h1>
-        <div className="text-muted">
-          <i className="fas fa-clock me-1"></i>
-          Cập nhật: {new Date().toLocaleString("vi-VN")}
-        </div>
-      </div>
-
-      <div className="row g-4 mb-4">
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-info text-white">
-            <div className="card-body">
-              <h2 className="h3 mb-1">{familyMembers.length}</h2>
-              <p className="mb-0">Người thân theo dõi</p>
-            </div>
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="panel-eyebrow">Family monitoring</p>
+            <h1 className="page-hero-title">Tổng quan người thân</h1>
+            <p className="page-hero-subtitle">Theo dõi cảnh báo, trạng thái cấp quyền và mở nhanh dữ liệu ECG của người thân đang được giám sát.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="status-chip is-info"><i className="fas fa-clock"></i>{new Date().toLocaleString("vi-VN")}</span>
+            <button className="btn btn-outline-primary btn-sm" onClick={fetchDashboardData}>
+              <i className="fas fa-sync-alt"></i>
+              Làm mới
+            </button>
           </div>
         </div>
+      </section>
 
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-warning text-white">
-            <div className="card-body">
-              <h2 className="h3 mb-1">{recentAlerts.length}</h2>
-              <p className="mb-0">Cảnh báo chưa xử lý</p>
-            </div>
+      <section className="metric-grid">
+        <div className="priority-metric metric-info">
+          <div className="flex items-start justify-between gap-3">
+            <div><p className="metric-label">Người thân</p><p className="metric-value">{familyMembers.length}</p><p className="metric-helper">Được cấp quyền theo dõi</p></div>
+            <span className="metric-icon bg-sky-50 text-sky-700"><i className="fas fa-users"></i></span>
           </div>
         </div>
-
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-success text-white">
-            <div className="card-body">
-              <h2 className="h3 mb-1">{familyMembers.filter((m) => m.is_active).length}</h2>
-              <p className="mb-0">Đang hoạt động</p>
-            </div>
+        <div className="priority-metric metric-danger">
+          <div className="flex items-start justify-between gap-3">
+            <div><p className="metric-label">Cảnh báo mới</p><p className="metric-value">{recentAlerts.length}</p><p className="metric-helper">Ưu tiên mở ECG liên quan</p></div>
+            <span className="metric-icon bg-red-50 text-red-700"><i className="fas fa-triangle-exclamation"></i></span>
           </div>
         </div>
-
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-primary text-white">
-            <div className="card-body">
-              <h2 className="h3 mb-1">24/7</h2>
-              <p className="mb-0">Theo dõi liên tục</p>
-            </div>
+        <div className="priority-metric metric-success">
+          <div className="flex items-start justify-between gap-3">
+            <div><p className="metric-label">Đang hoạt động</p><p className="metric-value">{familyMembers.filter((m) => m.is_active).length}</p><p className="metric-helper">Có thể nhận cảnh báo</p></div>
+            <span className="metric-icon bg-emerald-50 text-emerald-700"><i className="fas fa-circle-check"></i></span>
           </div>
         </div>
-      </div>
-
-      <div className="row g-4">
-        <div className="col-md-8">
-          <RecentAlertsPanel
-            title="Cảnh báo gần nhất"
-            subtitle="Tổng hợp cảnh báo mới nhất của người thân được cấp quyền."
-            alerts={recentAlerts}
-            onAlertClick={(alert) => setSelectedReadingId(alert?.reading_id || null)}
-            isAlertDisabled={(alert) => !alert?.reading_id}
-            getAlertTitle={(alert) => {
-              const typeLabel = getAlertTypeLabel(alert.alert_type)
-              return alert.patient_name ? `${alert.patient_name} - ${typeLabel}` : typeLabel
-            }}
-            getAlertStatus={(alert) => {
-              const priority = getAlertPriority(alert.alert_type)
-              return { label: priority.label, className: priority.className }
-            }}
-            getAlertHint={(_alert, disabled, canClick) => {
-              if (disabled) return "Không có reading"
-              if (canClick) return "Nhấn để xem đồ thị ECG"
-              return ""
-            }}
-            emptyText="Không có cảnh báo nào"
-          />
-        </div>
-
-        <div className="col-md-4">
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-              <h5 className="card-title mb-0">
-                <i className="fas fa-users me-2 text-primary"></i>
-                Người thân đang theo dõi
-              </h5>
-              <Link to="/family/monitoring" className="btn btn-outline-primary btn-sm">
-                Xem chi tiết
-              </Link>
-            </div>
-            <div className="card-body">
-              {familyMembers.length > 0 ? (
-                <div className="row g-3">
-                  {familyMembers.map((member) => (
-                    <div key={member.user_id} className="col-md-12">
-                      <div className="card border-0 bg-light">
-                        <div className="card-body d-flex align-items-center">
-                          <div className="avatar-circle bg-primary text-white me-3">{member.name.charAt(0).toUpperCase()}</div>
-                          <div className="flex-grow-1">
-                            <h6 className="mb-1">{member.name}</h6>
-                            <small className="text-muted">{member.email}</small>
-                            <div className="mt-1">
-                              {member.is_active ? (
-                                <span className="badge bg-success">Hoạt động</span>
-                              ) : (
-                                <span className="badge bg-secondary">Ngưng</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-end">
-                            <div className="text-success">
-                              <i className="fas fa-heartbeat"></i>
-                              <small className="ms-1">75 BPM</small>
-                            </div>
-                            <small className="text-muted">5 phút trước</small>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <i className="fas fa-user-plus fa-3x text-muted mb-3"></i>
-                  <p className="text-muted">Chưa có người thân nào được theo dõi</p>
-                </div>
-              )}
-            </div>
+        <div className="priority-metric metric-brand">
+          <div className="flex items-start justify-between gap-3">
+            <div><p className="metric-label">Giám sát</p><p className="metric-value">24/7</p><p className="metric-helper">Theo dõi liên tục</p></div>
+            <span className="metric-icon bg-brand-50 text-brand-700"><i className="fas fa-heart-pulse"></i></span>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="row mt-4">
-        <div className="col-12">
-          <div className="card bg-light border-0">
-            <div className="card-body">
-              <h6 className="card-title">
-                <i className="fas fa-bolt me-2 text-warning"></i>
-                Thao tác nhanh
-              </h6>
-              <div className="row">
-                <div className="col-md-3">
-                  <Link to="/family/monitoring" className="btn btn-outline-primary w-100">
-                    <i className="fas fa-chart-line me-2"></i>
-                    Theo dõi chi tiết
-                  </Link>
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <RecentAlertsPanel
+          title="Cảnh báo cần chú ý"
+          subtitle="Tổng hợp cảnh báo mới nhất của người thân được cấp quyền."
+          alerts={recentAlerts}
+          onAlertClick={(alert) => setSelectedReadingId(alert?.reading_id || null)}
+          isAlertDisabled={(alert) => !alert?.reading_id}
+          getAlertTitle={(alert) => {
+            const typeLabel = getAlertTypeLabel(alert.alert_type)
+            return alert.patient_name ? `${alert.patient_name} - ${typeLabel}` : typeLabel
+          }}
+          getAlertStatus={(alert) => {
+            const priority = getAlertPriority(alert.alert_type)
+            return { label: priority.label, className: priority.className }
+          }}
+          getAlertHint={(_alert, disabled, canClick) => {
+            if (disabled) return "Không có bản ghi"
+            if (canClick) return "Mở đồ thị ECG"
+            return ""
+          }}
+          emptyText="Không có cảnh báo nào"
+        />
+
+        <aside className="clinical-panel">
+          <div className="clinical-panel-header">
+            <div>
+              <p className="panel-eyebrow">Danh sách theo dõi</p>
+              <h2 className="section-title">Người thân</h2>
+            </div>
+            <Link to="/family/monitoring" className="btn btn-outline-primary btn-sm">Chi tiết</Link>
+          </div>
+          <div className="clinical-panel-body space-y-3">
+            {familyMembers.length > 0 ? familyMembers.map((member) => (
+              <div key={member.user_id} className="flex items-center gap-3 rounded-2xl border border-surface-line bg-white p-3 shadow-soft">
+                <div className="avatar-circle bg-primary text-white">{member.name.charAt(0).toUpperCase()}</div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-bold text-ink-900">{member.name}</p>
+                  <p className="truncate text-xs text-ink-500">{member.email}</p>
                 </div>
-                <div className="col-md-3">
-                  <button className="btn btn-outline-success w-100" onClick={fetchDashboardData}>
-                    <i className="fas fa-sync-alt me-2"></i>
-                    Làm mới dữ liệu
-                  </button>
-                </div>
-                <div className="col-md-3">
-                  <button className="btn btn-outline-info w-100">
-                    <i className="fas fa-phone me-2"></i>
-                    Liên hệ khẩn cấp
-                  </button>
-                </div>
-                <div className="col-md-3">
-                  <button className="btn btn-outline-warning w-100">
-                    <i className="fas fa-cog me-2"></i>
-                    Cài đặt thông báo
-                  </button>
-                </div>
+                <span className={`status-chip ${member.is_active ? "is-success" : "is-neutral"}`}>
+                  {member.is_active ? "Hoạt động" : "Ngưng"}
+                </span>
               </div>
-            </div>
+            )) : (
+              <div className="empty-state-rich py-8">
+                <div className="empty-state-rich-icon"><i className="fas fa-user-plus"></i></div>
+                <p className="mt-3 font-semibold text-ink-800">Chưa có người thân nào được theo dõi</p>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
+        </aside>
+      </section>
+
+      <section className="action-strip">
+        <Link to="/family/monitoring" className="action-card">
+          <span className="metric-icon bg-brand-50 text-brand-700"><i className="fas fa-chart-line"></i></span>
+          <span><strong className="block text-ink-900">Theo dõi chi tiết</strong><small className="text-ink-500">Mở monitoring từng người thân</small></span>
+        </Link>
+        <button className="action-card" onClick={fetchDashboardData}>
+          <span className="metric-icon bg-emerald-50 text-emerald-700"><i className="fas fa-sync-alt"></i></span>
+          <span><strong className="block text-ink-900">Làm mới dữ liệu</strong><small className="text-ink-500">Cập nhật cảnh báo mới nhất</small></span>
+        </button>
+        <button className="action-card">
+          <span className="metric-icon bg-red-50 text-red-700"><i className="fas fa-phone"></i></span>
+          <span><strong className="block text-ink-900">Liên hệ khẩn cấp</strong><small className="text-ink-500">Ưu tiên khi có dấu hiệu nguy cấp</small></span>
+        </button>
+        <Link to="/family/access-requests" className="action-card">
+          <span className="metric-icon bg-sky-50 text-sky-700"><i className="fas fa-user-shield"></i></span>
+          <span><strong className="block text-ink-900">Yêu cầu truy cập</strong><small className="text-ink-500">Quản lý quyền theo dõi</small></span>
+        </Link>
+      </section>
 
       <ReadingDetailModal
         show={Boolean(selectedReadingId)}

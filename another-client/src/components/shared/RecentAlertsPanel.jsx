@@ -37,9 +37,9 @@ export const getAlertTypeLabel = (alertType) => {
 }
 
 const DEFAULT_SEVERITY_META = {
-  high: { className: "alert-severity-high", icon: "fas fa-triangle-exclamation" },
-  medium: { className: "alert-severity-medium", icon: "fas fa-wave-square" },
-  low: { className: "alert-severity-low", icon: "fas fa-circle-check" },
+  high: { className: "alert-severity-high", icon: "fas fa-triangle-exclamation", label: "Nguy cơ cao" },
+  medium: { className: "alert-severity-medium", icon: "fas fa-wave-square", label: "Theo dõi" },
+  low: { className: "alert-severity-low", icon: "fas fa-circle-check", label: "Ổn định" },
 }
 
 const truncateMessage = (message, limit = 96) => {
@@ -73,7 +73,7 @@ const RecentAlertsPanel = ({
   getAlertSeverityByItem = (alert) => getAlertSeverity(alert?.alert_type),
   getAlertStatus = defaultStatus,
   getAlertHint = (_alert, disabled, canClick) => {
-    if (disabled) return "Không có reading"
+    if (disabled) return "Không có bản ghi"
     if (canClick) return "Nhấn để xem đồ thị ECG"
     return ""
   },
@@ -82,12 +82,12 @@ const RecentAlertsPanel = ({
   const shouldRenderHeader = Boolean(title || subtitle || viewAllLink)
 
   return (
-    <div className="card border-0 shadow-sm">
+    <div className="clinical-panel">
       {shouldRenderHeader ? (
-        <div className="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <div className="clinical-panel-header">
           <div>
             {title ? (
-              <h5 className="card-title mb-1">
+              <h5 className="card-title mb-1 flex items-center gap-2">
                 <i className={iconClass}></i>
                 {title}
               </h5>
@@ -101,7 +101,7 @@ const RecentAlertsPanel = ({
           ) : null}
         </div>
       ) : null}
-      <div className="card-body">
+      <div className="clinical-panel-body">
         {alerts.length > 0 ? (
           <div className="alert-rail-list">
             {alerts.map((alert) => {
@@ -129,8 +129,11 @@ const RecentAlertsPanel = ({
                   >
                     <div className="alert-card-head">
                       <div className="alert-card-type">
-                        <i className={`${severityMeta.icon} me-2`}></i>
-                        {getAlertTitle(alert)}
+                        <span className="alert-card-icon"><i className={severityMeta.icon}></i></span>
+                        <span className="min-w-0">
+                          <span className="alert-card-title">{getAlertTitle(alert)}</span>
+                          <span className="alert-card-severity">{severityMeta.label}</span>
+                        </span>
                       </div>
                       <span className={statusClass}>{status.label}</span>
                     </div>
@@ -150,8 +153,11 @@ const RecentAlertsPanel = ({
                 <div key={alert.alert_id} className={cardClasses}>
                   <div className="alert-card-head">
                     <div className="alert-card-type">
-                      <i className={`${severityMeta.icon} me-2`}></i>
-                      {getAlertTitle(alert)}
+                      <span className="alert-card-icon"><i className={severityMeta.icon}></i></span>
+                      <span className="min-w-0">
+                        <span className="alert-card-title">{getAlertTitle(alert)}</span>
+                        <span className="alert-card-severity">{severityMeta.label}</span>
+                      </span>
                     </div>
                     <span className={statusClass}>{status.label}</span>
                   </div>
@@ -168,9 +174,11 @@ const RecentAlertsPanel = ({
             })}
           </div>
         ) : (
-          <div className="text-center py-4">
-            <i className="fas fa-check-circle fa-3x text-success mb-3"></i>
-            <p className="text-muted mb-0">{emptyText}</p>
+          <div className="empty-state-rich py-8">
+            <div className="empty-state-rich-icon text-emerald-600">
+              <i className="fas fa-check-circle"></i>
+            </div>
+            <p className="mt-3 font-semibold text-ink-800">{emptyText}</p>
           </div>
         )}
       </div>

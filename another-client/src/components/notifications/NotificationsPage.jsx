@@ -147,12 +147,13 @@ const NotificationsPage = () => {
   const formatDateTime = (value) => (value ? new Date(value).toLocaleString("vi-VN") : "-")
 
   return (
-    <div className="space-y-6">
-      <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-sm font-medium text-ink-600">Inbox</p>
-          <h1 className="mt-2 text-2xl font-bold text-ink-900">Thông báo hệ thống</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-ink-600">Theo dõi cảnh báo, yêu cầu truy cập và tin nhắn mới trong một hộp thư thống nhất.</p>
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-bell"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">Inbox</p>
+          <h1 className="page-hero-title">Thông báo hệ thống</h1>
+          <p className="page-hero-subtitle">Theo dõi cảnh báo, yêu cầu truy cập và tin nhắn mới trong một hộp thư thống nhất.</p>
         </div>
         <button type="button" className="btn btn-outline-primary" onClick={markAllRead} disabled={unreadOnPage === 0}>
           <i className="fas fa-check-double"></i>
@@ -161,12 +162,12 @@ const NotificationsPage = () => {
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Tổng trên trang</p><p className="mt-2 text-2xl font-bold text-ink-900">{notifications.length}</p></div>
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Chưa đọc</p><p className="mt-2 text-2xl font-bold text-brand-600">{unreadOnPage}</p></div>
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Bộ lọc hiện tại</p><p className="mt-2 text-lg font-bold text-ink-900">{TYPE_OPTIONS.find((item) => item.value === filterType)?.label || "Tất cả"}</p></div>
+        <div className="priority-metric metric-info"><div className="metric-icon"><i className="fas fa-list"></i></div><p className="metric-label">Tổng trên trang</p><p className="metric-value">{notifications.length}</p><p className="metric-helper">Thông báo đang hiển thị</p></div>
+        <div className="priority-metric metric-danger"><div className="metric-icon"><i className="fas fa-envelope"></i></div><p className="metric-label">Chưa đọc</p><p className="metric-value">{unreadOnPage}</p><p className="metric-helper">Cần xem trước</p></div>
+        <div className="priority-metric metric-warning"><div className="metric-icon"><i className="fas fa-filter"></i></div><p className="metric-label">Bộ lọc hiện tại</p><p className="metric-value text-2xl">{TYPE_OPTIONS.find((item) => item.value === filterType)?.label || "Tất cả"}</p><p className="metric-helper">Loại thông báo</p></div>
       </section>
 
-      <section className="app-card p-6">
+      <section className="clinical-panel p-6">
         <div className="grid gap-4 md:grid-cols-3">
           <div>
             <label className="form-label">Trạng thái</label>
@@ -188,7 +189,7 @@ const NotificationsPage = () => {
         </div>
       </section>
 
-      <section className="app-card overflow-hidden">
+      <section className="clinical-panel overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-14"><div className="spinner-border" role="status" /></div>
         ) : notifications.length === 0 ? (

@@ -23,7 +23,7 @@ const ModalFrame = ({ show, title, onClose, size = "md", children, footer = null
       <div className={`modal-panel ${sizeClass}`} onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
           <h3 className="text-xl font-medium text-ink-900">{title}</h3>
-          <button type="button" className="btn-close" onClick={onClose} aria-label="Dong" />
+          <button type="button" className="btn-close" onClick={onClose} aria-label="Đóng" />
         </div>
         <div className="modal-body">{children}</div>
         {footer ? <div className="modal-footer">{footer}</div> : null}

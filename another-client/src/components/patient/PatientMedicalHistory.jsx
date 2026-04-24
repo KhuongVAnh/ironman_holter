@@ -99,39 +99,77 @@ const PatientMedicalHistory = () => {
   }
 
   return (
-    <div className="app-card">
-      <div className="app-card-header">
-        <div>
-          <h1 className="section-title"><i className="fas fa-notes-medical me-2 text-brand-600"></i>Hồ sơ y tế của tôi</h1>
-          <p className="section-subtitle">Quản lý lịch sử khám chữa bệnh, đơn thuốc và kế hoạch thuốc đang theo dõi.</p>
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-notes-medical"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">Hồ sơ y tế</p>
+          <h1 className="page-hero-title">Lịch sử khám và đơn thuốc</h1>
+          <p className="page-hero-subtitle">Gom các lần khám, nhận định và kế hoạch dùng thuốc để dễ đối chiếu với dữ liệu ECG.</p>
         </div>
-        {activeTab === "plans" ? (
-          <button type="button" className="btn btn-primary" onClick={() => setShowPlanForm(true)}>
-            <i className="fas fa-plus me-2"></i>Thêm đơn thuốc
-          </button>
-        ) : null}
-      </div>
-      <div className="app-card-body space-y-4">
-        <div className="inline-flex rounded-xl border border-surface-line bg-surface-soft p-1">
-          <button type="button" className={`rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === "visits" ? "bg-white text-brand-700 shadow-soft" : "text-ink-600"}`} onClick={() => setActiveTab("visits")}>
-            Lịch sử khám bệnh
-          </button>
-          <button type="button" className={`rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === "plans" ? "bg-white text-brand-700 shadow-soft" : "text-ink-600"}`} onClick={() => setActiveTab("plans")}>
-            Đơn thuốc đã uống
-          </button>
+        <button type="button" className="btn btn-primary" onClick={() => activeTab === "plans" ? setShowPlanForm(true) : setShowVisitForm(true)}>
+          <i className="fas fa-plus me-2"></i>{activeTab === "plans" ? "Thêm đơn thuốc" : "Thêm lần khám"}
+        </button>
+      </section>
+
+      <section className="metric-grid">
+        <div className="priority-metric metric-info">
+          <div className="metric-icon"><i className="fas fa-stethoscope"></i></div>
+          <p className="metric-label">Lần khám</p>
+          <p className="metric-value">{visits.length}</p>
+          <p className="metric-helper">Mốc khám đã ghi nhận</p>
         </div>
+        <div className="priority-metric metric-warning">
+          <div className="metric-icon"><i className="fas fa-pills"></i></div>
+          <p className="metric-label">Đơn thuốc</p>
+          <p className="metric-value">{plans.length}</p>
+          <p className="metric-helper">Kế hoạch dùng thuốc đã lưu</p>
+        </div>
+        <div className="priority-metric metric-success">
+          <div className="metric-icon"><i className="fas fa-folder-open"></i></div>
+          <p className="metric-label">Đang xem</p>
+          <p className="metric-value text-2xl">{activeTab === "plans" ? "Đơn thuốc" : "Lần khám"}</p>
+          <p className="metric-helper">Chuyển tab để xem nhóm còn lại</p>
+        </div>
+      </section>
 
-        {loading ? (
-          <div className="flex justify-center py-8"><div className="spinner-border"></div></div>
-        ) : activeTab === "visits" ? (
-          <MedicalVisitList visits={visits} role={user.role} onCreate={() => setShowVisitForm(true)} onEdit={(record) => { setEditVisit(record); setShowVisitForm(true) }} onDelete={handleVisitDelete} />
-        ) : (
-          <MedicationPlanList plans={plans} role={user.role} onEdit={(record) => { setEditPlan(record); setShowPlanForm(true) }} onDelete={handlePlanDelete} />
-        )}
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header">
+          <div>
+            <p className="panel-eyebrow">Dữ liệu y tế</p>
+            <h2 className="section-title">{activeTab === "plans" ? "Đơn thuốc đã uống" : "Lịch sử khám bệnh"}</h2>
+            <p className="section-subtitle">Thông tin phụ trợ giúp bác sĩ hiểu bối cảnh khi đọc ECG.</p>
+          </div>
+          <div className="inline-flex rounded-xl border border-surface-line bg-surface-soft p-1">
+            <button type="button" className={`rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === "visits" ? "bg-white text-brand-700 shadow-soft" : "text-ink-600"}`} onClick={() => setActiveTab("visits")}>
+              Lịch sử khám
+            </button>
+            <button type="button" className={`rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === "plans" ? "bg-white text-brand-700 shadow-soft" : "text-ink-600"}`} onClick={() => setActiveTab("plans")}>
+              Đơn thuốc
+            </button>
+          </div>
+        </div>
+        <div className="clinical-panel-body space-y-4">
+          <div className="highlight-band info">
+            <div className="highlight-band-icon"><i className="fas fa-circle-info"></i></div>
+            <div>
+              <h3>{activeTab === "plans" ? "Theo dõi thuốc đang dùng" : "Ghi lại bối cảnh thăm khám"}</h3>
+              <p>{activeTab === "plans" ? "Đơn thuốc giúp đối chiếu triệu chứng và thay đổi nhịp tim theo thời gian." : "Các lần khám giúp hệ thống có thêm dữ liệu nền khi đánh giá bất thường."}</p>
+            </div>
+          </div>
 
-        <MedicalVisitForm show={showVisitForm} handleClose={closeVisitForm} onSubmit={handleVisitSubmit} initialData={editVisit} />
-        <MedicationPlanForm show={showPlanForm} handleClose={closePlanForm} onSubmit={handlePlanSubmit} initialData={editPlan} />
-      </div>
+          {loading ? (
+            <div className="flex justify-center py-10"><div className="spinner-border"></div></div>
+          ) : activeTab === "visits" ? (
+            <MedicalVisitList visits={visits} role={user.role} onCreate={() => setShowVisitForm(true)} onEdit={(record) => { setEditVisit(record); setShowVisitForm(true) }} onDelete={handleVisitDelete} />
+          ) : (
+            <MedicationPlanList plans={plans} role={user.role} onEdit={(record) => { setEditPlan(record); setShowPlanForm(true) }} onDelete={handlePlanDelete} />
+          )}
+
+          <MedicalVisitForm show={showVisitForm} handleClose={closeVisitForm} onSubmit={handleVisitSubmit} initialData={editVisit} />
+          <MedicationPlanForm show={showPlanForm} handleClose={closePlanForm} onSubmit={handlePlanSubmit} initialData={editPlan} />
+        </div>
+      </section>
     </div>
   )
 }

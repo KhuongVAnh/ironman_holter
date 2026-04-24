@@ -80,68 +80,89 @@ const FamilyMonitoring = () => {
 
   if (loading) {
     return (
-      <div className="container py-4">
-        <div className="d-flex justify-content-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
+      <div className="page-shell">
+        <div className="empty-state-rich">
+          <div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div>
+          <h3>Đang tải dữ liệu người thân</h3>
+          <p>Hệ thống đang đồng bộ danh sách theo dõi và dữ liệu ECG mới nhất.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container py-4">
-      <div className="row">
-        <div className="col-12">
-          <h1 className="h3 mb-4">
-            <i className="fas fa-heart me-2 text-danger"></i>
-            Theo dõi người thân
-          </h1>
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-heart-pulse"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">Family monitoring</p>
+          <h1 className="page-hero-title">Theo dõi người thân</h1>
+          <p className="page-hero-subtitle">Xem nhanh trạng thái, cảnh báo và bản ghi ECG mới nhất của bệnh nhân đã cấp quyền.</p>
         </div>
-      </div>
+        <button type="button" className="btn btn-outline-primary" onClick={fetchFamilyMembers}>
+          <i className="fas fa-rotate-right me-2"></i>Làm mới
+        </button>
+      </section>
 
-      <div className="row g-4">
-        <div className="col-md-4">
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-0">
-              <h5 className="card-title mb-0">
-                <i className="fas fa-users me-2 text-primary"></i>
-                Danh sách người thân
-              </h5>
+      <section className="metric-grid">
+        <div className="priority-metric metric-info">
+          <div className="metric-icon"><i className="fas fa-users"></i></div>
+          <p className="metric-label">Người thân</p>
+          <p className="metric-value">{familyMembers.length}</p>
+          <p className="metric-helper">Đã cấp quyền theo dõi</p>
+        </div>
+        <div className="priority-metric metric-danger">
+          <div className="metric-icon"><i className="fas fa-triangle-exclamation"></i></div>
+          <p className="metric-label">Cảnh báo gần đây</p>
+          <p className="metric-value">{memberAlerts.length}</p>
+          <p className="metric-helper">Của người đang chọn</p>
+        </div>
+        <div className="priority-metric metric-success">
+          <div className="metric-icon"><i className="fas fa-heartbeat"></i></div>
+          <p className="metric-label">Nhịp tim mới nhất</p>
+          <p className="metric-value">{latestReading ? latestReading.heart_rate : "--"}</p>
+          <p className="metric-helper">{latestReading ? "BPM" : "Chưa có bản ghi"}</p>
+        </div>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <aside className="space-y-5">
+          <section className="clinical-panel overflow-hidden">
+            <div className="clinical-panel-header">
+              <div>
+                <p className="panel-eyebrow">Danh sách</p>
+                <h2 className="section-title">Người thân</h2>
+                <p className="section-subtitle">Chọn một hồ sơ để xem ECG và cảnh báo.</p>
+              </div>
             </div>
-            <div className="card-body p-0">
+            <div className="clinical-panel-body p-3">
               {familyMembers.length > 0 ? (
-                <div className="list-group list-group-flush">
+                <div className="space-y-2">
                   {familyMembers.map((member) => (
                     <button
                       key={member.user_id}
-                      className={`list-group-item list-group-item-action ${
-                        selectedMember?.user_id === member.user_id ? "active" : ""
-                      }`}
+                      className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${selectedMember?.user_id === member.user_id ? "border-brand-200 bg-brand-50 text-brand-900 shadow-soft" : "border-surface-line bg-white hover:bg-surface-soft"}`}
                       onClick={() => setSelectedMember(member)}
                     >
-                      <div className="d-flex align-items-center">
-                        <div className="avatar-circle bg-primary text-white me-3">{member.name.charAt(0).toUpperCase()}</div>
-                        <div>
-                          <h6 className="mb-1">{member.name}</h6>
-                          <small className={selectedMember?.user_id === member.user_id ? "text-white-50" : "text-muted"}>
-                            {member.is_active ? "Hoạt động" : "Ngưng"}
-                          </small>
-                        </div>
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-100 font-bold text-sky-700">{member.name.charAt(0).toUpperCase()}</div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-bold">{member.name}</p>
+                        <p className="truncate text-xs text-ink-500">{member.email}</p>
                       </div>
+                      <span className={`status-chip ${member.is_active ? "is-success" : "is-neutral"}`}>{member.is_active ? "Hoạt động" : "Ngưng"}</span>
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <p className="text-muted">Chưa có người thân nào</p>
+                <div className="empty-state-rich">
+                  <div className="empty-state-rich-icon info"><i className="fas fa-user-plus"></i></div>
+                  <h3>Chưa có người thân nào</h3>
+                  <p>Khi bệnh nhân cấp quyền, hồ sơ sẽ xuất hiện tại đây.</p>
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
-          <div className="mt-4">
             <RecentAlertsPanel
               title="Cảnh báo gần nhất"
               subtitle="Theo dõi cảnh báo mới nhất của người thân được chọn."
@@ -157,147 +178,113 @@ const FamilyMonitoring = () => {
               getAlertTimestamp={(alert) => alert.timestamp}
               formatDate={formatDate}
               getAlertHint={(_alert, disabled, canClick) => {
-                if (disabled) return "Không có reading"
+                if (disabled) return "Không có bản ghi"
                 if (canClick) return "Nhấn để xem đồ thị ECG"
                 return ""
               }}
               emptyText="Không có cảnh báo"
             />
-          </div>
-        </div>
+        </aside>
 
-        <div className="col-md-8">
+        <main className="min-w-0">
           {selectedMember ? (
-            <>
-              <div className="card border-0 shadow-sm mb-4">
-                <div className="card-body">
-                  <div className="row align-items-center">
-                    <div className="col-md-8">
-                      <div className="d-flex align-items-center">
-                        <div className="avatar-circle bg-primary text-white me-3" style={{ width: "60px", height: "60px" }}>
-                          <span className="fs-4">{selectedMember.name.charAt(0).toUpperCase()}</span>
-                        </div>
-                        <div>
-                          <h3 className="h4 mb-1">{selectedMember.name}</h3>
-                          <p className="text-muted mb-1">{selectedMember.email}</p>
-                          <span className={`badge ${selectedMember.is_active ? "bg-success" : "bg-secondary"}`}>
-                            {selectedMember.is_active ? "Đang hoạt động" : "Ngưng hoạt động"}
-                          </span>
-                        </div>
+            <div className="space-y-5">
+              <section className="clinical-panel overflow-hidden">
+                <div className="clinical-panel-body">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-100 text-2xl font-bold text-brand-700">
+                        {selectedMember.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="truncate text-2xl font-bold text-ink-900">{selectedMember.name}</h2>
+                        <p className="truncate text-sm text-ink-500">{selectedMember.email}</p>
+                        <span className={`mt-2 status-chip ${selectedMember.is_active ? "is-success" : "is-neutral"}`}>
+                          {selectedMember.is_active ? "Đang hoạt động" : "Ngưng hoạt động"}
+                        </span>
                       </div>
                     </div>
-                    <div className="col-md-4 text-end">
-                      {latestReading && (
-                        <div>
-                          <h2 className="text-primary mb-0">{latestReading.heart_rate} BPM</h2>
-                          <small className="text-muted">Nhịp tim gần nhất</small>
-                          <div className="mt-1">
-                            {latestReading.abnormal_detected ? (
-                              <span className="badge bg-danger">Bất thường</span>
-                            ) : (
-                              <span className="badge bg-success">Bình thường</span>
-                            )}
+                    {latestReading ? (
+                      <div className={`rounded-2xl border p-5 text-right ${latestReading.abnormal_detected ? "border-red-100 bg-red-50" : "border-emerald-100 bg-emerald-50"}`}>
+                        <p className="text-xs font-bold uppercase tracking-[0.1em] text-ink-500">Nhịp tim gần nhất</p>
+                        <p className="mt-2 text-4xl font-bold text-ink-900">{latestReading.heart_rate} <span className="text-lg">BPM</span></p>
+                        <span className={`mt-3 status-chip ${latestReading.abnormal_detected ? "is-danger" : "is-success"}`}>
+                          {latestReading.abnormal_detected ? "Bất thường" : "Bình thường"}
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </section>
+
+              <section className="clinical-panel overflow-hidden">
+                <div className="clinical-panel-header">
+                  <div>
+                    <p className="panel-eyebrow">ECG mới nhất</p>
+                    <h2 className="section-title">Biểu đồ ECG</h2>
+                    <p className="section-subtitle">Vùng ưu tiên để kiểm tra dạng sóng của bản ghi gần nhất.</p>
+                  </div>
+                </div>
+                <div className="clinical-panel-body">
+                  {latestReading ? (
+                    <ECGChart data={latestReading.ecg_signal || []} />
+                  ) : (
+                    <div className="empty-state-rich">
+                      <div className="empty-state-rich-icon info"><i className="fas fa-chart-line"></i></div>
+                      <h3>Chưa có dữ liệu ECG</h3>
+                      <p>Bản ghi mới nhất sẽ được hiển thị tại đây khi thiết bị gửi dữ liệu.</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="clinical-panel overflow-hidden">
+                <div className="clinical-panel-header">
+                  <div>
+                    <p className="panel-eyebrow">Lịch sử gần đây</p>
+                    <h2 className="section-title">Các lần đo mới nhất</h2>
+                    <p className="section-subtitle">Nhấn vào bản ghi để mở cửa sổ chi tiết ECG.</p>
+                  </div>
+                </div>
+                <div className="clinical-panel-body">
+                  {memberReadings.length > 0 ? (
+                    <div className="space-y-3">
+                      {memberReadings.map((reading) => (
+                        <button key={reading.reading_id} type="button" className="grid w-full gap-3 rounded-2xl border border-surface-line bg-white p-4 text-left shadow-soft transition hover:border-brand-200 hover:shadow-medium md:grid-cols-[minmax(0,1fr)_140px_130px]" onClick={() => setSelectedReadingId(reading.reading_id)}>
+                          <div>
+                            <p className="font-semibold text-ink-900">{formatDate(reading.timestamp)}</p>
+                            <p className="text-xs text-ink-500">Mã bản ghi: {reading.reading_id}</p>
                           </div>
-                        </div>
-                      )}
+                          <div>
+                            <p className={`text-lg font-bold ${reading.heart_rate < 60 ? "text-amber-700" : reading.heart_rate > 100 ? "text-red-700" : "text-emerald-700"}`}>{reading.heart_rate} BPM</p>
+                            <p className="text-xs text-ink-500">Nhịp tim</p>
+                          </div>
+                          <div className="md:text-right">
+                            <span className={`status-chip ${reading.abnormal_detected ? "is-danger" : "is-success"}`}>
+                              {reading.abnormal_detected ? "Bất thường" : "Bình thường"}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="empty-state-rich">
+                      <div className="empty-state-rich-icon info"><i className="fas fa-heartbeat"></i></div>
+                      <h3>Chưa có dữ liệu đo</h3>
+                      <p>Lịch sử đo của người thân sẽ xuất hiện tại đây.</p>
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              <div className="row g-4">
-                <div className="col-12">
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-header bg-white border-0">
-                      <h5 className="card-title mb-0">
-                        <i className="fas fa-chart-line me-2 text-success"></i>
-                        Biểu đồ ECG gần nhất
-                      </h5>
-                    </div>
-                    <div className="card-body">
-                      {latestReading ? (
-                        <ECGChart data={latestReading.ecg_signal || []} />
-                      ) : (
-                        <div className="text-center py-4">
-                          <i className="fas fa-chart-line fa-3x text-muted mb-3"></i>
-                          <p className="text-muted">Chưa có dữ liệu ECG</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="row mt-4">
-                <div className="col-12">
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-header bg-white border-0">
-                      <h5 className="card-title mb-0">
-                        <i className="fas fa-history me-2 text-info"></i>
-                        Lịch sử đo gần đây
-                      </h5>
-                    </div>
-                    <div className="card-body">
-                      {memberReadings.length > 0 ? (
-                        <div className="table-responsive">
-                          <table className="table table-hover">
-                            <thead className="table-light">
-                              <tr>
-                                <th>Thời gian</th>
-                                <th>Nhịp tim</th>
-                                <th>Trạng thái</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {memberReadings.map((reading) => (
-                                <tr key={reading.reading_id}>
-                                  <td>{formatDate(reading.timestamp)}</td>
-                                  <td>
-                                    <span
-                                      className={`fw-bold ${
-                                        reading.heart_rate < 60
-                                          ? "text-warning"
-                                          : reading.heart_rate > 100
-                                          ? "text-danger"
-                                          : "text-success"
-                                      }`}
-                                    >
-                                      {reading.heart_rate} BPM
-                                    </span>
-                                  </td>
-                                  <td>
-                                    {reading.abnormal_detected ? (
-                                      <span className="badge bg-danger">Bất thường</span>
-                                    ) : (
-                                      <span className="badge bg-success">Bình thường</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : (
-                        <div className="text-center py-4">
-                          <i className="fas fa-heartbeat fa-3x text-muted mb-3"></i>
-                          <p className="text-muted">Chưa có dữ liệu đo</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
+              </section>
+            </div>
           ) : (
-            <div className="card border-0 shadow-sm">
-              <div className="card-body text-center py-5">
-                <i className="fas fa-user-friends fa-3x text-muted mb-3"></i>
-                <h5 className="text-muted">Chọn người thân để theo dõi</h5>
-                <p className="text-muted">Hãy chọn một người thân từ danh sách bên trái để xem thông tin chi tiết.</p>
-              </div>
+            <div className="empty-state-rich">
+              <div className="empty-state-rich-icon info"><i className="fas fa-user-friends"></i></div>
+              <h3>Chọn người thân để theo dõi</h3>
+              <p>Hãy chọn một người thân từ danh sách bên trái để xem thông tin chi tiết.</p>
             </div>
           )}
-        </div>
+        </main>
       </div>
 
       <ReadingDetailModal

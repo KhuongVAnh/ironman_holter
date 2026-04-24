@@ -24,14 +24,14 @@ const getAiStatusBadge = (reading) => {
 
   if (status === "PENDING") {
     return {
-      label: "Dang phan tich",
+      label: "Đang phân tích",
       className: "bg-amber-100 text-amber-700",
     }
   }
 
   if (status === "FAILED") {
     return {
-      label: "Phan tich that bai",
+      label: "Phân tích thất bại",
       className: "bg-rose-100 text-rose-700",
     }
   }
@@ -113,33 +113,35 @@ const PatientHistory = () => {
   const pageWindow = Array.from({ length: totalPages }, (_, index) => index + 1).slice(Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2))
 
   return (
-    <div className="space-y-6">
-      <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-sm font-medium text-ink-600">Patient data</p>
-          <h1 className="mt-2 text-2xl font-bold text-ink-900">Lịch sử theo dõi</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-ink-600">Tra cứu các phiên đo trước đây, kiểm tra nhịp tim trung bình và mở nhanh bản ghi ECG chi tiết khi cần.</p>
+          <p className="panel-eyebrow">Patient data</p>
+          <h1 className="page-hero-title">Lịch sử theo dõi</h1>
+          <p className="page-hero-subtitle">Tra cứu các phiên đo trước đây, kiểm tra nhịp tim trung bình và mở nhanh bản ghi ECG chi tiết khi cần.</p>
         </div>
         <button className="btn btn-outline-primary" onClick={fetchReadings}>
           <i className="fas fa-rotate"></i>
           Làm mới dữ liệu
         </button>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Số bản ghi trang này</p><p className="mt-2 text-2xl font-bold text-ink-900">{readings.length}</p></div>
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Trang hiện tại</p><p className="mt-2 text-2xl font-bold text-ink-900">{currentPage}/{totalPages}</p></div>
-        <div className="app-card p-5"><p className="text-sm text-ink-500">Bản ghi bất thường</p><p className="mt-2 text-2xl font-bold text-red-600">{readings.filter((item) => isReadingAbnormal(item)).length}</p></div>
+        <div className="priority-metric metric-info"><p className="metric-label">Số bản ghi trang này</p><p className="metric-value">{readings.length}</p><p className="metric-helper">Dữ liệu ECG đã đồng bộ</p></div>
+        <div className="priority-metric metric-brand"><p className="metric-label">Trang hiện tại</p><p className="metric-value">{currentPage}/{totalPages}</p><p className="metric-helper">Điều hướng lịch sử đo</p></div>
+        <div className="priority-metric metric-danger"><p className="metric-label">Bản ghi bất thường</p><p className="metric-value">{readings.filter((item) => isReadingAbnormal(item)).length}</p><p className="metric-helper">Cần ưu tiên kiểm tra</p></div>
       </section>
 
-      <section className="app-card overflow-hidden">
-        <div className="app-card-header">
+      <section className="clinical-panel">
+        <div className="clinical-panel-header">
           <div>
             <h2 className="section-title">Danh sách bản ghi</h2>
             <p className="section-subtitle">Mỗi hàng tương ứng một lần đo đã lưu trên hệ thống.</p>
           </div>
         </div>
-        <div className="app-card-body">
+        <div className="clinical-panel-body">
           {loading ? (
             <div className="flex justify-center py-14"><div className="spinner-border" role="status" /></div>
           ) : readings.length === 0 ? (

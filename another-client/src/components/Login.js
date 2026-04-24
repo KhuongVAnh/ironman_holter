@@ -48,112 +48,115 @@ const Login = () => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-ink-900 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="auth-orb auth-orb-brand"></div>
-        <div className="auth-orb auth-orb-cyan"></div>
-        <div className="auth-grid-overlay"></div>
-      </div>
-
-      <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl overflow-hidden rounded-4xl border border-white/20 bg-white/10 shadow-panel backdrop-blur-md lg:grid-cols-[1fr_430px]">
-        <section className="auth-panel-primary p-6 text-white sm:p-8 lg:p-10">
-          <div className="auth-fade-up flex h-full flex-col justify-between gap-8">
+    <div className="min-h-screen bg-surface px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[minmax(0,1fr)_460px]">
+        <section className="relative overflow-hidden rounded-2xl border border-surface-line bg-ink-900 p-6 text-white shadow-panel sm:p-8 lg:p-10">
+          <div className="absolute inset-x-0 top-0 h-1 bg-brand-500"></div>
+          <div className="flex h-full flex-col justify-between gap-8">
             <div>
-              <div className="inline-flex items-center gap-3 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white/85">
-                <i className="fas fa-heart-pulse text-accent-100"></i>
-                Ironman Holter Platform
+              <div className="inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white/80">
+                <i className="fas fa-heart-pulse text-brand-200"></i>
+                Ironman Holter
               </div>
-              <h1 className="mt-6 max-w-xl font-display text-4xl font-bold leading-tight sm:text-5xl">Đăng nhập để làm chủ nhịp tim của bạn.</h1>
-              <p className="mt-5 max-w-xl text-base leading-7 text-white/80">Theo dõi ECG, cảnh báo rủi ro và cộng tác với bác sĩ trong không gian trực quan, tốc độ cao và an toàn dữ liệu.</p>
-              <p className="mt-5 max-w-xl text-base leading-7 text-white/80">"Trước khi trao trái tim cho ai đó, hãy trao cho chính mình một trái tim khỏe mạnh."</p>
-              <p className="mt-3 max-w-xl text-sm italic text-white/70 text-right">- Khương V. Anh</p>
+              <h1 className="mt-7 max-w-3xl text-4xl font-bold leading-tight sm:text-5xl">Đăng nhập để theo dõi ECG theo thời gian thực.</h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-white/75">Dashboard lâm sàng tập trung vào nhịp tim, cảnh báo bất thường, kết luận AI và quyền chia sẻ dữ liệu với bác sĩ hoặc gia đình.</p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-white/20 bg-white/10 p-4 shadow-soft">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/70">Realtime</p>
-                <p className="mt-3 text-2xl font-bold">24/7</p>
-                <p className="mt-1 text-sm text-white/75">Giám sát tín hiệu liên tục</p>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-2xl border border-sky-400/25 bg-sky-400/10 p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/15 text-sky-100"><i className="fas fa-wave-square"></i></div>
+                <p className="mt-4 text-2xl font-bold">Realtime</p>
+                <p className="mt-1 text-sm text-white/70">Dữ liệu ECG trực tiếp</p>
               </div>
-              <div className="rounded-2xl border border-white/20 bg-white/10 p-4 shadow-soft">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/70">Bảo mật</p>
-                <p className="mt-3 text-2xl font-bold">End-to-End</p>
-                <p className="mt-1 text-sm text-white/75">Kiểm soát truy cập theo vai trò</p>
+              <div className="rounded-2xl border border-rose-400/25 bg-rose-400/10 p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-400/15 text-rose-100"><i className="fas fa-triangle-exclamation"></i></div>
+                <p className="mt-4 text-2xl font-bold">Alert</p>
+                <p className="mt-1 text-sm text-white/70">Nhấn mạnh cảnh báo cần xử lý</p>
               </div>
-              <div className="rounded-2xl border border-white/20 bg-white/10 p-4 shadow-soft">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/70">AI</p>
-                <p className="mt-3 text-2xl font-bold">ECG CNN</p>
-                <p className="mt-1 text-sm text-white/75">Hỗ trợ phát hiện bất thường</p>
+              <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/10 p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-100"><i className="fas fa-shield-halved"></i></div>
+                <p className="mt-4 text-2xl font-bold">Secure</p>
+                <p className="mt-1 text-sm text-white/70">Phân quyền theo vai trò</p>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="flex items-center justify-center bg-white/85 p-5 backdrop-blur-xl sm:p-8 lg:p-10">
-          <div className="auth-fade-up w-full max-w-md">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-700">Welcome Back</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-ink-900">Đăng nhập hệ thống</h2>
-            <p className="mt-3 text-sm leading-6 text-ink-600">Sử dụng tài khoản của bạn để truy cập dashboard lâm sàng, cảnh báo thông minh và lịch sử theo dõi nhịp tim.</p>
+        <section className="flex items-center">
+          <div className="clinical-panel w-full overflow-hidden">
+            <div className="clinical-panel-header">
+              <div>
+                <p className="panel-eyebrow">Đăng nhập</p>
+                <h2 className="section-title">Vào workspace</h2>
+                <p className="section-subtitle">Sử dụng email và mật khẩu đã đăng ký.</p>
+              </div>
+              <span className="status-chip is-success">An toàn</span>
+            </div>
+            <div className="clinical-panel-body">
+              <div className="highlight-band info mb-5">
+                <div className="highlight-band-icon"><i className="fas fa-circle-info"></i></div>
+                <div>
+                  <h3>Tài khoản demo</h3>
+                  <p>Chọn nhanh một vai trò để đi thẳng vào luồng kiểm thử.</p>
+                </div>
+              </div>
 
-            <div className="mt-6 grid gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-500">Tài khoản demo</p>
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-2">
                 {demoAccounts.map((account) => (
                   <button
                     key={account.email}
                     type="button"
                     onClick={() => applyDemoAccount(account)}
-                    className="rounded-xl border border-brand-100 bg-brand-50 px-3 py-2 text-left text-xs font-semibold text-brand-700 transition hover:-translate-y-0.5 hover:bg-brand-100"
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-surface-line bg-white px-4 py-3 text-left shadow-soft transition hover:border-brand-200 hover:bg-brand-50"
                   >
-                    <span className="block text-[11px] uppercase tracking-[0.12em] text-brand-500">{account.role}</span>
-                    <span className="mt-1 block truncate">{account.email}</span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold text-ink-900">{account.role}</span>
+                      <span className="block truncate text-xs text-ink-500">{account.email}</span>
+                    </span>
+                    <i className="fas fa-arrow-right text-brand-600"></i>
                   </button>
                 ))}
               </div>
+
+              <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+                <div>
+                  <label className="form-label">Email</label>
+                  <input
+                    className="form-control"
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))}
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Mật khẩu</label>
+                  <input
+                    className="form-control"
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={(event) => setFormData((prev) => ({ ...prev, password: event.target.value }))}
+                    placeholder="Tối thiểu 6 ký tự"
+                    required
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+                  {loading ? <><span className="spinner-border spinner-border-sm"></span>Đang đăng nhập...</> : <><i className="fas fa-right-to-bracket me-2"></i>Đăng nhập</>}
+                </button>
+              </form>
+
+              <p className="mt-6 text-sm text-ink-600">
+                Chưa có tài khoản?{" "}
+                <Link to="/register" className="font-semibold text-brand-700 hover:text-brand-800">
+                  Tạo tài khoản mới
+                </Link>
+              </p>
             </div>
-
-            <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-              <div>
-                <label className="form-label">Email</label>
-                <input
-                  className="form-control"
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))}
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-              <div>
-                <label className="form-label">Mật khẩu</label>
-                <input
-                  className="form-control"
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={(event) => setFormData((prev) => ({ ...prev, password: event.target.value }))}
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              <button type="submit" className="btn btn-primary w-full" disabled={loading}>
-                {loading ? <><span className="spinner-border spinner-border-sm"></span>Đang đăng nhập...</> : "Vào workspace"}
-              </button>
-            </form>
-
-            <p className="mt-6 text-sm text-ink-600">
-              Chưa có tài khoản?{" "}
-              <Link to="/register" className="font-semibold text-brand-700 hover:text-brand-800">
-                Tạo tài khoản mới
-              </Link>
-            </p>
           </div>
         </section>
-      </div>
-
-      <div className="relative mx-auto mt-4 max-w-6xl text-center text-xs text-white/65">
-        Dữ liệu sức khỏe được xử lý và đồng bộ theo phiên đăng nhập an toàn.
       </div>
     </div>
   )

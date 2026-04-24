@@ -50,7 +50,15 @@ export const getHeartRateTone = (heartRate) => {
 }
 
 export const DoctorStatCard = ({ icon, label, value, tone = "brand", hint }) => {
-  const toneClass = {
+  const metricTone = {
+    brand: "metric-brand",
+    red: "metric-danger",
+    amber: "metric-warning",
+    emerald: "metric-success",
+    sky: "metric-info",
+  }[tone] || "metric-brand"
+
+  const iconTone = {
     brand: "bg-brand-50 text-brand-700",
     red: "bg-red-50 text-red-700",
     amber: "bg-amber-50 text-amber-700",
@@ -59,14 +67,14 @@ export const DoctorStatCard = ({ icon, label, value, tone = "brand", hint }) => 
   }[tone] || "bg-brand-50 text-brand-700"
 
   return (
-    <div className="app-card p-5">
+    <div className={`priority-metric ${metricTone}`}>
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-ink-500">{label}</p>
-          <p className="mt-2 text-3xl font-bold leading-none text-ink-950">{value}</p>
-          {hint ? <p className="mt-2 text-xs font-medium text-ink-500">{hint}</p> : null}
+        <div className="min-w-0">
+          <p className="metric-label">{label}</p>
+          <p className="metric-value">{value}</p>
+          {hint ? <p className="metric-helper">{hint}</p> : null}
         </div>
-        <span className={`inline-flex h-12 w-12 flex-none items-center justify-center rounded-xl ${toneClass}`}>
+        <span className={`metric-icon ${iconTone}`}>
           <i className={`${icon} text-lg`}></i>
         </span>
       </div>
@@ -77,34 +85,40 @@ export const DoctorStatCard = ({ icon, label, value, tone = "brand", hint }) => 
 export const PatientAvatar = ({ name, size = "md" }) => {
   const sizeClass = size === "lg" ? "h-16 w-16 text-lg" : "h-11 w-11 text-sm"
   return (
-    <span className={`inline-flex ${sizeClass} flex-none items-center justify-center rounded-2xl bg-brand-600 font-bold text-white shadow-soft`}>
+    <span className={`inline-flex ${sizeClass} flex-none items-center justify-center rounded-2xl bg-ink-900 font-bold text-white shadow-soft ring-4 ring-brand-50`}>
       {getInitials(name)}
     </span>
   )
 }
 
 export const EmptyState = ({ icon = "fas fa-folder-open", title, description }) => (
-  <div className="rounded-xl border border-dashed border-surface-line bg-surface-soft px-5 py-8 text-center">
-    <i className={`${icon} text-3xl text-ink-300`}></i>
-    <p className="mt-3 font-semibold text-ink-800">{title}</p>
+  <div className="empty-state-rich">
+    <div className="empty-state-rich-icon">
+      <i className={icon}></i>
+    </div>
+    <p className="mt-4 font-semibold text-ink-800">{title}</p>
     {description ? <p className="mx-auto mt-1 max-w-lg text-sm text-ink-500">{description}</p> : null}
   </div>
 )
 
 export const ClinicalTabs = ({ tabs, activeTab, onChange }) => (
-  <div className="flex gap-2 overflow-x-auto rounded-xl border border-surface-line bg-surface-soft p-1">
+  <div className="flex gap-2 overflow-x-auto rounded-2xl border border-surface-line bg-surface-soft p-1.5 shadow-soft">
     {tabs.map((tab) => (
       <button
         key={tab.value}
         type="button"
         className={`inline-flex min-h-10 flex-none items-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${
-          activeTab === tab.value ? "bg-white text-brand-700 shadow-soft" : "text-ink-600 hover:bg-white/70 hover:text-ink-900"
+          activeTab === tab.value ? "bg-ink-900 text-white shadow-medium" : "text-ink-600 hover:bg-white/80 hover:text-ink-900"
         }`}
         onClick={() => onChange(tab.value)}
       >
         <i className={tab.icon}></i>
         {tab.label}
-        {tab.count !== undefined ? <span className="rounded-full bg-surface-line px-2 py-0.5 text-[11px] text-ink-700">{tab.count}</span> : null}
+        {tab.count !== undefined ? (
+          <span className={`rounded-full px-2 py-0.5 text-[11px] ${activeTab === tab.value ? "bg-white/15 text-white" : "bg-white text-ink-700"}`}>
+            {tab.count}
+          </span>
+        ) : null}
       </button>
     ))}
   </div>

@@ -79,16 +79,16 @@ const AdminDashboard = () => {
     }
   }
 
-  const getHealthIcon = (status) => {
+  const getHealthMeta = (status) => {
     switch (status) {
       case "healthy":
-        return <i className="fas fa-check-circle text-success"></i>
+        return { label: "Ổn định", className: "is-success", icon: "fas fa-check-circle" }
       case "warning":
-        return <i className="fas fa-exclamation-triangle text-warning"></i>
+        return { label: "Cần theo dõi", className: "is-warning", icon: "fas fa-exclamation-triangle" }
       case "error":
-        return <i className="fas fa-times-circle text-danger"></i>
+        return { label: "Lỗi", className: "is-danger", icon: "fas fa-times-circle" }
       default:
-        return <i className="fas fa-question-circle text-muted"></i>
+        return { label: "Không rõ", className: "is-neutral", icon: "fas fa-question-circle" }
     }
   }
 
@@ -98,233 +98,122 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="container py-4">
-        <div className="d-flex justify-content-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
+      <div className="page-shell">
+        <div className="empty-state-rich">
+          <div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div>
+          <h3>Đang tải dashboard quản trị</h3>
+          <p>Hệ thống đang tổng hợp người dùng, thiết bị và cảnh báo.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container-fluid py-4">
-      <div className="row">
-        <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1 className="h3 mb-0">
-              <i className="fas fa-user-shield me-2 text-danger"></i>
-              Dashboard Quản trị
-            </h1>
-            <div className="text-muted">
-              <i className="fas fa-clock me-1"></i>
-              Cập nhật: {new Date().toLocaleString("vi-VN")}
-            </div>
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="panel-eyebrow">System operations</p>
+            <h1 className="page-hero-title">Điều hành hệ thống</h1>
+            <p className="page-hero-subtitle">Theo dõi người dùng, thiết bị, cảnh báo và tình trạng vận hành trong một màn quản trị.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="status-chip is-info"><i className="fas fa-clock"></i>{new Date().toLocaleString("vi-VN")}</span>
+            <button className="btn btn-primary btn-sm" onClick={fetchDashboardData}>
+              <i className="fas fa-sync-alt"></i>
+              Làm mới
+            </button>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* System Health */}
-      <div className="row mb-4">
-        <div className="col-12">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <h5 className="card-title mb-3">
-                <i className="fas fa-heartbeat me-2 text-success"></i>
-                Tình trạng hệ thống
-              </h5>
-              <div className="row">
-                <div className="col-md-4">
-                  <div className="d-flex align-items-center">
-                    {getHealthIcon(systemHealth.database)}
-                    <span className="ms-2">Cơ sở dữ liệu</span>
-                  </div>
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="metric-grid">
+          <div className="priority-metric metric-brand"><div className="flex items-start justify-between gap-3"><div><p className="metric-label">Tổng người dùng</p><p className="metric-value">{stats.totalUsers}</p><p className="metric-helper">{stats.totalPatients} bệnh nhân, {stats.totalDoctors} bác sĩ</p></div><span className="metric-icon bg-brand-50 text-brand-700"><i className="fas fa-users"></i></span></div></div>
+          <div className="priority-metric metric-info"><div className="flex items-start justify-between gap-3"><div><p className="metric-label">Thiết bị</p><p className="metric-value">{stats.totalDevices}</p><p className="metric-helper">Đã đăng ký trong hệ thống</p></div><span className="metric-icon bg-sky-50 text-sky-700"><i className="fas fa-microchip"></i></span></div></div>
+          <div className="priority-metric metric-danger"><div className="flex items-start justify-between gap-3"><div><p className="metric-label">Cảnh báo mở</p><p className="metric-value">{stats.activeAlerts}</p><p className="metric-helper">Chưa được xử lý</p></div><span className="metric-icon bg-red-50 text-red-700"><i className="fas fa-triangle-exclamation"></i></span></div></div>
+          <div className="priority-metric metric-success"><div className="flex items-start justify-between gap-3"><div><p className="metric-label">Báo cáo</p><p className="metric-value">{stats.totalReports}</p><p className="metric-helper">Báo cáo chuyên môn</p></div><span className="metric-icon bg-emerald-50 text-emerald-700"><i className="fas fa-file-medical"></i></span></div></div>
+        </div>
+
+        <aside className="clinical-panel">
+          <div className="clinical-panel-header">
+            <div>
+              <p className="panel-eyebrow">Health check</p>
+              <h2 className="section-title">Tình trạng hệ thống</h2>
+            </div>
+          </div>
+          <div className="clinical-panel-body space-y-3">
+            {[
+              ["Cơ sở dữ liệu", systemHealth.database],
+              ["Máy chủ", systemHealth.server],
+              ["Hệ thống cảnh báo", systemHealth.alerts],
+            ].map(([label, status]) => {
+              const meta = getHealthMeta(status)
+              return (
+                <div key={label} className="flex items-center justify-between gap-3 rounded-xl border border-surface-line bg-white px-4 py-3 shadow-soft">
+                  <span className="font-semibold text-ink-800">{label}</span>
+                  <span className={`status-chip ${meta.className}`}><i className={meta.icon}></i>{meta.label}</span>
                 </div>
-                <div className="col-md-4">
-                  <div className="d-flex align-items-center">
-                    {getHealthIcon(systemHealth.server)}
-                    <span className="ms-2">Máy chủ</span>
-                  </div>
-                </div>
-                <div className="col-md-4">
-                  <div className="d-flex align-items-center">
-                    {getHealthIcon(systemHealth.alerts)}
-                    <span className="ms-2">Hệ thống cảnh báo</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              )
+            })}
           </div>
-        </div>
-      </div>
+        </aside>
+      </section>
 
-      {/* Statistics Cards */}
-      <div className="row g-4 mb-4">
-        <div className="col-md-2">
-          <div className="card border-0 shadow-sm bg-primary text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-users fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{stats.totalUsers}</h3>
-              <p className="mb-0 small">Tổng người dùng</p>
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="clinical-panel">
+          <div className="clinical-panel-header">
+            <div>
+              <p className="panel-eyebrow">New accounts</p>
+              <h2 className="section-title">Người dùng mới</h2>
             </div>
+            <Link to="/admin/users" className="btn btn-outline-primary btn-sm">Xem tất cả</Link>
           </div>
-        </div>
-
-        <div className="col-md-2">
-          <div className="card border-0 shadow-sm bg-info text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-user-injured fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{stats.totalPatients}</h3>
-              <p className="mb-0 small">Bệnh nhân</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-2">
-          <div className="card border-0 shadow-sm bg-success text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-user-md fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{stats.totalDoctors}</h3>
-              <p className="mb-0 small">Bác sĩ</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-2">
-          <div className="card border-0 shadow-sm bg-secondary text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-microchip fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{stats.totalDevices}</h3>
-              <p className="mb-0 small">Thiết bị</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-2">
-          <div className="card border-0 shadow-sm bg-warning text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-exclamation-triangle fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{stats.activeAlerts}</h3>
-              <p className="mb-0 small">Cảnh báo</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-2">
-          <div className="card border-0 shadow-sm bg-dark text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-file-medical fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{stats.totalReports}</h3>
-              <p className="mb-0 small">Báo cáo</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="row g-4">
-        {/* Recent Users */}
-        <div className="col-md-6">
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-0">
-              <div className="d-flex justify-content-between align-items-center">
-                <h5 className="card-title mb-0">
-                  <i className="fas fa-user-plus me-2 text-primary"></i>
-                  Người dùng mới
-                </h5>
-                <Link to="/admin/users" className="btn btn-outline-primary btn-sm">
-                  Xem tất cả
-                </Link>
-              </div>
-            </div>
-            <div className="card-body">
-              {recentUsers.length > 0 ? (
-                <div className="list-group list-group-flush">
-                  {recentUsers.map((user) => (
-                    <div key={user.user_id} className="list-group-item px-0 border-0">
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div className="d-flex align-items-center">
-                          <div className="avatar-circle bg-primary text-white me-3">
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <h6 className="mb-1">{user.name}</h6>
-                            <small className="text-muted">{user.email}</small>
-                          </div>
-                        </div>
-                        <div className="text-end">
-                          <span className={`badge bg-${user.role === ROLE.ADMIN ? "danger" : "primary"}`}>
-                            {user.role}
-                          </span>
-                          <div>
-                            <small className="text-muted">{formatDate(user.created_at)}</small>
-                          </div>
-                        </div>
+          <div className="clinical-panel-body">
+            {recentUsers.length > 0 ? (
+              <div className="space-y-3">
+                {recentUsers.map((user) => (
+                  <div key={user.user_id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-surface-line bg-white p-4 shadow-soft">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="avatar-circle bg-primary text-white">{user.name.charAt(0).toUpperCase()}</div>
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-ink-900">{user.name}</p>
+                        <p className="truncate text-sm text-ink-500">{user.email}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted text-center">Chưa có người dùng mới</p>
-              )}
-            </div>
+                    <div className="text-right">
+                      <span className={`badge bg-${user.role === ROLE.ADMIN ? "danger" : "primary"}`}>{user.role}</span>
+                      <p className="mt-1 text-xs text-ink-500">{formatDate(user.created_at)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state-rich"><div className="empty-state-rich-icon"><i className="fas fa-user-plus"></i></div><p className="mt-3 font-semibold text-ink-800">Chưa có người dùng mới</p></div>
+            )}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="col-md-6">
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-0">
-              <h5 className="card-title mb-0">
-                <i className="fas fa-bolt me-2 text-warning"></i>
-                Thao tác nhanh
-              </h5>
+        <aside className="space-y-5">
+          <div className="clinical-panel">
+            <div className="clinical-panel-header">
+              <h2 className="section-title">Thao tác nhanh</h2>
             </div>
-            <div className="card-body">
-              <div className="d-grid gap-2">
-                <Link to="/admin/users" className="btn btn-outline-primary">
-                  <i className="fas fa-users-cog me-2"></i>
-                  Quản lý người dùng
-                </Link>
-                <Link to="/admin/devices" className="btn btn-outline-success">
-                  <i className="fas fa-microchip me-2"></i>
-                  Quản lý thiết bị
-                </Link>
-                <Link to="/admin/logs" className="btn btn-outline-info">
-                  <i className="fas fa-chart-bar me-2"></i>
-                  Xem thống kê
-                </Link>
-                <button className="btn btn-outline-warning" onClick={fetchDashboardData}>
-                  <i className="fas fa-sync-alt me-2"></i>
-                  Làm mới dữ liệu
-                </button>
-              </div>
+            <div className="clinical-panel-body space-y-3">
+              <Link to="/admin/users" className="action-card"><span className="metric-icon bg-brand-50 text-brand-700"><i className="fas fa-users-cog"></i></span><span><strong className="block text-ink-900">Quản lý người dùng</strong><small className="text-ink-500">Vai trò, trạng thái tài khoản</small></span></Link>
+              <Link to="/admin/devices" className="action-card"><span className="metric-icon bg-sky-50 text-sky-700"><i className="fas fa-microchip"></i></span><span><strong className="block text-ink-900">Quản lý thiết bị</strong><small className="text-ink-500">Serial và trạng thái hoạt động</small></span></Link>
+              <Link to="/admin/logs" className="action-card"><span className="metric-icon bg-amber-50 text-amber-700"><i className="fas fa-chart-bar"></i></span><span><strong className="block text-ink-900">Nhật ký hệ thống</strong><small className="text-ink-500">Cảnh báo và hoạt động gần đây</small></span></Link>
             </div>
           </div>
 
-          {/* System Info */}
-          <div className="card border-0 shadow-sm mt-4">
-            <div className="card-header bg-white border-0">
-              <h5 className="card-title mb-0">
-                <i className="fas fa-info-circle me-2 text-info"></i>
-                Thông tin hệ thống
-              </h5>
-            </div>
-            <div className="card-body">
-              <div className="row text-center">
-                <div className="col-6 border-end">
-                  <h6 className="text-success">Uptime</h6>
-                  <small className="text-muted">99.9%</small>
-                </div>
-                <div className="col-6">
-                  <h6 className="text-info">Version</h6>
-                  <small className="text-muted">v1.0.0</small>
-                </div>
-              </div>
+          <div className="clinical-panel">
+            <div className="clinical-panel-body grid grid-cols-2 gap-3 text-center">
+              <div className="rounded-xl bg-emerald-50 px-4 py-4"><p className="text-xs font-bold uppercase text-emerald-700">Uptime</p><p className="mt-1 text-2xl font-bold text-emerald-800">99.9%</p></div>
+              <div className="rounded-xl bg-sky-50 px-4 py-4"><p className="text-xs font-bold uppercase text-sky-700">Version</p><p className="mt-1 text-2xl font-bold text-sky-800">v1.0</p></div>
             </div>
           </div>
-        </div>
-      </div>
+        </aside>
+      </section>
     </div>
   )
 }

@@ -91,13 +91,13 @@ const AdminLogs = () => {
   const getLogLevelBadge = (level) => {
     switch (level) {
       case "ERROR":
-        return <span className="badge bg-danger">{level}</span>
+        return <span className="status-chip is-danger">Lỗi</span>
       case "WARNING":
-        return <span className="badge bg-warning">{level}</span>
+        return <span className="status-chip is-warning">Cảnh báo</span>
       case "INFO":
-        return <span className="badge bg-info">{level}</span>
+        return <span className="status-chip is-info">Thông tin</span>
       default:
-        return <span className="badge bg-secondary">{level}</span>
+        return <span className="status-chip is-neutral">{level}</span>
     }
   }
 
@@ -116,88 +116,51 @@ const AdminLogs = () => {
 
   if (loading) {
     return (
-      <div className="container py-4">
-        <div className="d-flex justify-content-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
+      <div className="page-shell">
+        <div className="empty-state-rich">
+          <div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div>
+          <h3>Đang tải thống kê</h3>
+          <p>Hệ thống đang tổng hợp cảnh báo và log vận hành.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container py-4">
-      <div className="row">
-        <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1 className="h3 mb-0">
-              <i className="fas fa-chart-bar me-2 text-info"></i>
-              Thống kê & Logs
-            </h1>
-            <button className="btn btn-outline-primary" onClick={fetchLogsData}>
-              <i className="fas fa-sync-alt me-1"></i>
-              Làm mới
-            </button>
-          </div>
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-chart-bar"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">System logs</p>
+          <h1 className="page-hero-title">Thống kê & nhật ký hệ thống</h1>
+          <p className="page-hero-subtitle">Theo dõi sức khỏe vận hành, cảnh báo mới và nhật ký hệ thống quan trọng.</p>
         </div>
-      </div>
+        <button className="btn btn-outline-primary" onClick={fetchLogsData}>
+          <i className="fas fa-sync-alt me-1"></i>
+          Làm mới
+        </button>
+      </section>
 
       {/* Statistics Cards */}
-      <div className="row g-4 mb-4">
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-primary text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-heartbeat fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{stats.totalReadings.toLocaleString()}</h3>
-              <p className="mb-0 small">Tổng lần đo</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-warning text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-exclamation-triangle fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{stats.totalAlerts}</h3>
-              <p className="mb-0 small">Tổng cảnh báo</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-success text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-file-medical fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{stats.totalReports}</h3>
-              <p className="mb-0 small">Tổng báo cáo</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-info text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-chart-line fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{stats.avgHeartRate}</h3>
-              <p className="mb-0 small">Nhịp tim TB</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <section className="metric-grid">
+        <div className="priority-metric metric-info"><div className="metric-icon"><i className="fas fa-heartbeat"></i></div><p className="metric-label">Tổng lần đo</p><p className="metric-value">{stats.totalReadings.toLocaleString()}</p><p className="metric-helper">Bản ghi ECG</p></div>
+        <div className="priority-metric metric-warning"><div className="metric-icon"><i className="fas fa-exclamation-triangle"></i></div><p className="metric-label">Tổng cảnh báo</p><p className="metric-value">{stats.totalAlerts}</p><p className="metric-helper">Cần theo dõi vận hành</p></div>
+        <div className="priority-metric metric-success"><div className="metric-icon"><i className="fas fa-file-medical"></i></div><p className="metric-label">Tổng báo cáo</p><p className="metric-value">{stats.totalReports}</p><p className="metric-helper">Báo cáo chuyên môn</p></div>
+        <div className="priority-metric metric-brand"><div className="metric-icon"><i className="fas fa-chart-line"></i></div><p className="metric-label">Nhịp tim TB</p><p className="metric-value">{stats.avgHeartRate}</p><p className="metric-helper">BPM trung bình</p></div>
+      </section>
 
       {/* Recent Alerts and System Logs */}
-      <div className="row g-4">
-        <div className="col-lg-6">
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-bottom">
-              <h5 className="card-title mb-0">
-                <i className="fas fa-bell me-2 text-warning"></i>
-                Cảnh báo gần đây
-              </h5>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <section className="clinical-panel overflow-hidden">
+            <div className="clinical-panel-header">
+              <h2 className="section-title"><i className="fas fa-bell me-2 text-warning"></i>Cảnh báo gần đây</h2>
             </div>
-            <div className="card-body">
+            <div className="clinical-panel-body">
               {recentAlerts.length === 0 ? (
-                <div className="text-center py-4 text-muted">
-                  <i className="fas fa-check-circle fa-2x mb-2"></i>
-                  <p className="mb-0">Không có cảnh báo nào</p>
+                <div className="empty-state-rich">
+                  <div className="empty-state-rich-icon success"><i className="fas fa-check-circle"></i></div>
+                  <h3>Không có cảnh báo nào</h3>
+                  <p>Hệ thống chưa ghi nhận cảnh báo gần đây.</p>
                 </div>
               ) : (
                 <div className="list-group list-group-flush">
@@ -210,7 +173,7 @@ const AdminLogs = () => {
                           <p className="mb-1 text-muted small">{alert.message}</p>
                           <small className="text-muted">{formatDate(alert.timestamp || alert.created_at)}</small>
                         </div>
-                        <span className={`badge ${alert.resolved ? "bg-success" : "bg-warning"}`}>
+                        <span className={`status-chip ${alert.resolved ? "is-success" : "is-warning"}`}>
                           {alert.resolved ? "Đã xử lý" : "Chờ xử lý"}
                         </span>
                       </div>
@@ -219,18 +182,13 @@ const AdminLogs = () => {
                 </div>
               )}
             </div>
-          </div>
-        </div>
+        </section>
 
-        <div className="col-lg-6">
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-bottom">
-              <h5 className="card-title mb-0">
-                <i className="fas fa-server me-2 text-info"></i>
-                System Logs
-              </h5>
+        <section className="clinical-panel overflow-hidden">
+            <div className="clinical-panel-header">
+              <h2 className="section-title"><i className="fas fa-server me-2 text-info"></i>Nhật ký hệ thống</h2>
             </div>
-            <div className="card-body">
+            <div className="clinical-panel-body">
               <div className="list-group list-group-flush">
                 {systemLogs.map((log) => (
                   <div key={log.id} className="list-group-item border-0 px-0">
@@ -251,8 +209,7 @@ const AdminLogs = () => {
                 ))}
               </div>
             </div>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   )

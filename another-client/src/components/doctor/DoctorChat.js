@@ -190,19 +190,22 @@ const DoctorChat = () => {
     }
   }
 
-  if (loadingContacts) return <div className="flex min-h-[55vh] items-center justify-center"><div className="spinner-border"></div></div>
+  if (loadingContacts) return <div className="page-shell"><div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div><h3>Đang tải hội thoại</h3><p>Danh sách bệnh nhân đang được đồng bộ.</p></div></div>
 
   return (
-    <div className="space-y-6">
-      <section className="app-card p-5">
-        <p className="text-sm font-semibold text-brand-700">Secure direct messaging</p>
-        <h1 className="mt-1 text-3xl font-bold text-ink-950">Tin nhắn bệnh nhân</h1>
-        <p className="mt-2 text-sm text-ink-600">Trao đổi nhanh với bệnh nhân đã cấp quyền theo dõi.</p>
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-comments"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">Trao đổi bảo mật</p>
+          <h1 className="page-hero-title">Tin nhắn bệnh nhân</h1>
+          <p className="page-hero-subtitle">Trao đổi nhanh với bệnh nhân đã cấp quyền theo dõi, ưu tiên hội thoại có tin chưa đọc.</p>
+        </div>
       </section>
 
       <div className="grid min-h-[680px] gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="app-card flex min-h-0 flex-col overflow-hidden">
-          <div className="app-card-header"><div><h2 className="section-title">Bệnh nhân</h2><p className="section-subtitle">{contacts.length} hội thoại</p></div></div>
+        <aside className="clinical-panel flex min-h-0 flex-col overflow-hidden">
+          <div className="clinical-panel-header"><div><h2 className="section-title">Bệnh nhân</h2><p className="section-subtitle">{contacts.length} hội thoại</p></div></div>
           <div className="border-b border-surface-line p-4">
             <div className="relative">
               <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"></i>
@@ -229,8 +232,8 @@ const DoctorChat = () => {
           </div>
         </aside>
 
-        <section className="app-card flex min-h-0 flex-col overflow-hidden">
-          <div className="app-card-header">
+        <section className="clinical-panel flex min-h-0 flex-col overflow-hidden">
+          <div className="clinical-panel-header">
             <div className="flex min-w-0 items-center gap-3">
               {selectedContact ? <PatientAvatar name={selectedContact.name} /> : null}
               <div className="min-w-0">

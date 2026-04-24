@@ -249,12 +249,46 @@ const PatientChat = () => {
   // Hàm format thời gian hiển thị trên bubble chat.
   const formatTime = (timestamp) => new Date(timestamp).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })
 
-  if (loadingContacts) return <div className="flex justify-center py-14"><div className="spinner-border" role="status" /></div>
+  if (loadingContacts) return <div className="page-shell"><div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div><h3>Đang tải hội thoại</h3><p>Hệ thống đang lấy danh sách bác sĩ có thể trò chuyện.</p></div></div>
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-      <section className="app-card overflow-hidden">
-        <div className="app-card-header">
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-comments"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">Trao đổi trực tiếp</p>
+          <h1 className="page-hero-title">Tin nhắn với bác sĩ</h1>
+          <p className="page-hero-subtitle">Ưu tiên các hội thoại có tin chưa đọc và giữ lịch sử trao đổi theo từng bác sĩ.</p>
+        </div>
+        <button type="button" className="btn btn-outline-primary" onClick={() => fetchContacts(false)}>
+          <i className="fas fa-rotate-right me-2"></i>Làm mới
+        </button>
+      </section>
+
+      <section className="metric-grid">
+        <div className="priority-metric metric-info">
+          <div className="metric-icon"><i className="fas fa-user-doctor"></i></div>
+          <p className="metric-label">Bác sĩ</p>
+          <p className="metric-value">{contacts.length}</p>
+          <p className="metric-helper">Được cấp quyền trò chuyện</p>
+        </div>
+        <div className="priority-metric metric-danger">
+          <div className="metric-icon"><i className="fas fa-envelope-open-text"></i></div>
+          <p className="metric-label">Chưa đọc</p>
+          <p className="metric-value">{contacts.reduce((total, item) => total + Number(item.unread_count || 0), 0)}</p>
+          <p className="metric-helper">Tin nhắn cần xem</p>
+        </div>
+        <div className="priority-metric metric-success">
+          <div className="metric-icon"><i className="fas fa-comment-dots"></i></div>
+          <p className="metric-label">Đang mở</p>
+          <p className="metric-value text-2xl">{selectedContact ? selectedContact.name : "Chưa chọn"}</p>
+          <p className="metric-helper">Hội thoại hiện tại</p>
+        </div>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header">
           <div>
             <h2 className="section-title">Bác sĩ đã cấp quyền</h2>
             <p className="section-subtitle">Chọn bác sĩ để xem lịch sử trao đổi trực tiếp.</p>
@@ -281,8 +315,8 @@ const PatientChat = () => {
         </div>
       </section>
 
-      <section className="app-card overflow-hidden">
-        <div className="app-card-header">
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header">
           <div>
             <h2 className="section-title">{selectedContact ? selectedContact.name : "Tin nhắn"}</h2>
             <p className="section-subtitle">{selectedContact?.email || "Chọn một bác sĩ để bắt đầu trao đổi."}</p>
@@ -340,6 +374,7 @@ const PatientChat = () => {
           </>
         )}
       </section>
+      </div>
     </div>
   )
 }

@@ -34,61 +34,54 @@ const Register = () => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-surface px-4 py-6 sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="auth-orb auth-orb-pink"></div>
-        <div className="auth-orb auth-orb-lime"></div>
-      </div>
+    <div className="min-h-screen bg-surface px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[430px_minmax(0,1fr)]">
+        <section className="relative overflow-hidden rounded-2xl border border-surface-line bg-white p-6 shadow-panel sm:p-8 lg:p-10">
+          <div className="absolute inset-x-0 top-0 h-1 bg-sky-500"></div>
+          <p className="panel-eyebrow">Tài khoản mới</p>
+          <h1 className="mt-3 text-4xl font-bold leading-tight text-ink-900">Tạo workspace theo đúng vai trò chăm sóc.</h1>
+          <p className="mt-4 text-sm leading-6 text-ink-600">Mỗi vai trò có dashboard, quyền truy cập và hành động riêng để dữ liệu ECG được theo dõi đúng người, đúng thời điểm.</p>
 
-      <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl overflow-hidden rounded-4xl border border-brand-100 bg-white shadow-panel lg:grid-cols-[460px_1fr]">
-        <section className="auth-panel-secondary p-6 text-white sm:p-8 lg:p-10">
-          <div className="auth-fade-up flex h-full flex-col justify-between gap-8">
-            <div>
-              <div className="inline-flex items-center gap-3 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/90">
-                <i className="fas fa-user-plus"></i>
-                New Account
-              </div>
-              <h3 className="mt-6 font-display text-4xl font-bold leading-tight">Bắt đầu hành trình theo dõi tim mạch thông minh.</h3>
-              <p className="mt-4 text-base leading-7 text-white/85">Tạo tài khoản theo đúng vai trò để nhận giao diện và quyền truy cập phù hợp, giúp phối hợp chăm sóc nhanh hơn và rõ ràng hơn.</p>
+          <div className="mt-8 space-y-4">
+            <div className="highlight-band info">
+              <div className="highlight-band-icon"><i className="fas fa-user"></i></div>
+              <div><h3>Bệnh nhân</h3><p>Xem ECG, cảnh báo, thiết bị và quyền chia sẻ.</p></div>
             </div>
-
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-white/20 bg-white/10 p-4">
-                <p className="text-sm font-semibold">Luồng lâm sàng trực quan</p>
-                <p className="mt-1 text-sm text-white/80">Bác sĩ theo dõi dashboard, gia đình nhận cảnh báo, bệnh nhân xem tiến trình ngay trong một hệ thống.</p>
-              </div>
-              <div className="rounded-2xl border border-white/20 bg-white/10 p-4">
-                <p className="text-sm font-semibold">Cảnh báo tức thời</p>
-                <p className="mt-1 text-sm text-white/80">Sự kiện bất thường từ ECG được đẩy đến đúng người phụ trách theo phân quyền.</p>
-              </div>
-              <div className="rounded-2xl border border-white/20 bg-white/10 p-4">
-                <p className="text-sm font-semibold">Hạ tầng mở rộng</p>
-                <p className="mt-1 text-sm text-white/80">Thiết kế sẵn cho dữ liệu realtime, worker queue và lớp AI dự đoán rủi ro.</p>
-              </div>
+            <div className="highlight-band danger">
+              <div className="highlight-band-icon"><i className="fas fa-user-doctor"></i></div>
+              <div><h3>Bác sĩ</h3><p>Ưu tiên hàng đợi cảnh báo và workspace bệnh nhân.</p></div>
+            </div>
+            <div className="highlight-band success">
+              <div className="highlight-band-icon"><i className="fas fa-people-roof"></i></div>
+              <div><h3>Gia đình</h3><p>Theo dõi người thân, nhận cảnh báo và xem hồ sơ.</p></div>
             </div>
           </div>
         </section>
 
-        <section className="flex items-center justify-center p-5 sm:p-8 lg:p-10">
-          <div className="auth-fade-up w-full max-w-lg rounded-3xl border border-surface-line bg-white p-6 shadow-soft sm:p-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-accent-600">Create Account</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-ink-900">Đăng ký tài khoản mới</h2>
-            <p className="mt-3 text-sm leading-6 text-ink-600">Hoàn thiện thông tin để tham gia hệ sinh thái Ironman Holter với trải nghiệm theo đúng vai trò của bạn.</p>
-
-            <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
+        <section className="flex items-center">
+          <div className="clinical-panel w-full overflow-hidden">
+            <div className="clinical-panel-header">
               <div>
-                <label className="form-label">Họ và tên</label>
-                <input
-                  className="form-control"
-                  type="text"
-                  value={formData.name}
-                  onChange={(event) => updateField("name", event.target.value)}
-                  placeholder="Nguyen Van A"
-                  required
-                />
+                <p className="panel-eyebrow">Đăng ký</p>
+                <h2 className="section-title">Thông tin tài khoản</h2>
+                <p className="section-subtitle">Hoàn thiện thông tin cơ bản để bắt đầu sử dụng hệ thống.</p>
               </div>
+              <Link to="/login" className="btn btn-outline-primary btn-sm">Đăng nhập</Link>
+            </div>
+            <div className="clinical-panel-body">
+              <form className="grid gap-4" onSubmit={handleSubmit}>
+                <div>
+                  <label className="form-label">Họ và tên</label>
+                  <input
+                    className="form-control"
+                    type="text"
+                    value={formData.name}
+                    onChange={(event) => updateField("name", event.target.value)}
+                    placeholder="Nguyễn Văn A"
+                    required
+                  />
+                </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="form-label">Email</label>
                   <input
@@ -100,52 +93,65 @@ const Register = () => {
                     required
                   />
                 </div>
+
                 <div>
                   <label className="form-label">Vai trò</label>
-                  <select className="form-select" value={formData.role} onChange={(event) => updateField("role", event.target.value)}>
-                    <option value={ROLE.BENH_NHAN}>{ROLE_LABELS[ROLE.BENH_NHAN]}</option>
-                    <option value={ROLE.GIA_DINH}>{ROLE_LABELS[ROLE.GIA_DINH]}</option>
-                    <option value={ROLE.BAC_SI}>{ROLE_LABELS[ROLE.BAC_SI]}</option>
-                  </select>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    {[
+                      { value: ROLE.BENH_NHAN, icon: "fas fa-heart-pulse", tone: "info" },
+                      { value: ROLE.GIA_DINH, icon: "fas fa-people-roof", tone: "success" },
+                      { value: ROLE.BAC_SI, icon: "fas fa-user-doctor", tone: "danger" },
+                    ].map((item) => (
+                      <button
+                        key={item.value}
+                        type="button"
+                        className={`rounded-2xl border p-4 text-left transition ${formData.role === item.value ? "border-brand-300 bg-brand-50 shadow-soft" : "border-surface-line bg-white hover:bg-surface-soft"}`}
+                        onClick={() => updateField("role", item.value)}
+                      >
+                        <div className={`empty-state-rich-icon ${item.tone} mb-3 h-10 w-10 text-base`}><i className={item.icon}></i></div>
+                        <p className="font-bold text-ink-900">{ROLE_LABELS[item.value]}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="form-label">Mật khẩu</label>
-                  <input
-                    className="form-control"
-                    type="password"
-                    value={formData.password}
-                    onChange={(event) => updateField("password", event.target.value)}
-                    placeholder="Tối thiểu 6 ký tự"
-                    required
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="form-label">Mật khẩu</label>
+                    <input
+                      className="form-control"
+                      type="password"
+                      value={formData.password}
+                      onChange={(event) => updateField("password", event.target.value)}
+                      placeholder="Tối thiểu 6 ký tự"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">Xác nhận mật khẩu</label>
+                    <input
+                      className="form-control"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(event) => updateField("confirmPassword", event.target.value)}
+                      placeholder="Nhập lại mật khẩu"
+                      required
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="form-label">Xác nhận mật khẩu</label>
-                  <input
-                    className="form-control"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(event) => updateField("confirmPassword", event.target.value)}
-                    placeholder="Nhập lại mật khẩu"
-                    required
-                  />
-                </div>
-              </div>
 
-              <button type="submit" className="btn btn-primary mt-2 w-full" disabled={loading}>
-                {loading ? <><span className="spinner-border spinner-border-sm"></span>Đang đăng ký...</> : "Tạo tài khoản"}
-              </button>
-            </form>
+                <button type="submit" className="btn btn-primary mt-2 w-full" disabled={loading}>
+                  {loading ? <><span className="spinner-border spinner-border-sm"></span>Đang đăng ký...</> : <><i className="fas fa-user-plus me-2"></i>Tạo tài khoản</>}
+                </button>
+              </form>
 
-            <p className="mt-6 text-sm text-ink-600">
-              Đã có tài khoản?{" "}
-              <Link to="/login" className="font-semibold text-brand-700 hover:text-brand-800">
-                Đăng nhập ngay
-              </Link>
-            </p>
+              <p className="mt-6 text-sm text-ink-600">
+                Đã có tài khoản?{" "}
+                <Link to="/login" className="font-semibold text-brand-700 hover:text-brand-800">
+                  Đăng nhập ngay
+                </Link>
+              </p>
+            </div>
           </div>
         </section>
       </div>

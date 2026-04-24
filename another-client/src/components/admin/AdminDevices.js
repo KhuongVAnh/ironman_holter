@@ -68,26 +68,26 @@ const AdminDevices = () => {
 
   if (loading) {
     return (
-      <div className="container py-4">
-        <div className="d-flex justify-content-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
+      <div className="page-shell">
+        <div className="empty-state-rich">
+          <div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div>
+          <h3>Đang tải thiết bị</h3>
+          <p>Hệ thống đang lấy danh sách thiết bị ECG.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container py-4">
-      <div className="row">
-        <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1 className="h3 mb-0">
-              <i className="fas fa-microchip me-2 text-success"></i>
-              Quản lý thiết bị
-            </h1>
-            <div className="d-flex gap-2">
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-microchip"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">Device operations</p>
+          <h1 className="page-hero-title">Quản lý thiết bị</h1>
+          <p className="page-hero-subtitle">Theo dõi serial, bệnh nhân sở hữu và trạng thái hoạt động của thiết bị ECG.</p>
+        </div>
+            <div className="flex flex-wrap gap-2">
               <button className="btn btn-success" onClick={() => setShowAddModal(true)}>
                 <i className="fas fa-plus me-1"></i>
                 Thêm thiết bị
@@ -97,55 +97,20 @@ const AdminDevices = () => {
                 Làm mới
               </button>
             </div>
-          </div>
-        </div>
-      </div>
+      </section>
 
       {/* Statistics */}
-      <div className="row g-4 mb-4">
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-primary text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-microchip fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{devices.length}</h3>
-              <p className="mb-0 small">Tổng thiết bị</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-success text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-check-circle fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{devices.filter((d) => d.status === DEVICE_STATUS.DANG_HOAT_DONG).length}</h3>
-              <p className="mb-0 small">Đang hoạt động</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-secondary text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-pause-circle fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{devices.filter((d) => d.status === DEVICE_STATUS.NGUNG_HOAT_DONG).length}</h3>
-              <p className="mb-0 small">Ngưng hoạt động</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm bg-info text-white">
-            <div className="card-body text-center">
-              <i className="fas fa-users fa-2x mb-2"></i>
-              <h3 className="h4 mb-1">{users.length}</h3>
-              <p className="mb-0 small">Bệnh nhân</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <section className="metric-grid">
+        <div className="priority-metric metric-info"><div className="metric-icon"><i className="fas fa-microchip"></i></div><p className="metric-label">Tổng thiết bị</p><p className="metric-value">{devices.length}</p><p className="metric-helper">Đã đăng ký</p></div>
+        <div className="priority-metric metric-success"><div className="metric-icon"><i className="fas fa-check-circle"></i></div><p className="metric-label">Đang hoạt động</p><p className="metric-value">{devices.filter((d) => d.status === DEVICE_STATUS.DANG_HOAT_DONG).length}</p><p className="metric-helper">Đang gửi dữ liệu</p></div>
+        <div className="priority-metric metric-warning"><div className="metric-icon"><i className="fas fa-pause-circle"></i></div><p className="metric-label">Ngưng hoạt động</p><p className="metric-value">{devices.filter((d) => d.status === DEVICE_STATUS.NGUNG_HOAT_DONG).length}</p><p className="metric-helper">Cần kiểm tra</p></div>
+        <div className="priority-metric metric-brand"><div className="metric-icon"><i className="fas fa-users"></i></div><p className="metric-label">Bệnh nhân</p><p className="metric-value">{users.length}</p><p className="metric-helper">Có thể gán thiết bị</p></div>
+      </section>
 
       {/* Devices Table */}
-      <div className="row">
-        <div className="col-12">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header"><div><h2 className="section-title">Danh sách thiết bị</h2><p className="section-subtitle">Trạng thái vận hành được nhấn bằng chip màu.</p></div></div>
+        <div className="clinical-panel-body">
               {devices.length > 0 ? (
                 <div className="table-responsive">
                   <table className="table table-hover">
@@ -181,12 +146,12 @@ const AdminDevices = () => {
                           </td>
                           <td>
                             {device.status === DEVICE_STATUS.DANG_HOAT_DONG ? (
-                              <span className="badge bg-success">
+                              <span className="status-chip is-success">
                                 <i className="fas fa-check-circle me-1"></i>
                                 Đang hoạt động
                               </span>
                             ) : (
-                              <span className="badge bg-secondary">
+                              <span className="status-chip is-neutral">
                                 <i className="fas fa-pause-circle me-1"></i>
                                 Ngưng hoạt động
                               </span>
@@ -223,16 +188,14 @@ const AdminDevices = () => {
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-5">
-                  <i className="fas fa-microchip fa-3x text-muted mb-3"></i>
-                  <h5 className="text-muted">Chưa có thiết bị nào</h5>
-                  <p className="text-muted">Hãy thêm thiết bị đầu tiên để bắt đầu theo dõi</p>
+                <div className="empty-state-rich">
+                  <div className="empty-state-rich-icon info"><i className="fas fa-microchip"></i></div>
+                  <h3>Chưa có thiết bị nào</h3>
+                  <p>Hãy thêm thiết bị đầu tiên để bắt đầu theo dõi.</p>
                 </div>
               )}
-            </div>
-          </div>
         </div>
-      </div>
+      </section>
 
       {/* Add Device Modal */}
       {showAddModal && (

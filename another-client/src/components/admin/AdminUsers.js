@@ -123,50 +123,51 @@ const AdminUsers = () => {
 
   if (loading) {
     return (
-      <div className="container py-4">
-        <div className="d-flex justify-content-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
+      <div className="page-shell">
+        <div className="empty-state-rich">
+          <div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div>
+          <h3>Đang tải người dùng</h3>
+          <p>Hệ thống đang lấy danh sách tài khoản.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container py-4">
-      <div className="row">
-        <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1 className="h3 mb-0">
-              <i className="fas fa-users-cog me-2 text-primary"></i>
-              Quản lý người dùng
-            </h1>
-            <button className="btn btn-outline-primary" onClick={fetchUsers}>
-              <i className="fas fa-sync-alt me-1"></i>
-              Làm mới
-            </button>
-          </div>
+    <div className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-icon"><i className="fas fa-users-cog"></i></div>
+        <div className="min-w-0 flex-1">
+          <p className="panel-eyebrow">User operations</p>
+          <h1 className="page-hero-title">Quản lý người dùng</h1>
+          <p className="page-hero-subtitle">Theo dõi vai trò, trạng thái tài khoản và thao tác nhanh với từng người dùng.</p>
         </div>
-      </div>
+        <button className="btn btn-outline-primary" onClick={fetchUsers}>
+          <i className="fas fa-sync-alt me-1"></i>
+          Làm mới
+        </button>
+      </section>
+
+      <section className="metric-grid">
+        <div className="priority-metric metric-info"><div className="metric-icon"><i className="fas fa-users"></i></div><p className="metric-label">Tổng tài khoản</p><p className="metric-value">{users.length}</p><p className="metric-helper">Toàn bộ người dùng</p></div>
+        <div className="priority-metric metric-success"><div className="metric-icon"><i className="fas fa-user-check"></i></div><p className="metric-label">Đang hoạt động</p><p className="metric-value">{users.filter((item) => item.is_active).length}</p><p className="metric-helper">Có thể đăng nhập</p></div>
+        <div className="priority-metric metric-warning"><div className="metric-icon"><i className="fas fa-filter"></i></div><p className="metric-label">Kết quả lọc</p><p className="metric-value">{filteredUsers.length}</p><p className="metric-helper">Theo bộ lọc hiện tại</p></div>
+      </section>
 
       {/* Filters */}
-      <div className="row mb-4">
-        <div className="col-md-4">
-          <div className="input-group">
-            <span className="input-group-text">
-              <i className="fas fa-search"></i>
-            </span>
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header"><div><h2 className="section-title">Bộ lọc tài khoản</h2><p className="section-subtitle">Tìm theo tên/email, vai trò và trạng thái.</p></div></div>
+        <div className="clinical-panel-body grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_220px]">
+          <div className="relative">
+            <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"></i>
             <input
               type="text"
-              className="form-control"
+              className="form-control pl-11"
               placeholder="Tìm kiếm theo tên hoặc email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-        </div>
-        <div className="col-md-3">
           <select className="form-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
             <option value="all">Tất cả vai trò</option>
             <option value={ROLE.BENH_NHAN}>Bệnh nhân</option>
@@ -174,26 +175,18 @@ const AdminUsers = () => {
             <option value={ROLE.GIA_DINH}>Gia đình</option>
             <option value={ROLE.ADMIN}>Admin</option>
           </select>
-        </div>
-        <div className="col-md-3">
           <select className="form-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="all">Tất cả trạng thái</option>
             <option value="active">Đang hoạt động</option>
             <option value="inactive">Ngưng hoạt động</option>
           </select>
         </div>
-        <div className="col-md-2">
-          <div className="text-muted">
-            Tổng: <strong>{filteredUsers.length}</strong>
-          </div>
-        </div>
-      </div>
+      </section>
 
       {/* Users Table */}
-      <div className="row">
-        <div className="col-12">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
+      <section className="clinical-panel overflow-hidden">
+        <div className="clinical-panel-header"><div><h2 className="section-title">Danh sách người dùng</h2><p className="section-subtitle">Chip màu thể hiện vai trò và trạng thái tài khoản.</p></div></div>
+        <div className="clinical-panel-body">
               {filteredUsers.length > 0 ? (
                 <div className="table-responsive">
                   <table className="table table-hover">
@@ -261,20 +254,18 @@ const AdminUsers = () => {
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-5">
-                  <i className="fas fa-users fa-3x text-muted mb-3"></i>
-                  <h5 className="text-muted">Không tìm thấy người dùng nào</h5>
-                  <p className="text-muted">
+                <div className="empty-state-rich">
+                  <div className="empty-state-rich-icon info"><i className="fas fa-users"></i></div>
+                  <h3>Không tìm thấy người dùng nào</h3>
+                  <p>
                     {searchTerm || roleFilter !== "all" || statusFilter !== "all"
                       ? "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm"
                       : "Chưa có người dùng nào trong hệ thống"}
                   </p>
                 </div>
               )}
-            </div>
-          </div>
         </div>
-      </div>
+      </section>
 
       {/* Edit User Modal */}
       {editingUser && (
