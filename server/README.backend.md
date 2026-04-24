@@ -140,7 +140,9 @@ Các event backend/frontend thường dùng:
 - **ChatLog**: lịch sử chat với AI.
 - **DirectMessage**: tin nhắn trực tiếp giữa người dùng.
 - **AccessPermission**: chia sẻ quyền từ bệnh nhân sang bác sĩ/gia đình.
-- **MedicalHistory**: bệnh sử, triệu chứng, thuốc, chẩn đoán AI/bác sĩ, soft delete.
+- **MedicalVisit**: lịch sử khám chữa bệnh tại cơ sở y tế, soft delete.
+- **MedicationPlan**: đơn/kế hoạch thuốc của bệnh nhân.
+- **Medication**: chi tiết thuốc trong từng kế hoạch.
 - **Notification**: notification gốc.
 - **NotificationRecipient**: người nhận notification và trạng thái đã đọc/chưa đọc.
 
@@ -193,22 +195,19 @@ Các event backend/frontend thường dùng:
 - `DELETE /api/access/:id`
 - `GET /api/access/pending`
 
-### Medical history
-- `GET /api/history/:user_id`
-- `POST /api/history`
-- `PUT /api/history/:id`
-- `POST /api/history/:id/symptom`
-- `PATCH /api/history/:id/ai`
-- `DELETE /api/history/:id`
+### Medical records
+- `GET /api/medical-visits/patient/:userId`
+- `POST /api/medical-visits`
+- `PUT /api/medical-visits/:visitId`
+- `DELETE /api/medical-visits/:visitId`
+- `GET /api/medication-plans/patient/:userId`
+- `POST /api/medication-plans`
+- `PUT /api/medication-plans/:planId`
+- `DELETE /api/medication-plans/:planId`
 
 ### Doctor / Family views
 - `GET /api/doctor/patients/:viewer_id`
-- `GET /api/doctor/history/:patient_id`
-- `POST /api/doctor/history`
-- `PUT /api/doctor/history/:id`
-- `DELETE /api/doctor/history/:id`
 - `GET /api/family/patients/:viewer_id`
-- `GET /api/family/history/:patient_id`
 
 ### Chat
 - `POST /api/chat`
