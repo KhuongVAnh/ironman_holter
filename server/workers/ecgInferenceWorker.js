@@ -1,4 +1,6 @@
-﻿const IORedis = require("ioredis")
+require("../config/env")
+
+const IORedis = require("ioredis")
 const { Worker } = require("bullmq")
 const prisma = require("../prismaClient")
 const { NotificationType } = require("@prisma/client")
@@ -6,14 +8,42 @@ const { predictFromReading } = require("../services/ecgCnnService")
 const { persistNotification } = require("../services/notificationService")
 const { deriveHeartRateFromBeatCount } = require("../services/telemetrySignalService")
 
-const connection = new IORedis(process.env.REDIS_URL, {
+const redisUrl = String(process.env.REDIS_URL || "").trim()
+if (!redisUrl && process.env.NODE_ENV === "production") {
+    throw new Error("REDIS_URL is required for ECG inference worker in production")
+}
+
+const maskRedisUrl = (value) => {
+    if (!value) return "default-localhost"
+
+    try {
+        const url = new URL(value)
+        if (url.password) url.password = "***"
+        if (url.username) url.username = "***"
+        return url.toString()
+    } catch {
+        return "configured-unparseable"
+    }
+}
+
+const connection = new IORedis(redisUrl || undefined, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
 })
 
 const queueName = String(process.env.AI_QUEUE_NAME || "ecg-infer").trim() || "ecg-infer"
 
-const FALLBACK_AI_RESULT = "Binh thuong"
+console.log(JSON.stringify({
+    event: "AI_WORKER_CONFIG",
+    source: "ecgInferenceWorker",
+    timestamp: new Date().toISOString(),
+    redis_url: maskRedisUrl(redisUrl),
+    queue_name: queueName,
+    concurrency: parseInt(process.env.AI_CONCURRENCY || "5", 10),
+    node_env: process.env.NODE_ENV || null,
+}))
+
+const FALLBACK_AI_RESULT = "Bình thường"
 
 // Hàm để trích xuất tóm tắt kết quả AI từ đối tượng kết quả, với giá trị mặc định nếu không có
 const toAiResultSummary = (aiResult) => {
@@ -25,7 +55,7 @@ const toAiResultSummary = (aiResult) => {
 const getAlertTypeFromGroup = (group) => {
     const labelText = String(group?.label_text || "").trim()
     const labelCode = String(group?.label_code || "").trim()
-    return labelText || labelCode || "Bat thuong"
+    return labelText || labelCode || "Bất thường"
 }
 
 // Hàm để xây dựng thông điệp cảnh báo từ nhóm bất thường và nhịp tim
@@ -186,7 +216,10 @@ const worker = new Worker(
             throw error
         }
     },
-    { connection }
+    { 
+        connection, 
+        concurrency: parseInt(process.env.AI_CONCURRENCY || "5", 10) // chạy 5 job cùng lúc để tăng throughput, có thể điều chỉnh tùy theo tài nguyên hệ thống và khối lượng công việc dự kiến
+    }
 )
 
 worker.on("completed", (job) => {

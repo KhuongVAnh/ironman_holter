@@ -1,4 +1,4 @@
-﻿// Bộ hằng số chuẩn cho 5 lớp AI ECG và quy tắc bình thường/bất thường.
+// Bộ hằng số chuẩn cho 5 lớp AI ECG và quy tắc bình thường/bất thường.
 const ECG_AI_CLASS_CODES = ["F", "N", "Q", "S", "V"]
 const ECG_AI_SUMMARY_ORDER = ["F", "S", "V", "Q", "N"]
 const ECG_AI_NORMAL_CODES = new Set(["N", "Q"])

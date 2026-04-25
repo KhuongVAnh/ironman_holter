@@ -1,4 +1,4 @@
-﻿// Controller xử lý telemetry, dữ liệu ECG và lịch sử chỉ số tim mạch.
+// Controller xử lý telemetry, dữ liệu ECG và lịch sử chỉ số tim mạch.
 const prisma = require("../prismaClient")
 const { randomUUID } = require("crypto")
 const { AccessRole, AccessStatus } = require("@prisma/client")

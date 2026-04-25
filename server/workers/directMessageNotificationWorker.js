@@ -1,8 +1,10 @@
-﻿/*
+/*
  * Direct Message Notification Worker
  * Worker này xử lý việc tạo notification cho direct message ở background,
  * giúp request gửi tin nhắn trả nhanh mà vẫn giữ notification đầy đủ trong hệ thống.
  */
+require("../config/env")
+
 const IORedis = require("ioredis")
 const { Worker } = require("bullmq")
 const { NotificationType } = require("@prisma/client")
@@ -10,7 +12,12 @@ const prisma = require("../prismaClient")
 const { persistNotification } = require("../services/notificationService")
 const { queueName } = require("../services/directMessageNotificationQueueService")
 
-const connection = new IORedis(process.env.REDIS_URL, {
+const redisUrl = String(process.env.REDIS_URL || "").trim()
+if (!redisUrl && process.env.NODE_ENV === "production") {
+  throw new Error("REDIS_URL is required for direct message notification worker in production")
+}
+
+const connection = new IORedis(redisUrl || undefined, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 })

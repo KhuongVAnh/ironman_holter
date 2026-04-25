@@ -1,12 +1,19 @@
-﻿/*
+/*
  * Direct Message Notification Queue Service
  * Dịch vụ quản lý hàng đợi riêng cho notification của direct message.
  * Mục tiêu là tách đường đi tạo notification khỏi request gửi tin nhắn để cải thiện độ phản hồi của chat.
  */
+require("../config/env")
+
 const IORedis = require("ioredis")
 const { Queue, QueueEvents } = require("bullmq")
 
-const connection = new IORedis(process.env.REDIS_URL, {
+const redisUrl = String(process.env.REDIS_URL || "").trim()
+if (!redisUrl && process.env.NODE_ENV === "production") {
+  throw new Error("REDIS_URL is required for direct message notification queue in production")
+}
+
+const connection = new IORedis(redisUrl || undefined, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 })

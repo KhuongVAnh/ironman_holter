@@ -1,4 +1,4 @@
-﻿const mqtt = require("mqtt")
+const mqtt = require("mqtt")
 
 let mqttClient = null
 /*

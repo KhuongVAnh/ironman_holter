@@ -6,10 +6,17 @@
      - Cung cấp hàm enqueueEcgInference để thêm job vào hàng đợi với payload chứa readingId
      - Định nghĩa các sự kiện của hàng đợi để theo dõi trạng thái job
 */
+require("../config/env")
+
 const IORedis = require("ioredis")
 const { Queue, QueueEvents } = require("bullmq")
 
-const connection = new IORedis(process.env.REDIS_URL, {
+const redisUrl = String(process.env.REDIS_URL || "").trim()
+if (!redisUrl && process.env.NODE_ENV === "production") {
+    throw new Error("REDIS_URL is required for ECG inference queue in production")
+}
+
+const connection = new IORedis(redisUrl || undefined, {
     maxRetriesPerRequest: null, // vô hạn retry nếu kết nối bị mất
     enableReadyCheck: false, // tắt ready check để kết nối nhanh hơn, phù hợp với môi trường serverless
 })

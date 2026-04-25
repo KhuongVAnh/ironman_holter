@@ -1,4 +1,4 @@
-﻿/**
+/**
  * lắng nghe completed/failed
  * đọc DB nếu cần
  * emit reading-ai-updated, alert, notification:new

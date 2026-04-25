@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Bridge realtime cho queue notification của direct message.
  * Web process lắng nghe completion của queue nền rồi mới emit `notification:new` đến client,
  * nhờ vậy worker không cần biết gì về Socket.IO nhưng UI vẫn nhận được notification realtime.

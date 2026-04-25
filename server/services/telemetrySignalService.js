@@ -1,4 +1,4 @@
-﻿/*
+/*
 Tác dụng:
 - Chứa các helper chuẩn hóa tín hiệu ECG, heart rate và metadata realtime cho luồng ingest telemetry.
 

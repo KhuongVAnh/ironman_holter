@@ -226,7 +226,7 @@ const buildAiResultSummary = (segmentPredictions) => {
       .sort((a, b) => a.localeCompare(b)),
   ]
 
-  return orderedCodes.map((code) => `${getAiLabelFromCode(code)}:${counts.get(code)}`).join(", ")
+  return orderedCodes.map((code) => `${getAiLabelFromCode(code)}: ${counts.get(code)}`).join(", ")
 }
 
 // Chọn nhãn đại diện cho reading để giữ tương thích field cũ.

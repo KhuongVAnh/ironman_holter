@@ -1,4 +1,4 @@
-﻿// Controller xử lý chat AI và chat trực tiếp giữa bệnh nhân với bác sĩ.
+// Controller xử lý chat AI và chat trực tiếp giữa bệnh nhân với bác sĩ.
 const axios = require("axios")
 const { Prisma, AccessRole, AccessStatus, UserRole } = require("@prisma/client")
 const prisma = require("../prismaClient")
@@ -490,17 +490,17 @@ const getDirectMessages = async (req, res) => {
     const decodedCursor = parseDirectMessageCursor(cursor)
     const paginationWhere = decodedCursor
       ? {
-          conversation_key: pair.conversationKey,
-          OR: [
-            { created_at: { lt: decodedCursor.createdAt } },
-            {
-              AND: [
-                { created_at: decodedCursor.createdAt },
-                { message_id: { lt: decodedCursor.messageId } },
-              ],
-            },
-          ],
-        }
+        conversation_key: pair.conversationKey,
+        OR: [
+          { created_at: { lt: decodedCursor.createdAt } },
+          {
+            AND: [
+              { created_at: decodedCursor.createdAt },
+              { message_id: { lt: decodedCursor.messageId } },
+            ],
+          },
+        ],
+      }
       : { conversation_key: pair.conversationKey }
 
     // Truy vấn descending để lấy các message mới nhất hoặc cũ hơn cursor với cost ổn định, sau đó reverse lại cho UI.
@@ -514,7 +514,7 @@ const getDirectMessages = async (req, res) => {
     const pageRows = hasMore ? rows.slice(0, limit) : rows // 
     const messages = [...pageRows].reverse() // đảo ngược lại thứ tự cho UI hiển thị từ cũ đến mới
     // Tạo cursor cho bản ghi cuối cùng của page hiện tại để client có thể load tiếp nếu cần.
-    const nextCursor = hasMore && messages.length > 0 ? encodeDirectMessageCursor(messages[0]) : null 
+    const nextCursor = hasMore && messages.length > 0 ? encodeDirectMessageCursor(messages[0]) : null
 
     console.log(JSON.stringify({
       event: "DIRECT_CHAT_HISTORY_TIMING",
