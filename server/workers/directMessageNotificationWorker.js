@@ -11,6 +11,7 @@ const { NotificationType } = require("@prisma/client")
 const prisma = require("../prismaClient")
 const { persistNotification } = require("../services/notificationService")
 const { queueName } = require("../services/directMessageNotificationQueueService")
+const { attachRedisConnectionLogs } = require("../utils/redisLogUtils")
 
 const redisUrl = String(process.env.REDIS_URL || "").trim()
 if (!redisUrl && process.env.NODE_ENV === "production") {
@@ -20,6 +21,10 @@ if (!redisUrl && process.env.NODE_ENV === "production") {
 const connection = new IORedis(redisUrl || undefined, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
+})
+attachRedisConnectionLogs(connection, {
+  source: "directMessageNotificationWorker",
+  redisUrl,
 })
 
 // Hàm tìm notification direct message đã tồn tại để worker retry không tạo bản ghi trùng.
@@ -115,6 +120,36 @@ const directMessageNotificationWorker = new Worker(
   { connection }
 )
 
+directMessageNotificationWorker.waitUntilReady()
+  .then(() => {
+    console.log(JSON.stringify({
+      event: "DM_NOTIFY_WORKER_READY",
+      source: "dm-notify-worker",
+      queue_name: queueName,
+      timestamp: new Date().toISOString(),
+    }))
+  })
+  .catch((error) => {
+    console.error(JSON.stringify({
+      event: "DM_NOTIFY_WORKER_READY_FAILED",
+      source: "dm-notify-worker",
+      queue_name: queueName,
+      reason: error?.message || "UNKNOWN",
+      timestamp: new Date().toISOString(),
+    }))
+  })
+
+directMessageNotificationWorker.on("active", (job) => {
+  console.log(JSON.stringify({
+    event: "DM_NOTIFY_WORKER_ACTIVE",
+    source: "dm-notify-worker",
+    queue_name: queueName,
+    job_id: job.id,
+    message_id: job.data?.messageId || null,
+    timestamp: new Date().toISOString(),
+  }))
+})
+
 // Hàm log khi worker gặp lỗi mức process để dễ quan sát SLA của queue chat.
 directMessageNotificationWorker.on("failed", (job, error) => {
   console.error(JSON.stringify({
@@ -122,6 +157,26 @@ directMessageNotificationWorker.on("failed", (job, error) => {
     source: "dm-notify-worker",
     job_id: job?.id || null,
     message_id: job?.data?.messageId || null,
+    reason: error?.message || "UNKNOWN",
+    timestamp: new Date().toISOString(),
+  }))
+})
+
+directMessageNotificationWorker.on("stalled", (jobId) => {
+  console.warn(JSON.stringify({
+    event: "DM_NOTIFY_WORKER_STALLED",
+    source: "dm-notify-worker",
+    queue_name: queueName,
+    job_id: jobId || null,
+    timestamp: new Date().toISOString(),
+  }))
+})
+
+directMessageNotificationWorker.on("error", (error) => {
+  console.error(JSON.stringify({
+    event: "DM_NOTIFY_WORKER_ERROR",
+    source: "dm-notify-worker",
+    queue_name: queueName,
     reason: error?.message || "UNKNOWN",
     timestamp: new Date().toISOString(),
   }))

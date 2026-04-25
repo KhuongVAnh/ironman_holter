@@ -7,6 +7,7 @@ require("../config/env")
 
 const IORedis = require("ioredis")
 const { Queue, QueueEvents } = require("bullmq")
+const { attachRedisConnectionLogs, maskRedisUrl } = require("../utils/redisLogUtils")
 
 const redisUrl = String(process.env.REDIS_URL || "").trim()
 if (!redisUrl && process.env.NODE_ENV === "production") {
@@ -17,8 +18,21 @@ const connection = new IORedis(redisUrl || undefined, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 })
+attachRedisConnectionLogs(connection, {
+  source: "directMessageNotificationQueueService",
+  redisUrl,
+})
 
 const queueName = String(process.env.DM_NOTIFY_QUEUE_NAME || "dm-notify").trim() || "dm-notify"
+
+console.log(JSON.stringify({
+  event: "DM_NOTIFY_QUEUE_CONFIG",
+  source: "directMessageNotificationQueueService",
+  timestamp: new Date().toISOString(),
+  redis_url: maskRedisUrl(redisUrl),
+  queue_name: queueName,
+  node_env: process.env.NODE_ENV || null,
+}))
 
 const directMessageNotificationQueue = new Queue(queueName, {
   connection,
@@ -42,9 +56,23 @@ const enqueueDirectMessageNotification = async (payload) => {
     throw new Error("INVALID_DIRECT_MESSAGE_ID_FOR_QUEUE")
   }
 
-  return directMessageNotificationQueue.add("direct-message-notify", payload, {
+  const job = await directMessageNotificationQueue.add("direct-message-notify", payload, {
     jobId: `direct-message-${messageId}`,
   })
+  const counts = await directMessageNotificationQueue.getJobCounts("waiting", "active", "delayed", "failed", "completed", "paused")
+
+  console.log(JSON.stringify({
+    event: "DM_NOTIFY_QUEUE_ENQUEUE_OK",
+    source: "directMessageNotificationQueueService",
+    timestamp: new Date().toISOString(),
+    queue_name: queueName,
+    job_id: job.id,
+    job_name: job.name,
+    message_id: messageId,
+    counts,
+  }))
+
+  return job
 }
 
 module.exports = {

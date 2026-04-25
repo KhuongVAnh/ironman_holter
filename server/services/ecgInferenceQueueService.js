@@ -10,6 +10,7 @@ require("../config/env")
 
 const IORedis = require("ioredis")
 const { Queue, QueueEvents } = require("bullmq")
+const { attachRedisConnectionLogs, maskRedisUrl } = require("../utils/redisLogUtils")
 
 const redisUrl = String(process.env.REDIS_URL || "").trim()
 if (!redisUrl && process.env.NODE_ENV === "production") {
@@ -20,8 +21,21 @@ const connection = new IORedis(redisUrl || undefined, {
     maxRetriesPerRequest: null, // vô hạn retry nếu kết nối bị mất
     enableReadyCheck: false, // tắt ready check để kết nối nhanh hơn, phù hợp với môi trường serverless
 })
+attachRedisConnectionLogs(connection, {
+    source: "ecgInferenceQueueService",
+    redisUrl,
+})
 
 const queueName = String(process.env.AI_QUEUE_NAME || "ecg-infer").trim() || "ecg-infer"
+
+console.log(JSON.stringify({
+    event: "AI_QUEUE_CONFIG",
+    source: "ecgInferenceQueueService",
+    timestamp: new Date().toISOString(),
+    redis_url: maskRedisUrl(redisUrl),
+    queue_name: queueName,
+    node_env: process.env.NODE_ENV || null,
+}))
 
 const ecgInferenceQueue = new Queue(queueName, {
     connection,
@@ -46,9 +60,23 @@ const enqueueEcgInference = async (payload) => {
         throw new Error("INVALID_READING_ID_FOR_QUEUE")
     }
 
-    return ecgInferenceQueue.add("ecg-infer", payload, {
+    const job = await ecgInferenceQueue.add("ecg-infer", payload, {
         jobId: `reading-${readingId}`, // 1 reading chỉ nên có 1 job inference tương ứng trong hàng đợi, dùng readingId làm jobId để tránh trùng lặp
     })
+    const counts = await ecgInferenceQueue.getJobCounts("waiting", "active", "delayed", "failed", "completed", "paused")
+
+    console.log(JSON.stringify({
+        event: "AI_QUEUE_ENQUEUE_OK",
+        source: "ecgInferenceQueueService",
+        timestamp: new Date().toISOString(),
+        queue_name: queueName,
+        job_id: job.id,
+        job_name: job.name,
+        reading_id: readingId,
+        counts,
+    }))
+
+    return job
 }
 
 module.exports = {

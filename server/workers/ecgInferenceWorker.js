@@ -7,28 +7,20 @@ const { NotificationType } = require("@prisma/client")
 const { predictFromReading } = require("../services/ecgCnnService")
 const { persistNotification } = require("../services/notificationService")
 const { deriveHeartRateFromBeatCount } = require("../services/telemetrySignalService")
+const { attachRedisConnectionLogs, maskRedisUrl } = require("../utils/redisLogUtils")
 
 const redisUrl = String(process.env.REDIS_URL || "").trim()
 if (!redisUrl && process.env.NODE_ENV === "production") {
     throw new Error("REDIS_URL is required for ECG inference worker in production")
 }
 
-const maskRedisUrl = (value) => {
-    if (!value) return "default-localhost"
-
-    try {
-        const url = new URL(value)
-        if (url.password) url.password = "***"
-        if (url.username) url.username = "***"
-        return url.toString()
-    } catch {
-        return "configured-unparseable"
-    }
-}
-
 const connection = new IORedis(redisUrl || undefined, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
+})
+attachRedisConnectionLogs(connection, {
+    source: "ecgInferenceWorker",
+    redisUrl,
 })
 
 const queueName = String(process.env.AI_QUEUE_NAME || "ecg-infer").trim() || "ecg-infer"
@@ -102,7 +94,6 @@ const createGroupedAlerts = async (userId, readingId, heartRate, abnormalGroups)
     return prisma.$transaction(createOps)
 }
 
-console.log("ECG Inference Worker started!!!\n")
 // Worker để xử lý các job AI inference cho ECG readings,
 // bao gồm cập nhật kết quả AI cho reading, phát cảnh báo mới nếu có bất thường được phát hiện,
 // và gửi notification đến người dùng liên quan.
@@ -222,11 +213,44 @@ const worker = new Worker(
     }
 )
 
+worker.waitUntilReady()
+    .then(async () => {
+        console.log(JSON.stringify({
+            event: "AI_WORKER_READY",
+            source: "ecgInferenceWorker",
+            timestamp: new Date().toISOString(),
+            queue_name: queueName,
+        }))
+    })
+    .catch((error) => {
+        console.error(JSON.stringify({
+            event: "AI_WORKER_READY_FAILED",
+            source: "ecgInferenceWorker",
+            timestamp: new Date().toISOString(),
+            queue_name: queueName,
+            reason: error?.message || "UNKNOWN",
+        }))
+    })
+
+console.log("ECG Inference Worker booted; waiting for Redis readiness...\n")
+
+worker.on("active", (job) => {
+    console.log(JSON.stringify({
+        event: "AI_JOB_ACTIVE",
+        source: "ecgInferenceWorker",
+        timestamp: new Date().toISOString(),
+        queue_name: queueName,
+        job_id: job.id,
+        reading_id: job.data?.readingId || null,
+    }))
+})
+
 worker.on("completed", (job) => {
     console.log(JSON.stringify({
         event: "AI_JOB_COMPLETED",
         source: "ecgInferenceWorker",
         timestamp: new Date().toISOString(),
+        queue_name: queueName,
         job_id: job.id,
     }))
 })
@@ -236,7 +260,28 @@ worker.on("failed", (job, error) => {
         event: "AI_JOB_FAILED",
         source: "ecgInferenceWorker",
         timestamp: new Date().toISOString(),
+        queue_name: queueName,
         job_id: job?.id || null,
+        reason: error?.message || "UNKNOWN",
+    }))
+})
+
+worker.on("stalled", (jobId) => {
+    console.warn(JSON.stringify({
+        event: "AI_JOB_STALLED",
+        source: "ecgInferenceWorker",
+        timestamp: new Date().toISOString(),
+        queue_name: queueName,
+        job_id: jobId || null,
+    }))
+})
+
+worker.on("error", (error) => {
+    console.error(JSON.stringify({
+        event: "AI_WORKER_ERROR",
+        source: "ecgInferenceWorker",
+        timestamp: new Date().toISOString(),
+        queue_name: queueName,
         reason: error?.message || "UNKNOWN",
     }))
 })
