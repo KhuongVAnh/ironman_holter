@@ -14,59 +14,254 @@ const formatDate = (value) => {
   return Number.isNaN(date.getTime()) ? "Chưa có" : date.toLocaleDateString("vi-VN")
 }
 
-const renderJsonValue = (value) => {
-  if (!value || (Array.isArray(value) && value.length === 0)) {
-    return <p className="mb-0 text-ink-500">Chưa có</p>
+const toArray = (value) => {
+  if (!value) return []
+  return Array.isArray(value) ? value : [value]
+}
+
+const getTestImageUrl = (item) => {
+  if (!item || typeof item !== "object") return ""
+  return item.imageUrl || item.image_url || item.url || item.fileUrl || item.file_url || ""
+}
+
+const getTestComment = (item) => {
+  if (!item || typeof item !== "object") return ""
+  return item.doctorComment || item.doctor_comment || item.comment || item.note || item.result || ""
+}
+
+const SectionTitle = ({ icon, children }) => (
+  <h3 className="mb-3 flex items-center gap-2 text-[13px] font-bold uppercase tracking-[0.14em] text-ink-600">
+    {icon ? <i className={`${icon} text-sky-700`}></i> : null}
+    {children}
+  </h3>
+)
+
+const renderTests = (tests) => {
+  const items = toArray(tests)
+
+  if (!items.length) {
+    return <p className="mb-0 text-sm text-ink-500">Chưa có</p>
   }
 
-  if (Array.isArray(value)) {
-    return (
-      <div className="space-y-2">
-        {value.map((item, index) => (
-          <div key={`${index}-${JSON.stringify(item).slice(0, 20)}`} className="rounded-lg bg-white px-3 py-2">
-            {typeof item === "object" && item !== null ? (
-              <dl className="mb-0 grid gap-1 text-sm">
-                {Object.entries(item).map(([key, entryValue]) => (
-                  <div key={key} className="grid gap-1 sm:grid-cols-[130px_minmax(0,1fr)]">
-                    <dt className="font-semibold text-ink-600">{key}</dt>
-                    <dd className="mb-0 whitespace-pre-line text-ink-800">{displayText(entryValue)}</dd>
-                  </div>
-                ))}
-              </dl>
-            ) : (
-              <p className="mb-0 whitespace-pre-line">{displayText(item)}</p>
-            )}
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {items.map((item, index) => {
+        const isObject = typeof item === "object" && item !== null
+        const name = isObject ? displayText(item.name || item.ten, `Xét nghiệm ${index + 1}`) : displayText(item, `Xét nghiệm ${index + 1}`)
+        const imageUrl = getTestImageUrl(item)
+        const doctorComment = getTestComment(item)
+
+        return (
+          <article key={`${index}-${name}`} className="overflow-hidden rounded-xl border border-surface-line bg-white shadow-soft">
+            {imageUrl ? (
+              <a href={imageUrl} target="_blank" rel="noreferrer" className="block bg-surface-soft">
+                <img src={imageUrl} alt={name} className="aspect-video w-full object-cover" loading="lazy" />
+              </a>
+            ) : null}
+            <div className="space-y-3 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="mb-0 inline-flex min-w-0 items-center gap-2 font-bold text-ink-900">
+                  <i className="fas fa-file-medical text-emerald-600"></i>
+                  <span className="truncate">{name}</span>
+                </p>
+                {imageUrl ? (
+                  <a href={imageUrl} target="_blank" rel="noreferrer" className="btn btn-outline-success btn-sm">
+                    <i className="fas fa-image"></i>
+                    Mở ảnh
+                  </a>
+                ) : null}
+              </div>
+              <div className="rounded-lg bg-surface-soft px-3 py-2">
+                <p className="mb-1 text-xs font-bold uppercase tracking-[0.08em] text-ink-500">Nhận xét bác sĩ</p>
+                <p className="mb-0 whitespace-pre-line text-sm font-medium leading-6 text-ink-800">
+                  {displayText(doctorComment)}
+                </p>
+              </div>
+            </div>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
+const renderPrescription = (prescription) => {
+  const items = toArray(prescription)
+
+  if (!items.length) {
+    return <p className="mb-0 text-sm text-ink-500">Chưa có</p>
+  }
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => {
+        if (typeof item !== "object" || item === null) {
+          return (
+            <div key={`${index}-${item}`} className="rounded-xl border border-surface-line bg-surface-soft p-4">
+              <p className="mb-0 whitespace-pre-line font-medium text-ink-800">{displayText(item)}</p>
+            </div>
+          )
+        }
+
+        return (
+          <div key={`${index}-${item.name || "medicine"}`} className="rounded-xl border border-surface-line bg-surface-soft p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="mb-0 text-lg font-bold text-ink-900">{displayText(item.name || item.ten, `Thuốc ${index + 1}`)}</p>
+                  {item.dosage ? (
+                    <>
+                      <span className="hidden h-5 w-px bg-surface-line sm:inline-block"></span>
+                      <span className="font-semibold text-ink-500">{item.dosage}</span>
+                    </>
+                  ) : null}
+                </div>
+                <p className="mb-0 mt-2 whitespace-pre-line text-sm font-medium leading-6 text-ink-700">
+                  {displayText(item.instruction || item.description || item.note || item.times)}
+                </p>
+              </div>
+              {item.quantity || item.amount ? (
+                <span className="rounded-full border border-surface-line bg-white px-4 py-2 text-sm font-bold text-sky-700 shadow-soft">
+                  SL: {item.quantity || item.amount}
+                </span>
+              ) : null}
+            </div>
           </div>
-        ))}
+        )
+      })}
+    </div>
+  )
+}
+
+const MedicalVisitDetailModal = ({ visit, canManage, onClose, onEdit, onDelete }) => {
+  useEffect(() => {
+    if (!visit) return undefined
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose?.()
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    document.body.style.overflow = "hidden"
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      document.body.style.overflow = ""
+    }
+  }, [visit, onClose])
+
+  if (!visit) return null
+
+  const doctorName = displayText(visit.doctor_name || visit.doctor?.name, "Chưa có bác sĩ")
+
+  return (
+    <div className="modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+      <div className="modal-panel max-w-4xl rounded-[24px]" onClick={(event) => event.stopPropagation()}>
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-surface-line bg-white px-5 py-5 sm:px-6">
+          <div className="min-w-0">
+            <h2 className="text-2xl font-bold leading-tight text-ink-950">Chi tiết khám bệnh</h2>
+            <p className="mb-0 mt-2 flex flex-wrap items-center gap-2 text-sm font-medium text-ink-700">
+              <i className="far fa-calendar text-ink-600"></i>
+              <span>{formatDate(visit.visit_date)}</span>
+              <span className="text-ink-400">•</span>
+              <span className="truncate">{displayText(visit.facility, "Chưa có cơ sở y tế")}</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {canManage ? (
+              <>
+                <button
+                  type="button"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-sky-50 text-sky-700 transition hover:bg-sky-100"
+                  onClick={() => {
+                    onClose?.()
+                    onEdit?.(visit)
+                  }}
+                  aria-label="Sửa lần khám"
+                >
+                  <i className="fas fa-pen"></i>
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100"
+                  onClick={() => {
+                    onDelete?.(visit.visit_id)
+                    onClose?.()
+                  }}
+                  aria-label="Xóa lần khám"
+                >
+                  <i className="fas fa-trash-can"></i>
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-surface-muted text-ink-900 transition hover:bg-surface-line"
+              onClick={onClose}
+              aria-label="Đóng"
+            >
+              <i className="fas fa-xmark text-xl"></i>
+            </button>
+          </div>
+        </div>
+
+        <div className="modal-body space-y-6 px-5 py-6 sm:px-6">
+          <section>
+            <SectionTitle>Bác sĩ phụ trách</SectionTitle>
+            <p className="mb-0 text-xl font-bold text-ink-900">{doctorName}</p>
+          </section>
+
+          <section className="rounded-xl border border-surface-line bg-surface-soft p-5">
+            <p className="mb-2 text-[13px] font-bold uppercase tracking-[0.14em] text-sky-500">Chẩn đoán xác định</p>
+            <p className="mb-0 whitespace-pre-line text-base font-bold leading-7 text-ink-950">
+              {displayText(visit.diagnosis, "Chưa có chẩn đoán")}
+            </p>
+            {visit.diagnosis_details ? (
+              <p className="mb-0 mt-3 whitespace-pre-line text-sm font-medium leading-6 text-ink-700">
+                {visit.diagnosis_details}
+              </p>
+            ) : null}
+          </section>
+
+          <section>
+            <SectionTitle>Lý do khám / Triệu chứng ban đầu</SectionTitle>
+            <p className="mb-0 whitespace-pre-line text-sm font-medium leading-7 text-ink-800">{displayText(visit.reason)}</p>
+          </section>
+
+          <section>
+            <SectionTitle>Kết quả xét nghiệm / Chụp chiếu</SectionTitle>
+            {renderTests(visit.tests)}
+          </section>
+
+          <section className="border-t border-surface-line pt-6">
+            <SectionTitle icon="fas fa-prescription-bottle-medical">Đơn thuốc</SectionTitle>
+            {renderPrescription(visit.prescription)}
+          </section>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <section className="rounded-xl border border-surface-line bg-white p-4">
+              <SectionTitle>Lời khuyên</SectionTitle>
+              <p className="mb-0 whitespace-pre-line text-sm font-medium leading-6 text-ink-800">{displayText(visit.advice)}</p>
+            </section>
+            <section className="rounded-xl border border-surface-line bg-white p-4">
+              <SectionTitle>Lịch hẹn</SectionTitle>
+              <p className="mb-0 whitespace-pre-line text-sm font-medium leading-6 text-ink-800">{displayText(visit.appointment)}</p>
+            </section>
+          </div>
+        </div>
       </div>
-    )
-  }
-
-  if (typeof value === "object") {
-    return (
-      <dl className="mb-0 grid gap-2 text-sm">
-        {Object.entries(value).map(([key, entryValue]) => (
-          <div key={key} className="grid gap-1 sm:grid-cols-[130px_minmax(0,1fr)]">
-            <dt className="font-semibold text-ink-600">{key}</dt>
-            <dd className="mb-0 whitespace-pre-line text-ink-800">{displayText(entryValue)}</dd>
-          </div>
-        ))}
-      </dl>
-    )
-  }
-
-  return <p className="mb-0 whitespace-pre-line">{displayText(value)}</p>
+    </div>
+  )
 }
 
 const MedicalVisitList = ({ visits, onEdit, onDelete, role, onCreate }) => {
   const canManage = role === ROLE.BENH_NHAN || role === ROLE.BAC_SI
-  const [expandedVisitId, setExpandedVisitId] = useState(null)
+  const [selectedVisit, setSelectedVisit] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const totalPages = Math.max(1, Math.ceil((visits?.length || 0) / PAGE_SIZE))
 
   useEffect(() => {
     setCurrentPage(1)
-    setExpandedVisitId(null)
+    setSelectedVisit(null)
   }, [visits?.length])
 
   useEffect(() => {
@@ -110,104 +305,40 @@ const MedicalVisitList = ({ visits, onEdit, onDelete, role, onCreate }) => {
       <div className="relative space-y-8 pl-11">
         <div className="absolute bottom-0 left-[14px] top-2 w-px bg-sky-100"></div>
 
-        {visibleVisits.map((item) => {
-          const expanded = expandedVisitId === item.visit_id
-          return (
-            <article key={item.visit_id} className="relative">
-              <span className="absolute -left-[51px] top-2 z-10 h-6 w-6 rounded-full border-4 border-white bg-sky-500 shadow-soft"></span>
-              <div
-                role="button"
-                tabIndex={0}
-                className={`rounded-[28px] border border-sky-100 bg-white px-5 py-5 shadow-soft transition hover:border-sky-200 hover:shadow-medium sm:px-7 ${expanded ? "ring-2 ring-sky-100" : ""}`}
-                onClick={() => setExpandedVisitId((current) => current === item.visit_id ? null : item.visit_id)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault()
-                    setExpandedVisitId((current) => current === item.visit_id ? null : item.visit_id)
-                  }
-                }}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold tracking-wide text-sky-500">{formatDate(item.visit_date)}</p>
-                    <h3 className="mt-2 text-xl font-bold leading-7 text-ink-950">{displayText(item.diagnosis, "Chưa có chẩn đoán")}</h3>
-                  </div>
-                  <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-surface-line bg-surface-soft px-4 py-2 text-sm font-medium text-ink-700">
-                    <i className="far fa-hospital text-sky-700"></i>
-                    <span className="truncate">{displayText(item.facility, "Chưa có cơ sở y tế")}</span>
+        {visibleVisits.map((item) => (
+          <article key={item.visit_id} className="relative">
+            <span className="absolute -left-[51px] top-2 z-10 h-6 w-6 rounded-full border-4 border-white bg-sky-500 shadow-soft"></span>
+            <button
+              type="button"
+              className="w-full rounded-[28px] border border-sky-100 bg-white px-5 py-5 text-left shadow-soft transition hover:border-sky-200 hover:shadow-medium focus:outline-none focus:ring-2 focus:ring-sky-100 sm:px-7"
+              onClick={() => setSelectedVisit(item)}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold tracking-wide text-sky-500">{formatDate(item.visit_date)}</p>
+                  <h3 className="mt-2 text-xl font-bold leading-7 text-ink-950">{displayText(item.diagnosis, "Chưa có chẩn đoán")}</h3>
+                </div>
+                <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-surface-line bg-surface-soft px-4 py-2 text-sm font-medium text-ink-700">
+                  <i className="far fa-hospital text-sky-700"></i>
+                  <span className="truncate">{displayText(item.facility, "Chưa có cơ sở y tế")}</span>
+                </span>
+              </div>
+
+              <div className="mt-5 border-t border-surface-line pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="mb-0 inline-flex items-center gap-2 text-sm font-semibold text-ink-700">
+                    <i className="fas fa-stethoscope text-ink-600"></i>
+                    {displayText(item.doctor_name || item.doctor?.name, "Chưa có bác sĩ")}
+                  </p>
+                  <span className="inline-flex items-center gap-2 text-sm font-bold text-sky-600">
+                    Xem chi tiết
+                    <i className="fas fa-chevron-right text-xs"></i>
                   </span>
                 </div>
-
-                <div className="mt-5 border-t border-surface-line pt-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="mb-0 inline-flex items-center gap-2 text-sm font-semibold text-ink-700">
-                      <i className="fas fa-stethoscope text-ink-600"></i>
-                      {displayText(item.doctor_name || item.doctor?.name, "Chưa có bác sĩ")}
-                    </p>
-                    <span className="inline-flex items-center gap-2 text-sm font-bold text-sky-200">
-                      {expanded ? "Thu gọn" : "Xem chi tiết"}
-                      <i className={`fas fa-chevron-right text-xs transition ${expanded ? "rotate-90" : ""}`}></i>
-                    </span>
-                  </div>
-                </div>
-
-                {expanded ? (
-                  <div className="mt-5 grid gap-3 text-sm text-ink-700 md:grid-cols-2">
-                    <div className="rounded-xl bg-surface-soft p-4">
-                      <strong className="mb-2 block text-ink-900">Lý do khám</strong>
-                      <p className="mb-0 whitespace-pre-line">{displayText(item.reason)}</p>
-                    </div>
-                    <div className="rounded-xl bg-surface-soft p-4">
-                      <strong className="mb-2 block text-ink-900">Chi tiết chẩn đoán</strong>
-                      <p className="mb-0 whitespace-pre-line">{displayText(item.diagnosis_details)}</p>
-                    </div>
-                    <div className="rounded-xl bg-surface-soft p-4">
-                      <strong className="mb-2 block text-ink-900">Xét nghiệm</strong>
-                      {renderJsonValue(item.tests)}
-                    </div>
-                    <div className="rounded-xl bg-surface-soft p-4">
-                      <strong className="mb-2 block text-ink-900">Đơn thuốc tại lần khám</strong>
-                      {renderJsonValue(item.prescription)}
-                    </div>
-                    <div className="rounded-xl bg-surface-soft p-4">
-                      <strong className="mb-2 block text-ink-900">Lời khuyên</strong>
-                      <p className="mb-0 whitespace-pre-line">{displayText(item.advice)}</p>
-                    </div>
-                    <div className="rounded-xl bg-surface-soft p-4">
-                      <strong className="mb-2 block text-ink-900">Lịch hẹn</strong>
-                      <p className="mb-0 whitespace-pre-line">{displayText(item.appointment)}</p>
-                    </div>
-
-                    {canManage ? (
-                      <div className="flex flex-wrap justify-end gap-2 md:col-span-2">
-                        <button
-                          type="button"
-                          className="btn btn-outline-primary btn-sm"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            onEdit?.(item)
-                          }}
-                        >
-                          <i className="fas fa-pen me-1"></i>Sửa
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            onDelete?.(item.visit_id)
-                          }}
-                        >
-                          <i className="fas fa-trash me-1"></i>Xóa
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
               </div>
-            </article>
-          )
-        })}
+            </button>
+          </article>
+        ))}
       </div>
 
       {totalPages > 1 ? (
@@ -230,6 +361,14 @@ const MedicalVisitList = ({ visits, onEdit, onDelete, role, onCreate }) => {
           </div>
         </div>
       ) : null}
+
+      <MedicalVisitDetailModal
+        visit={selectedVisit}
+        canManage={canManage}
+        onClose={() => setSelectedVisit(null)}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     </div>
   )
 }

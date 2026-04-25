@@ -88,7 +88,7 @@ export const formatAiResultForDisplay = (text) => {
     const code = resolveAiCodeFromLabel(left)
     const label = code ? getAiLabelFromCode(code) : left
     if (!right) return label
-    return `${label}:${right}`
+    return `${label}: ${right}`
   })
 
   return mapped.join(", ")

@@ -377,7 +377,18 @@ async function main() {
         diagnosis: "Nhịp nhanh xoang nhẹ sau gắng sức",
         reason: "Hồi hộp sau khi leo cầu thang 4 tầng, tim đập nhanh khoảng 5 đến 7 phút rồi tự giảm.",
         diagnosis_details: "Triệu chứng mức độ nhẹ, xuất hiện không thường xuyên, chưa kèm đau ngực hoặc ngất.",
-        tests: [{ name: "ECG Holter", result: "AI ghi nhận nhịp nhanh xoang nhẹ, chưa thấy dấu hiệu nguy hiểm tức thời." }],
+        tests: [
+          {
+            name: "ECG Holter",
+            imageUrl: "https://placehold.co/1200x800/e0f2fe/0f172a?text=ECG+Holter+18-11-2025",
+            doctorComment: "AI ghi nhận nhịp nhanh xoang nhẹ, chưa thấy dấu hiệu nguy hiểm tức thời.",
+          },
+          {
+            name: "Chụp X-quang ngực",
+            imageUrl: "https://placehold.co/1200x800/f8fafc/334155?text=X-quang+nguc",
+            doctorComment: "Phim chụp chưa ghi nhận bất thường cấp tính ở tim phổi.",
+          },
+        ],
         prescription: [{ name: "Theo dõi không dùng thuốc", dosage: "Uống đủ nước, hạn chế cà phê, nghỉ ngơi sớm." }],
         advice: "Tiếp tục ghi lại thời điểm xuất hiện triệu chứng và nhịp tim đo được.",
         appointment: "Tái đánh giá nếu triệu chứng tăng hoặc kéo dài.",
@@ -392,7 +403,13 @@ async function main() {
         diagnosis: "Nhịp nhanh xoang thoáng qua",
         reason: "Đánh trống ngực sau khi uống 2 ly cà phê, cảm giác bồn chồn, khó tập trung vào cuối buổi chiều.",
         diagnosis_details: "Liên quan nhiều đến chất kích thích và thiếu ngủ, tần suất tăng nhẹ trong giai đoạn áp lực công việc cao.",
-        tests: [{ name: "ECG Holter", result: "AI tiếp tục ghi nhận cơn nhịp nhanh xoang thoáng qua." }],
+        tests: [
+          {
+            name: "ECG Holter",
+            imageUrl: "https://placehold.co/1200x800/fef3c7/92400e?text=ECG+Holter+06-12-2025",
+            doctorComment: "AI tiếp tục ghi nhận cơn nhịp nhanh xoang thoáng qua.",
+          },
+        ],
         prescription: [{ name: "Theo dõi không dùng thuốc", dosage: "Tạm ngưng cà phê sau 15 giờ, tăng thời gian nghỉ giữa giờ làm việc." }],
         advice: "Ngồi nghỉ, tập thở chậm khi có cơn; theo dõi thêm tại nhà.",
         appointment: "Khám chuyên khoa nếu xuất hiện đau ngực, khó thở hoặc choáng.",
@@ -407,7 +424,18 @@ async function main() {
         diagnosis: "Nhịp nhanh xoang từng cơn kèm ngoại tâm thu thất rải rác",
         reason: "Hồi hộp rõ hơn vào ban đêm, đôi lúc cảm giác hẫng nhịp, mất ngủ sau các hôm làm việc muộn.",
         diagnosis_details: "Nhiều khả năng liên quan căng thẳng kéo dài và sử dụng chất kích thích. Hiện chưa cần nhập viện hay dùng thuốc chống loạn nhịp.",
-        tests: [{ name: "Holter ECG", result: "Ngoại tâm thu thất rải rác, chưa ghi nhận cơn nguy hiểm kéo dài." }],
+        tests: [
+          {
+            name: "Holter ECG",
+            imageUrl: "https://placehold.co/1200x800/fee2e2/991b1b?text=Holter+ECG+15-01-2026",
+            doctorComment: "Ngoại tâm thu thất rải rác, chưa ghi nhận cơn nguy hiểm kéo dài.",
+          },
+          {
+            name: "Xét nghiệm điện giải đồ",
+            imageUrl: "https://placehold.co/1200x800/ecfdf5/065f46?text=Dien+giai+do",
+            doctorComment: "Kali và magie trong giới hạn tham chiếu, chưa gợi ý rối loạn điện giải.",
+          },
+        ],
         prescription: [{ name: "Magie B6", dosage: "Buổi tối trong 14 ngày" }],
         advice: "Hạn chế cà phê, nước tăng lực và rượu bia; tập thở chậm 2 lần mỗi ngày.",
         appointment: "Tái khám sau 2 tuần hoặc sớm hơn nếu xuất hiện đau ngực, khó thở, choáng váng.",
@@ -422,7 +450,13 @@ async function main() {
         diagnosis: "Cải thiện sau thay đổi lối sống",
         reason: "Thi thoảng còn hồi hộp ngắn dưới 2 phút khi thức khuya, nhìn chung đỡ hơn trước.",
         diagnosis_details: "AI không ghi nhận thêm bất thường nguy hiểm trong tuần theo dõi gần nhất.",
-        tests: [{ name: "Theo dõi ECG", result: "Không ghi nhận bất thường nguy hiểm mới." }],
+        tests: [
+          {
+            name: "Theo dõi ECG",
+            imageUrl: "https://placehold.co/1200x800/e0f2fe/075985?text=Theo+doi+ECG+02-02-2026",
+            doctorComment: "Không ghi nhận bất thường nguy hiểm mới.",
+          },
+        ],
         prescription: [{ name: "Magie B6", dosage: "Duy trì theo hướng dẫn" }],
         advice: "Ngủ trước 23 giờ, đi bộ nhẹ 20 phút mỗi ngày.",
         appointment: "Tiếp tục theo lịch tái khám đã hẹn.",
@@ -437,7 +471,13 @@ async function main() {
         diagnosis: "Ổn định sau thay đổi lối sống",
         reason: "Chỉ còn hồi hộp nhẹ khi căng thẳng kéo dài, không đau ngực, không khó thở, không giới hạn vận động thường ngày.",
         diagnosis_details: "Tái khám cho thấy đáp ứng tốt với thay đổi lối sống, Holter lần gần nhất ổn định hơn, chưa ghi nhận cơn nguy hiểm kéo dài.",
-        tests: [{ name: "Holter ECG", result: "Ổn định hơn, chưa ghi nhận cơn nguy hiểm kéo dài." }],
+        tests: [
+          {
+            name: "Holter ECG",
+            imageUrl: "https://placehold.co/1200x800/dcfce7/166534?text=Holter+ECG+22-03-2026",
+            doctorComment: "Ổn định hơn, chưa ghi nhận cơn nguy hiểm kéo dài.",
+          },
+        ],
         prescription: [{ name: "Magie B6", dosage: "Ngưng sau đợt hiện tại nếu không còn triệu chứng" }],
         advice: "Tiếp tục hạn chế chất kích thích và duy trì vận động vừa phải.",
         appointment: "Tái khám định kỳ sau 3 tháng hoặc sớm hơn nếu triệu chứng quay lại dày hơn.",

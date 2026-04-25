@@ -15,8 +15,9 @@ const jsonToLines = (value) => {
     return value.map((item) => {
       if (typeof item === "object" && item !== null) {
         const name = item.name || item.ten || ""
-        const result = item.result || item.dosage || item.note || ""
-        return [name, result].filter(Boolean).join(" | ")
+        const imageUrl = item.imageUrl || item.image_url || item.url || ""
+        const note = item.doctorComment || item.doctor_comment || item.result || item.note || item.dosage || ""
+        return [name, imageUrl, note].filter(Boolean).join(" | ")
       }
       return String(item)
     }).join("\n")
@@ -29,7 +30,19 @@ const jsonToLines = (value) => {
 
 const linesToJsonArray = (value) => {
   const lines = normalizeText(value).split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-  return lines.length ? lines : null
+  if (!lines.length) return null
+
+  return lines.map((line) => {
+    const parts = line.split("|").map((part) => part.trim())
+    if (parts.length < 2) return line
+
+    const [name, imageUrl = "", doctorComment = ""] = parts
+    return {
+      name,
+      imageUrl,
+      doctorComment,
+    }
+  })
 }
 
 const initialState = {
@@ -135,7 +148,7 @@ const MedicalVisitForm = ({ show, handleClose, onSubmit, initialData }) => {
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className="form-label">Xét nghiệm</label>
-            <textarea className="form-control min-h-[120px]" name="testsText" value={formData.testsText} onChange={handleChange} placeholder="Mỗi dòng một xét nghiệm hoặc kết quả" />
+            <textarea className="form-control min-h-[120px]" name="testsText" value={formData.testsText} onChange={handleChange} placeholder="Tên xét nghiệm | URL ảnh | Nhận xét bác sĩ" />
           </div>
           <div>
             <label className="form-label">Đơn thuốc tại lần khám</label>
