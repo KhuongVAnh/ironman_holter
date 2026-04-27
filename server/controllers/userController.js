@@ -2,6 +2,7 @@
 const bcrypt = require("bcrypt")
 const prisma = require("../prismaClient")
 const { toPrismaUserRole, fromPrismaUserRole } = require("../utils/enumMappings")
+const { isAdminUser, parseId } = require("../utils/accessControl")
 
 // Hàm xử lý lấy danh sách người dùng trong hệ thống.
 const getAllUsers = async (req, res) => {
@@ -36,7 +37,17 @@ const updateUser = async (req, res) => {
   try {
     const { id } = req.params
     const { name, email, role, is_active } = req.body
-    const userId = Number.parseInt(id, 10)
+    const userId = parseId(id)
+    const requesterId = parseId(req.user?.user_id)
+    const isAdmin = isAdminUser(req.user)
+
+    if (!Number.isInteger(userId)) {
+      return res.status(400).json({ message: "user_id không hợp lệ" })
+    }
+
+    if (!isAdmin && requesterId !== userId) {
+      return res.status(403).json({ message: "Bạn không có quyền cập nhật tài khoản này" })
+    }
 
     const user = await prisma.user.findUnique({ where: { user_id: userId } })
     if (!user) {
@@ -53,8 +64,8 @@ const updateUser = async (req, res) => {
     const data = {}
     if (name !== undefined) data.name = name
     if (email !== undefined) data.email = email
-    if (role !== undefined) data.role = toPrismaUserRole(role)
-    if (is_active !== undefined) data.is_active = is_active
+    if (isAdmin && role !== undefined) data.role = toPrismaUserRole(role)
+    if (isAdmin && is_active !== undefined) data.is_active = is_active
 
     const updatedUser = await prisma.user.update({
       where: { user_id: userId },

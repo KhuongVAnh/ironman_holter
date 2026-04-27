@@ -1,18 +1,25 @@
 // Controller xử lý tạo và truy vấn báo cáo y khoa.
 const prisma = require("../prismaClient")
+const { ensureCanViewPatient, parseId } = require("../utils/accessControl")
 
 // Hàm xử lý tạo báo cáo y khoa cho bệnh nhân.
 const createReport = async (req, res) => {
   try {
     const { user_id } = req.params
     const { summary } = req.body
-    const doctor_id = Number.parseInt(req.user.user_id, 10)
-    const userId = Number.parseInt(user_id, 10)
+    const doctor_id = parseId(req.user.user_id)
+    const userId = parseId(user_id)
+
+    if (!Number.isInteger(userId)) {
+      return res.status(400).json({ message: "user_id không hợp lệ" })
+    }
 
     const patient = await prisma.user.findUnique({ where: { user_id: userId } })
     if (!patient) {
       return res.status(404).json({ message: "Không tìm thấy bệnh nhân" })
     }
+
+    await ensureCanViewPatient(userId, req.user, "Bạn không có quyền tạo báo cáo cho bệnh nhân này")
 
     const report = await prisma.report.create({
       data: {
@@ -35,6 +42,9 @@ const createReport = async (req, res) => {
       report: reportWithDetails,
     })
   } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message })
+    }
     console.error("Lỗi tạo báo cáo:", error)
     res.status(500).json({ message: "Lỗi server nội bộ" })
   }
@@ -44,7 +54,13 @@ const createReport = async (req, res) => {
 const getUserReports = async (req, res) => {
   try {
     const { user_id } = req.params
-    const userId = Number.parseInt(user_id, 10)
+    const userId = parseId(user_id)
+
+    if (!Number.isInteger(userId)) {
+      return res.status(400).json({ message: "user_id không hợp lệ" })
+    }
+
+    await ensureCanViewPatient(userId, req.user, "Bạn không có quyền xem báo cáo này")
 
     const reports = await prisma.report.findMany({
       where: { user_id: userId },
@@ -56,6 +72,9 @@ const getUserReports = async (req, res) => {
 
     res.json({ reports })
   } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message })
+    }
     console.error("Lỗi lấy báo cáo:", error)
     res.status(500).json({ message: "Lỗi server nội bộ" })
   }

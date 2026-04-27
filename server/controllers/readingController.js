@@ -1,7 +1,6 @@
 // Controller xử lý telemetry, dữ liệu ECG và lịch sử chỉ số tim mạch.
 const prisma = require("../prismaClient")
 const { randomUUID } = require("crypto")
-const { AccessRole, AccessStatus } = require("@prisma/client")
 const {
   BASELINE_SAMPLE_RATE,
   generateFakeECGData,
@@ -9,6 +8,7 @@ const {
 const { publishTelemetryMessage } = require("../services/mqttTelemetryService")
 const { ingestTelemetry } = require("../services/telemetryIngestService")
 const { resolveAiCodeFromLabel, getAiLabelFromCode } = require("../strings/ecgAiStrings")
+const { ensureCanViewPatient, isAdminUser, parseId } = require("../utils/accessControl")
 
 // Hàm xử lý chuẩn hóa device_id về số nguyên hợp lệ.
 const toDeviceId = (value) => {
@@ -21,6 +21,27 @@ const toReadingId = (value) => {
   return Number.isInteger(parsed) ? parsed : null
 }
 
+const DEFAULT_LIMIT = 20
+const MAX_LIMIT = 100
+
+const parsePagingParams = (query = {}) => {
+  const requestedLimit = Number.parseInt(query.limit, 10)
+  const requestedOffset = Number.parseInt(query.offset, 10)
+
+  return {
+    limit: Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), MAX_LIMIT) : DEFAULT_LIMIT,
+    offset: Number.isInteger(requestedOffset) ? Math.max(requestedOffset, 0) : 0,
+  }
+}
+
+const buildPagedResult = ({ items, total, limit, offset, key = "readings" }) => ({
+  [key]: items,
+  total,
+  limit,
+  offset,
+  has_more: offset + items.length < total,
+})
+
 // Hàm xử lý tạo dữ liệu ECG giả lập để test.
 const createFakeReading = async (req, res) => {
   try {
@@ -32,6 +53,11 @@ const createFakeReading = async (req, res) => {
     const device = await prisma.device.findUnique({ where: { device_id: deviceId } })
     if (!device) {
       return res.status(404).json({ message: "Không tìm thấy thiết bị" })
+    }
+
+    const requesterId = parseId(req.user?.user_id)
+    if (!isAdminUser(req.user) && requesterId !== device.user_id) {
+      return res.status(403).json({ message: "Bạn không có quyền tạo dữ liệu mô phỏng cho thiết bị này" })
     }
 
     const messageId = randomUUID()
@@ -79,21 +105,41 @@ const createFakeReading = async (req, res) => {
 const getDeviceReadings = async (req, res) => {
   try {
     const deviceId = toDeviceId(req.params.device_id)
-    const { limit = 50, offset = 0 } = req.query
+    const { limit, offset } = parsePagingParams(req.query)
 
     if (deviceId === null) {
       return res.status(400).json({ message: "device_id khong hop le" })
     }
 
-    const readings = await prisma.reading.findMany({
+    const device = await prisma.device.findUnique({
       where: { device_id: deviceId },
-      orderBy: { timestamp: "desc" },
-      take: Number.parseInt(limit, 10),
-      skip: Number.parseInt(offset, 10),
+      select: { device_id: true, user_id: true, serial_number: true },
     })
 
-    res.json({ readings })
+    if (!device) {
+      return res.status(404).json({ message: "Không tìm thấy thiết bị" })
+    }
+
+    await ensureCanViewPatient(device.user_id, req.user, "Bạn không có quyền xem dữ liệu của thiết bị này")
+
+    const [total, readings] = await Promise.all([
+      prisma.reading.count({ where: { device_id: deviceId } }),
+      prisma.reading.findMany({
+        where: { device_id: deviceId },
+        orderBy: { timestamp: "desc" },
+        take: limit,
+        skip: offset,
+      }),
+    ])
+
+    res.json({
+      device,
+      ...buildPagedResult({ items: readings, total, limit, offset }),
+    })
   } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message })
+    }
     console.error("Lỗi lấy dữ liệu đọc:", error)
     res.status(500).json({ message: "Lỗi server nội bộ" })
   }
@@ -103,25 +149,41 @@ const getDeviceReadings = async (req, res) => {
 const getUserReadingHistory = async (req, res) => {
   try {
     const { user_id } = req.params
-    const { limit = 100, offset = 0 } = req.query
-    const userId = Number.parseInt(user_id, 10)
+    const { limit, offset } = parsePagingParams(req.query)
+    const userId = parseId(user_id)
 
-    const readings = await prisma.reading.findMany({
-      where: {
-        device: { user_id: userId },
-      },
-      include: {
-        device: {
-          select: { device_id: true, serial_number: true },
+    if (!Number.isInteger(userId)) {
+      return res.status(400).json({ message: "user_id khong hop le" })
+    }
+
+    await ensureCanViewPatient(userId, req.user, "Bạn không có quyền xem lịch sử đọc này")
+
+    const whereClause = {
+      device: { user_id: userId },
+    }
+
+    const [total, readings] = await Promise.all([
+      prisma.reading.count({ where: whereClause }),
+      prisma.reading.findMany({
+        where: whereClause,
+        include: {
+          device: {
+            select: { device_id: true, serial_number: true },
+          },
         },
-      },
-      orderBy: { timestamp: "desc" },
-      take: Number.parseInt(limit, 10),
-      skip: Number.parseInt(offset, 10),
-    })
+        orderBy: { timestamp: "desc" },
+        take: limit,
+        skip: offset,
+      }),
+    ])
 
-    res.json({ readings })
+    res.json({
+      ...buildPagedResult({ items: readings, total, limit, offset }),
+    })
   } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message })
+    }
     console.error("Lỗi lấy lịch sử đọc:", error)
     res.status(500).json({ message: "Lỗi server nội bộ" })
   }
@@ -154,7 +216,6 @@ const receiveTelemetry = async (req, res) => {
 const getReadingDetail = async (req, res) => {
   try {
     const readingId = toReadingId(req.params.reading_id)
-    const requesterId = Number.parseInt(req.user.user_id, 10)
 
     if (readingId === null) {
       return res.status(400).json({ message: "reading_id khong hop le" })
@@ -199,21 +260,7 @@ const getReadingDetail = async (req, res) => {
     }
 
     const patientId = reading.device.user_id
-    if (requesterId !== patientId) {
-      const viewerAccess = await prisma.accessPermission.findFirst({
-        where: {
-          patient_id: patientId,
-          viewer_id: requesterId,
-          role: { in: [AccessRole.BAC_SI, AccessRole.GIA_DINH] },
-          status: AccessStatus.accepted,
-        },
-        select: { permission_id: true },
-      })
-
-      if (!viewerAccess) {
-        return res.status(403).json({ message: "Bạn không có quyền xem reading này" })
-      }
-    }
+    await ensureCanViewPatient(patientId, req.user, "Bạn không có quyền xem reading này")
 
     const mappedAlerts = reading.alerts
       .map((alert) => {
@@ -255,6 +302,9 @@ const getReadingDetail = async (req, res) => {
       },
     })
   } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message })
+    }
     console.error("Lỗi lấy chi tiết reading:", error)
     return res.status(500).json({ message: "Lỗi server nội bộ" })
   }

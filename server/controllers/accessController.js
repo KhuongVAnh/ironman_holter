@@ -8,6 +8,7 @@ const {
   fromPrismaAccessRole,
   fromPrismaUserRole,
 } = require("../utils/enumMappings")
+const { isAdminUser, parseId } = require("../utils/accessControl")
 const { emitToUsers } = require("../services/socketEmitService")
 const { createNotification } = require("../services/notificationService")
 const { invalidateRecipientCacheByPatient } = require("../services/telemetryRuntimeCacheService")
@@ -16,8 +17,12 @@ const { invalidateRecipientCacheByPatient } = require("../services/telemetryRunt
 exports.shareAccess = async (req, res) => {
   try {
     const { viewer_email, role } = req.body
-    const user_id = Number.parseInt(req.user.user_id, 10)
+    const user_id = parseId(req.user.user_id)
     const io = req.app.get("io")
+
+    if (req.user?.role !== "bệnh nhân") {
+      return res.status(403).json({ error: "Chỉ bệnh nhân được chia sẻ quyền truy cập hồ sơ của mình" })
+    }
 
     const viewer = await prisma.user.findUnique({ where: { email: viewer_email } })
     if (!viewer) {
@@ -100,13 +105,17 @@ exports.respondAccess = async (req, res) => {
     const { id } = req.params
     const { action } = req.body
     const io = req.app.get("io")
-    const actorId = Number.parseInt(req.user.user_id, 10)
-    const permissionId = Number.parseInt(id, 10)
+    const actorId = parseId(req.user.user_id)
+    const permissionId = parseId(id)
 
     const permission = await prisma.accessPermission.findUnique({
       where: { permission_id: permissionId },
     })
     if (!permission) return res.status(404).json({ error: "Không tìm thấy yêu cầu này" })
+
+    if (!isAdminUser(req.user) && permission.viewer_id !== actorId) {
+      return res.status(403).json({ error: "Bạn không có quyền phản hồi yêu cầu này" })
+    }
 
     const status = action === "accept" ? "accepted" : "rejected"
 
@@ -158,7 +167,16 @@ exports.respondAccess = async (req, res) => {
 exports.listAccess = async (req, res) => {
   try {
     const { patient_id } = req.params
-    const patientId = Number.parseInt(patient_id, 10)
+    const patientId = parseId(patient_id)
+
+    if (!Number.isInteger(patientId)) {
+      return res.status(400).json({ error: "patient_id không hợp lệ" })
+    }
+
+    const requesterId = parseId(req.user?.user_id)
+    if (!isAdminUser(req.user) && requesterId !== patientId) {
+      return res.status(403).json({ error: "Bạn không có quyền xem danh sách quyền truy cập này" })
+    }
 
     const list = await prisma.accessPermission.findMany({
       where: { patient_id: patientId },
@@ -191,13 +209,22 @@ exports.revokeAccess = async (req, res) => {
   try {
     const { id } = req.params
     const io = req.app.get("io")
-    const actorId = Number.parseInt(req.user.user_id, 10)
-    const permissionId = Number.parseInt(id, 10)
+    const actorId = parseId(req.user.user_id)
+    const permissionId = parseId(id)
 
     const permission = await prisma.accessPermission.findUnique({
       where: { permission_id: permissionId },
     })
     if (!permission) return res.status(404).json({ error: "Không tìm thấy quyền này" })
+
+    const canRevoke =
+      isAdminUser(req.user) ||
+      permission.patient_id === actorId ||
+      permission.viewer_id === actorId
+
+    if (!canRevoke) {
+      return res.status(403).json({ error: "Bạn không có quyền thu hồi quyền truy cập này" })
+    }
 
     await prisma.accessPermission.delete({ where: { permission_id: permissionId } })
 
@@ -232,7 +259,7 @@ exports.revokeAccess = async (req, res) => {
 // Hàm xử lý lấy các yêu cầu truy cập đang chờ.
 exports.getPendingRequests = async (req, res) => {
   try {
-    const user_id = Number.parseInt(req.user.user_id, 10)
+    const user_id = parseId(req.user.user_id)
 
     const requests = await prisma.accessPermission.findMany({
       where: { viewer_id: user_id, status: "pending" },

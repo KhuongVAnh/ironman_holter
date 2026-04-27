@@ -7,13 +7,13 @@ const router = express.Router()
 // Lấy tất cả người dùng (chỉ admin)
 router.get("/", authenticateToken, authorizeRoles("admin"), getAllUsers)
 
+// Đổi mật khẩu
+router.put("/change-password", authenticateToken, changePassword)
+
 // Cập nhật người dùng
-router.put("/:id", authenticateToken, authorizeRoles("admin"), updateUser)
+router.put("/:id", authenticateToken, updateUser)
 
 // Xóa người dùng (chỉ admin)
 router.delete("/:id", authenticateToken, authorizeRoles("admin"), deleteUser)
-
-// Đổi mật khẩu
-router.put("/change-password", authenticateToken, changePassword)
 
 module.exports = router
