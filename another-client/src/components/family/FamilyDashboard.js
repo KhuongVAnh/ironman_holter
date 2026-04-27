@@ -25,7 +25,7 @@ const FamilyDashboard = () => {
         return
       }
 
-      const alertPromises = members.map((member) => alertsApi.getByUser(member.user_id, false))
+      const alertPromises = members.map((member) => alertsApi.getByUser(member.user_id, { resolved: false, limit: 5, offset: 0 }))
       const alertResponses = await Promise.all(alertPromises)
 
       const allAlerts = alertResponses.flatMap((res, index) => {

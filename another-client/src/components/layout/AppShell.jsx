@@ -76,7 +76,8 @@ const AppShell = ({ children }) => {
 
   const navItems = useMemo(() => NAV_ITEMS[user?.role] || [], [user?.role])
   const pageTitle = useMemo(() => getPageMeta(location.pathname), [location.pathname])
-  const asideWidthClass = sidebarCollapsed ? "lg:w-[72px]" : "lg:w-[236px]"
+  const asideWidthClass = sidebarCollapsed ? "lg:w-[88px]" : "lg:w-[288px]"
+  const contentOffsetClass = sidebarCollapsed ? "lg:w-[112px]" : "lg:w-[312px]"
 
   useEffect(() => {
     setDrawerOpen(false)
@@ -124,26 +125,26 @@ const AppShell = ({ children }) => {
   const userInitial = user?.name?.charAt(0)?.toUpperCase() || "U"
 
   const sidebar = (
-    <div className="flex h-full flex-col overflow-y-auto bg-ink-900 text-white">
+    <div className="flex h-full flex-col overflow-y-auto bg-white/80 text-holter-primary shadow-holterAmbient backdrop-blur-[20px]">
       <button
         type="button"
-        className={`flex min-h-16 items-center border-b border-white/10 px-3 text-left transition hover:bg-white/5 ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
+        className={`flex min-h-[88px] items-center px-5 text-left transition hover:bg-white/35 ${sidebarCollapsed ? "justify-center" : "gap-4"}`}
         onClick={() => navigate(getDashboardPath(user?.role))}
         title="Về trang tổng quan"
       >
-        <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-brand-600 text-white shadow-float">
+        <span className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-full bg-holter-primaryContainer text-holter-mintSoft shadow-holterAmbient">
           <i className="fas fa-heart-pulse text-sm"></i>
         </span>
         {!sidebarCollapsed ? (
           <span className="min-w-0">
-            <span className="block truncate font-display text-sm font-bold leading-5 text-white">Ironman Holter</span>
-            <span className="block truncate text-[11px] font-medium leading-4 text-white/55">{ROLE_LABELS[user?.role] || "Người dùng"}</span>
+            <span className="block truncate font-display text-lg font-bold leading-6 text-holter-primaryContainer">Ironman Holter</span>
+            <span className="block truncate text-[10px] font-semibold uppercase leading-4 tracking-[0.18em] text-holter-primaryContainer/60">{ROLE_LABELS[user?.role] || "Người dùng"}</span>
           </span>
         ) : null}
       </button>
 
-      <nav className="flex-1 space-y-1 px-2 py-3">
-        {!sidebarCollapsed ? <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">Menu</p> : null}
+      <nav className="flex-1 space-y-2 px-4 py-3">
+        {!sidebarCollapsed ? <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-holter-primaryContainer/45">Menu</p> : null}
         {navItems.map((item) => {
           const active =
             location.pathname === item.to ||
@@ -154,17 +155,16 @@ const AppShell = ({ children }) => {
               key={item.to}
               to={item.to}
               title={item.label}
-              className={`group relative flex min-h-11 items-center overflow-hidden rounded-lg text-sm transition duration-200 ${
+              className={`group relative flex min-h-12 items-center overflow-hidden rounded-xl text-[11px] font-bold uppercase tracking-[0.12em] transition duration-300 ${
                 active
-                  ? "bg-white font-bold text-ink-900 shadow-medium"
-                  : "font-semibold text-white/68 hover:bg-white/10 hover:text-white"
-              } ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-2.5"}`}
+                  ? "bg-holter-mintSoft text-holter-primaryContainer shadow-soft"
+                  : "text-holter-primaryContainer/70 hover:translate-x-1 hover:bg-white/45 hover:text-holter-primaryContainer"
+              } ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-3"}`}
             >
-              {active ? <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-brand-600"></span> : null}
-              <span className={`flex min-w-0 items-center ${sidebarCollapsed ? "justify-center" : "gap-2.5"}`}>
+              <span className={`flex min-w-0 items-center ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
                 <span
-                  className={`inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg transition ${
-                    active ? "bg-brand-50 text-brand-700" : "bg-white/10 text-white/75 group-hover:text-white"
+                  className={`inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl transition ${
+                    active ? "bg-white/70 text-holter-primaryContainer" : "bg-white/25 text-holter-primaryContainer/70 group-hover:bg-white/55 group-hover:text-holter-primaryContainer"
                   }`}
                 >
                   <i className={`${item.icon} text-sm`}></i>
@@ -172,7 +172,7 @@ const AppShell = ({ children }) => {
                 {!sidebarCollapsed ? <span className="truncate">{item.label}</span> : null}
               </span>
               {item.pending && pendingCount > 0 ? (
-                <span className={`${sidebarCollapsed ? "absolute right-1 top-1 min-w-4 text-[9px]" : "min-w-5 text-[10px]"} rounded-full bg-brand-600 px-1.5 py-0.5 text-center font-bold text-white ring-2 ring-ink-900`}>
+                <span className={`${sidebarCollapsed ? "absolute right-1.5 top-1.5 min-w-4 text-[9px]" : "min-w-5 text-[10px]"} rounded-full bg-holter-primaryContainer px-1.5 py-0.5 text-center font-bold text-white ring-2 ring-white/70`}>
                   {pendingCount}
                 </span>
               ) : null}
@@ -181,15 +181,15 @@ const AppShell = ({ children }) => {
         })}
       </nav>
 
-      <div className="border-t border-white/10 p-2">
-        <div className={`flex items-center rounded-lg bg-white/10 p-2 ${sidebarCollapsed ? "justify-center" : "gap-2.5"}`}>
-          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-white text-xs font-bold text-ink-900">
+      <div className="mt-auto border-t border-holter-outline/40 p-4">
+        <div className={`flex items-center rounded-2xl border border-white/35 bg-white/35 p-2.5 shadow-soft ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
+          <div className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-holter-primaryContainer text-xs font-bold text-white">
             {userInitial}
           </div>
           {!sidebarCollapsed ? (
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold leading-5 text-white">{user?.name || "Người dùng"}</p>
-              <p className="truncate text-[11px] leading-4 text-white/50">{user?.email || "-"}</p>
+              <p className="truncate text-sm font-bold leading-5 text-holter-primaryContainer">{user?.name || "Người dùng"}</p>
+              <p className="truncate text-[11px] leading-4 text-holter-muted">{user?.email || "-"}</p>
             </div>
           ) : null}
         </div>
@@ -198,37 +198,37 @@ const AppShell = ({ children }) => {
   )
 
   return (
-    <div className="min-h-screen bg-surface text-ink-900">
+    <div className="min-h-screen bg-holter-surface text-ink-900">
       <div className="lg:flex">
         <div
-          className={`fixed inset-0 z-40 bg-ink-900/50 transition lg:hidden ${drawerOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+          className={`fixed inset-0 z-40 bg-holter-primary/55 transition lg:hidden ${drawerOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
           onClick={() => setDrawerOpen(false)}
         ></div>
 
-        <aside className={`fixed inset-y-0 left-0 z-50 w-[276px] max-w-[88vw] border-r border-ink-900 bg-ink-900 shadow-panel transition-all duration-200 lg:translate-x-0 ${asideWidthClass} ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <aside className={`fixed inset-y-0 left-0 z-50 w-[276px] max-w-[88vw] overflow-hidden border-r border-holter-outline/50 bg-white/90 shadow-panel transition-all duration-300 lg:bottom-6 lg:left-6 lg:top-6 lg:h-auto lg:translate-x-0 lg:rounded-[24px] lg:border lg:border-white/45 lg:bg-white/30 lg:shadow-holterAmbient lg:backdrop-blur-[20px] ${asideWidthClass} ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}>
           {sidebar}
         </aside>
 
-        <div className={`hidden transition-all duration-200 lg:block lg:flex-none ${asideWidthClass}`}></div>
+        <div className={`hidden transition-all duration-300 lg:block lg:flex-none ${contentOffsetClass}`}></div>
 
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 border-b border-surface-line bg-surface/95 backdrop-blur-xl">
-            <div className="flex min-h-[60px] items-center justify-between gap-3 px-3 sm:px-4 lg:px-5">
+          <header className="sticky top-0 z-30 px-3 pt-3 sm:px-4 lg:px-6 lg:pt-6">
+            <div className="flex min-h-[68px] items-center justify-between gap-3 rounded-[24px] border border-white/45 bg-white/55 px-4 shadow-holterAmbient backdrop-blur-[20px] sm:px-5">
               <div className="flex min-w-0 items-center gap-2">
-                <button type="button" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-surface-line bg-white text-ink-800 shadow-soft hover:bg-surface-soft lg:hidden" onClick={() => setDrawerOpen(true)} title="Mở menu">
+                <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/45 bg-white/65 text-holter-primaryContainer shadow-soft hover:bg-holter-mintSoft lg:hidden" onClick={() => setDrawerOpen(true)} title="Mở menu">
                   <i className="fas fa-bars"></i>
                 </button>
                 <button
                   type="button"
-                  className="hidden h-9 w-9 items-center justify-center rounded-lg border border-surface-line bg-white text-ink-800 shadow-soft hover:bg-surface-soft lg:inline-flex"
+                  className="hidden h-10 w-10 items-center justify-center rounded-xl border border-white/45 bg-white/65 text-holter-primaryContainer shadow-soft hover:bg-holter-mintSoft lg:inline-flex"
                   onClick={() => setSidebarCollapsed((prev) => !prev)}
                   title={sidebarCollapsed ? "Mở rộng thanh bên" : "Thu gọn thanh bên"}
                 >
                   <i className={`fas ${sidebarCollapsed ? "fa-arrow-right" : "fa-arrow-left"} text-sm`}></i>
                 </button>
                 <div className="min-w-0">
-                  <h2 className="truncate font-display text-lg font-bold leading-6 text-ink-900">{pageTitle}</h2>
-                  <p className="hidden truncate text-xs font-medium text-ink-500 sm:block">{ROLE_LABELS[user?.role] || "Người dùng"}</p>
+                  <h2 className="truncate font-display text-xl font-bold leading-7 text-holter-primaryContainer">{pageTitle}</h2>
+                  <p className="hidden truncate text-xs font-semibold uppercase tracking-[0.12em] text-holter-muted sm:block">{ROLE_LABELS[user?.role] || "Người dùng"}</p>
                 </div>
               </div>
 
@@ -236,41 +236,41 @@ const AppShell = ({ children }) => {
                 <NotificationBell />
                 <button
                   type="button"
-                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-surface-line bg-white px-1.5 text-ink-900 shadow-soft hover:bg-surface-soft sm:pr-2.5"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/45 bg-white/65 px-1.5 text-holter-primaryContainer shadow-soft hover:bg-holter-mintSoft sm:pr-3"
                   onClick={() => setMenuOpen((prev) => !prev)}
                   aria-expanded={menuOpen}
                 >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink-900 text-[11px] font-bold text-white">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-holter-primaryContainer text-[11px] font-bold text-white">
                     {userInitial}
                   </span>
                   <span className="hidden min-w-0 text-left sm:block">
                     <span className="block max-w-[150px] truncate text-xs font-bold leading-4">{user?.name || "Người dùng"}</span>
                   </span>
-                  <i className={`fas fa-chevron-down text-xs text-ink-600 transition ${menuOpen ? "rotate-180" : ""}`}></i>
+                  <i className={`fas fa-chevron-down text-xs text-holter-muted transition ${menuOpen ? "rotate-180" : ""}`}></i>
                 </button>
               </div>
             </div>
 
             {menuOpen ? (
-              <div className="absolute right-3 top-[64px] w-64 rounded-xl border border-surface-line bg-white p-2 shadow-panel sm:right-4 lg:right-5">
-                <div className="mb-1 flex items-center gap-3 rounded-lg bg-surface-soft p-2.5">
-                  <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-ink-900 text-xs font-bold text-white">{userInitial}</span>
+              <div className="absolute right-3 top-[84px] w-64 rounded-2xl border border-white/60 bg-white/95 p-2 shadow-panel backdrop-blur-xl sm:right-4 lg:right-6 lg:top-[96px]">
+                <div className="mb-1 flex items-center gap-3 rounded-xl bg-holter-mintSoft/60 p-2.5">
+                  <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-holter-primaryContainer text-xs font-bold text-white">{userInitial}</span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-ink-900">{user?.name || "Người dùng"}</span>
-                    <span className="block truncate text-xs text-ink-600">{user?.email || "-"}</span>
+                    <span className="block truncate text-sm font-bold text-holter-primaryContainer">{user?.name || "Người dùng"}</span>
+                    <span className="block truncate text-xs text-holter-muted">{user?.email || "-"}</span>
                   </span>
                 </div>
                 {user?.role === ROLE.BENH_NHAN ? (
-                  <button type="button" className="flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold text-ink-800 hover:bg-surface-soft" onClick={() => navigate("/profile")}>
+                  <button type="button" className="flex min-h-10 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-holter-primaryContainer hover:bg-holter-mintSoft/70" onClick={() => navigate("/profile")}>
                     <i className="fas fa-user w-4 text-center"></i>
                     Hồ sơ
                   </button>
                 ) : null}
-                <button type="button" className="flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold text-ink-800 hover:bg-surface-soft" onClick={() => navigate("/notifications")}>
+                <button type="button" className="flex min-h-10 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-holter-primaryContainer hover:bg-holter-mintSoft/70" onClick={() => navigate("/notifications")}>
                   <i className="fas fa-bell w-4 text-center"></i>
                   Thông báo
                 </button>
-                <button type="button" className="flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50" onClick={handleLogout}>
+                <button type="button" className="flex min-h-10 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50" onClick={handleLogout}>
                   <i className="fas fa-right-from-bracket w-4 text-center"></i>
                   Đăng xuất
                 </button>
@@ -278,7 +278,7 @@ const AppShell = ({ children }) => {
             ) : null}
           </header>
 
-          <main className="flex-1 px-3 py-4 sm:px-4 lg:px-5 lg:py-5">{children}</main>
+          <main className="flex-1 px-3 py-4 sm:px-4 lg:px-6 lg:py-5">{children}</main>
         </div>
       </div>
     </div>

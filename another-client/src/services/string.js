@@ -17,7 +17,7 @@ export const ROLE_BADGE = {
   [ROLE.BENH_NHAN]: { class: 'bg-blue-600 text-white', icon: 'fas fa-user' },
   [ROLE.BAC_SI]: { class: 'bg-emerald-600 text-white', icon: 'fas fa-user-doctor' },
   [ROLE.GIA_DINH]: { class: 'bg-cyan-600 text-white', icon: 'fas fa-users' },
-  [ROLE.ADMIN]: { class: 'bg-rose-600 text-white', icon: 'fas fa-user-shield' },
+  [ROLE.ADMIN]: { class: 'bg-brand-600 text-white', icon: 'fas fa-user-shield' },
 }
 
 export const ACCESS_ROLE = {

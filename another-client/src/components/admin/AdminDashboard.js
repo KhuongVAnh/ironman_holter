@@ -40,8 +40,9 @@ const AdminDashboard = () => {
       const devices = devicesResponse.data.devices
 
       // Fetch alerts
-      const alertsResponse = await alertsApi.getAll()
-      const alerts = alertsResponse.data.alerts
+      const alertsResponse = await alertsApi.getAll({ limit: 100, offset: 0 })
+      const alerts = alertsResponse.data.alerts || []
+      const alertSummary = alertsResponse.data.summary || { total: alerts.length, unresolved: 0, resolved: 0 }
 
       // Fetch reports
       const reportsResponse = await reportsApi.getDoctorReports()
@@ -53,7 +54,7 @@ const AdminDashboard = () => {
         totalPatients: users.filter((u) => u.role === ROLE.BENH_NHAN).length,
         totalDoctors: users.filter((u) => u.role === ROLE.BAC_SI).length,
         totalDevices: devices.length,
-        activeAlerts: alerts.filter((a) => !a.resolved).length,
+        activeAlerts: alertSummary.unresolved,
         totalReports: reports.length,
       })
 
@@ -64,7 +65,7 @@ const AdminDashboard = () => {
       setSystemHealth({
         database: users.length > 0 ? "healthy" : "warning",
         server: "healthy",
-        alerts: alerts.filter((a) => !a.resolved).length > 10 ? "warning" : "healthy",
+        alerts: alertSummary.unresolved > 10 ? "warning" : "healthy",
       })
     } catch (error) {
       console.error("Lỗi tải dashboard admin:", error)

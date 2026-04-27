@@ -6,7 +6,7 @@ import { ROLE, ROLE_BADGE } from "../../services/string"
 import ModalFrame from "../shared/ModalFrame"
 
 const PatientProfile = () => {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [formData, setFormData] = useState({ name: user?.name || "", email: user?.email || "" })
@@ -23,6 +23,7 @@ const PatientProfile = () => {
     setLoading(true)
     try {
       await usersApi.update(user.user_id, formData)
+      await refreshUser?.()
       toast.success("Cập nhật thông tin thành công")
       setIsEditing(false)
     } catch (error) {

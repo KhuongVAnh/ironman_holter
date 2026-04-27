@@ -17,7 +17,7 @@
   --category-500: #a855f7;
   --secondary: #ec4899;
   --neutral: #6b7280;
-  --surface: #f9fafb;
+  --surface: #f8fafb;
   --surface-panel: #ffffff;
   --surface-soft: #f9fafb;
   --surface-muted: #f3f4f6;
@@ -31,6 +31,9 @@
   --success: #059669;
   --warning: #d97706;
   --info: #2563eb;
+  --glass-panel: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.54);
+  --ambient-shadow: 0 20px 40px rgba(225, 29, 72, 0.08);
 }
 
 @layer base {
@@ -45,7 +48,9 @@
   body {
     margin: 0;
     min-height: 100vh;
-    background: var(--surface);
+    background:
+      linear-gradient(135deg, rgba(248, 250, 251, 0.96), rgba(255, 255, 255, 0.92) 42%, rgba(242, 244, 245, 0.96)),
+      var(--surface);
     color: var(--ink-900);
     font-family: "Be Vietnam Pro", Arial, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -82,7 +87,7 @@
 
 @layer components {
   .app-card {
-    @apply rounded-xl border border-surface-line bg-white shadow-soft transition duration-200 hover:shadow-medium;
+    @apply rounded-2xl border border-surface-line bg-white/85 shadow-soft backdrop-blur transition duration-200 hover:shadow-medium;
   }
 
   .app-card-header {
@@ -106,14 +111,14 @@
   }
 
   .page-hero {
-    @apply relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-surface-line bg-white px-5 py-5 shadow-soft sm:flex-row sm:items-center sm:justify-between;
+    @apply relative flex flex-col gap-4 overflow-hidden rounded-[24px] border border-white/60 bg-white/75 px-5 py-5 shadow-holterAmbient backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between;
     background:
-      linear-gradient(135deg, rgba(255, 241, 242, 0.9), rgba(255, 255, 255, 0.86) 45%, rgba(239, 246, 255, 0.72)),
-      radial-gradient(circle at 92% 14%, rgba(225, 29, 72, 0.16), transparent 30%);
+      linear-gradient(135deg, rgba(255, 241, 242, 0.92), rgba(255, 255, 255, 0.9) 48%, rgba(252, 231, 243, 0.66)),
+      linear-gradient(90deg, rgba(225, 29, 72, 0.06), transparent 42%);
   }
 
   .page-hero-icon {
-    @apply flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-2xl text-brand-700 shadow-soft ring-1 ring-brand-100;
+    @apply flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-600 text-2xl text-white shadow-holterAmbient ring-1 ring-white/70;
   }
 
   .page-hero-title {
@@ -129,7 +134,7 @@
   }
 
   .priority-metric {
-    @apply relative overflow-hidden rounded-2xl border bg-white p-5 shadow-soft transition duration-200 hover:-translate-y-0.5 hover:shadow-medium;
+    @apply relative overflow-hidden rounded-2xl border bg-white/85 p-5 shadow-soft backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:shadow-holterAmbient;
   }
 
   .priority-metric::before {
@@ -138,7 +143,7 @@
   }
 
   .priority-metric.metric-brand {
-    @apply border-brand-100;
+    @apply border-brand-100 bg-brand-50/55;
   }
 
   .priority-metric.metric-brand::before {
@@ -194,11 +199,11 @@
   }
 
   .clinical-panel {
-    @apply overflow-hidden rounded-2xl border border-surface-line bg-white shadow-soft;
+    @apply overflow-hidden rounded-[24px] border border-white/60 bg-white/[0.82] shadow-holterAmbient backdrop-blur-xl;
   }
 
   .clinical-panel-header {
-    @apply flex flex-wrap items-start justify-between gap-3 border-b border-surface-line px-5 py-4;
+    @apply flex flex-wrap items-start justify-between gap-3 border-b border-surface-line/80 bg-white/35 px-5 py-4;
   }
 
   .clinical-panel-body {
@@ -230,7 +235,7 @@
   }
 
   .status-chip.is-neutral {
-    @apply border-surface-line bg-surface-soft text-ink-700;
+    @apply border-surface-line bg-white/70 text-ink-700;
   }
 
   .risk-chip {
@@ -254,7 +259,7 @@
   }
 
   .highlight-band.brand {
-    @apply border-brand-100 bg-brand-50 text-brand-900;
+    @apply border-brand-100 bg-brand-50 text-brand-700;
   }
 
   .highlight-band.danger {
@@ -274,7 +279,7 @@
   }
 
   .info-list {
-    @apply divide-y divide-surface-line rounded-xl border border-surface-line bg-white;
+    @apply divide-y divide-surface-line rounded-xl border border-surface-line bg-white/85;
   }
 
   .info-list-row {
@@ -290,7 +295,7 @@
   }
 
   .info-row {
-    @apply flex items-start justify-between gap-4 rounded-xl border border-surface-line bg-white px-4 py-3 shadow-soft;
+    @apply flex items-start justify-between gap-4 rounded-xl border border-surface-line bg-white/85 px-4 py-3 shadow-soft;
   }
 
   .info-row-label {
@@ -306,15 +311,15 @@
   }
 
   .action-card {
-    @apply flex min-h-20 items-center gap-3 rounded-2xl border border-surface-line bg-white px-4 py-4 text-left shadow-soft transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-medium;
+    @apply flex min-h-20 items-center gap-3 rounded-2xl border border-white/60 bg-white/[0.82] px-4 py-4 text-left shadow-soft backdrop-blur transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-brand-50/70 hover:shadow-holterAmbient;
   }
 
   .empty-state-rich {
-    @apply rounded-2xl border border-dashed border-surface-line bg-surface-soft px-6 py-10 text-center;
+    @apply rounded-2xl border border-dashed border-surface-line bg-white/55 px-6 py-10 text-center backdrop-blur;
   }
 
   .empty-state-rich-icon {
-    @apply mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl text-brand-600 shadow-soft;
+    @apply mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-2xl text-brand-700 shadow-soft;
   }
 
   .empty-state-rich-icon.info {
@@ -362,7 +367,7 @@
   }
 
   .btn-light {
-    @apply bg-surface-muted text-ink-900 hover:bg-brand-50;
+    @apply bg-white/75 text-ink-900 hover:bg-brand-50;
   }
 
   .btn-link {
@@ -407,7 +412,7 @@
 
   .form-control,
   .form-select {
-    @apply min-h-11 w-full rounded-xl border border-surface-line bg-white px-4 py-3 text-sm font-medium text-ink-900 outline-none transition duration-200;
+    @apply min-h-11 w-full rounded-xl border border-surface-line bg-white/90 px-4 py-3 text-sm font-medium text-ink-900 outline-none transition duration-200;
     box-shadow: none;
   }
 
@@ -431,12 +436,12 @@
 
   .card,
   .app-card {
-    @apply rounded-2xl border border-surface-line bg-white shadow-soft transition duration-200 hover:shadow-medium;
+    @apply rounded-2xl border border-white/60 bg-white/85 shadow-soft backdrop-blur transition duration-200 hover:shadow-medium;
   }
 
   .card-header,
   .app-card-header {
-    @apply flex flex-wrap items-center justify-between gap-3 border-b border-surface-line bg-white px-5 py-4;
+    @apply flex flex-wrap items-center justify-between gap-3 border-b border-surface-line bg-white/45 px-5 py-4;
   }
 
   .card-body,
@@ -662,11 +667,11 @@
   }
 
   .modal-overlay {
-    @apply fixed inset-0 z-[100] flex items-center justify-center bg-ink-900/50 p-4;
+    @apply fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm;
   }
 
   .modal-panel {
-    @apply flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-surface-line bg-white shadow-panel;
+    @apply flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-white/60 bg-white/[0.92] shadow-panel backdrop-blur-xl;
   }
 
   .modal-header {
@@ -738,7 +743,7 @@
   left: -5rem;
   width: 20rem;
   height: 20rem;
-  background: radial-gradient(circle at 35% 35%, rgba(251, 113, 133, 0.95), rgba(190, 18, 60, 0.7));
+  background: radial-gradient(circle at 35% 35%, rgba(251, 113, 133, 0.9), rgba(190, 18, 60, 0.64));
 }
 
 .auth-orb-cyan {
@@ -755,7 +760,7 @@
   top: -4rem;
   width: 19rem;
   height: 19rem;
-  background: radial-gradient(circle at 35% 35%, rgba(244, 114, 182, 0.72), rgba(219, 39, 119, 0.36));
+  background: radial-gradient(circle at 35% 35%, rgba(244, 114, 182, 0.62), rgba(219, 39, 119, 0.32));
 }
 
 .auth-orb-lime {
@@ -776,11 +781,11 @@
 }
 
 .auth-panel-primary {
-  background: linear-gradient(150deg, #e11d48 0%, #db2777 46%, #7c3aed 100%);
+  background: linear-gradient(150deg, #881337 0%, #be123c 48%, #db2777 100%);
 }
 
 .auth-panel-secondary {
-  background: linear-gradient(150deg, #db2777 0%, #fb7185 40%, #0ea5e9 100%);
+  background: linear-gradient(150deg, #be123c 0%, #e11d48 46%, #ec4899 100%);
 }
 
 .ecg-uplot .u-wrap {
@@ -800,6 +805,11 @@
 
 .ecg-uplot .u-legend {
   display: none;
+}
+
+.ecg-paper-surface {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 241, 242, 0.58));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68), 0 20px 40px rgba(225, 29, 72, 0.08);
 }
 
 .container,
@@ -1262,7 +1272,7 @@ h6 {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  box-shadow: 0 8px 20px rgba(225, 29, 72, 0.18);
+  box-shadow: 0 8px 20px rgba(225, 29, 72, 0.16);
 }
 
 .visually-hidden {
@@ -1379,7 +1389,7 @@ h6 {
   padding: 1rem 1.1rem;
   border-radius: 12px;
   border: 1px solid var(--surface-line);
-  background: linear-gradient(180deg, #fff, #fff7f8);
+  background: linear-gradient(180deg, #fff, rgba(255, 241, 242, 0.7));
   box-shadow: 0 10px 20px -18px rgba(15, 23, 42, 0.4);
 }
 
@@ -1564,9 +1574,9 @@ h6 {
 }
 
 .alert-status-chip.is-pending {
-  color: #be123c;
-  background: #fff1f2;
-  border-color: #fecdd3;
+  color: var(--brand-700);
+  background: var(--brand-50);
+  border-color: var(--brand-100);
 }
 
 .alert-status-chip.is-resolved {

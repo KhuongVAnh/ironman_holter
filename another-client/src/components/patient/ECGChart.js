@@ -185,6 +185,9 @@ const ECGChart = ({
             values: (_chart, values) => values.map((value) => `${Number(value).toFixed(1)}s`),
           },
           {
+            label: "(Volt)",
+            labelSize: 28,
+            labelFont: "12px Be Vietnam Pro, Arial, sans-serif",
             stroke: "#64748b",
             grid: { stroke: "rgba(225, 29, 72, 0.10)", width: 1 },
             ticks: { stroke: "rgba(225, 29, 72, 0.16)", width: 1 },

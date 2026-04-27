@@ -1,9 +1,12 @@
-﻿import { useEffect, useState } from "react"
+﻿import { useEffect, useMemo, useState } from "react"
 import { toast } from "react-toastify"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../contexts/AuthContext"
 import { accessApi, familyApi } from "../../services/api"
 import { ACCESS_STATUS } from "../../services/string"
+import PaginationBar from "../shared/PaginationBar"
+
+const ITEMS_PER_PAGE = 6
 
 const badgeTone = (status) => status === ACCESS_STATUS.PENDING ? "status-chip is-warning" : "status-chip is-success"
 
@@ -13,12 +16,19 @@ const FamilyAccessRequests = () => {
   const [patients, setPatients] = useState([])
   const [respondingId, setRespondingId] = useState(null)
   const navigate = useNavigate()
+  const [requestPage, setRequestPage] = useState(1)
+  const [patientPage, setPatientPage] = useState(1)
 
   useEffect(() => {
     if (!user) return
     fetchPendingRequests()
     fetchAcceptedPatients()
   }, [user])
+
+  useEffect(() => {
+    setRequestPage(1)
+    setPatientPage(1)
+  }, [requests.length, patients.length])
 
   const fetchPendingRequests = async () => {
     try {
@@ -32,13 +42,18 @@ const FamilyAccessRequests = () => {
 
   const fetchAcceptedPatients = async () => {
     try {
-      const response = await familyApi.getPatients(user.user_id)
+      const response = await familyApi.getPatients(user.user_id, { limit: 1000, offset: 0 })
       setPatients(response.data || [])
     } catch (error) {
       console.error("Lỗi tải danh sách bệnh nhân:", error)
       toast.error("Không thể tải danh sách bệnh nhân")
     }
   }
+
+  const requestTotalPages = Math.max(1, Math.ceil(requests.length / ITEMS_PER_PAGE))
+  const patientTotalPages = Math.max(1, Math.ceil(patients.length / ITEMS_PER_PAGE))
+  const visibleRequests = useMemo(() => requests.slice((requestPage - 1) * ITEMS_PER_PAGE, requestPage * ITEMS_PER_PAGE), [requests, requestPage])
+  const visiblePatients = useMemo(() => patients.slice((patientPage - 1) * ITEMS_PER_PAGE, patientPage * ITEMS_PER_PAGE), [patients, patientPage])
 
   const handleRespond = async (permissionId, action) => {
     try {
@@ -74,11 +89,11 @@ const FamilyAccessRequests = () => {
       <section className="clinical-panel overflow-hidden">
         <div className="clinical-panel-header"><div><h2 className="section-title">Yêu cầu đang chờ</h2><p className="section-subtitle">Chấp nhận để bắt đầu theo dõi dữ liệu sức khỏe.</p></div></div>
         <div className="clinical-panel-body">
-          {requests.length === 0 ? (
+          {visibleRequests.length === 0 ? (
             <div className="empty-state-rich"><div className="empty-state-rich-icon success"><i className="fas fa-inbox"></i></div><h3>Không có yêu cầu đang chờ</h3><p>Các yêu cầu mới sẽ xuất hiện tại đây.</p></div>
           ) : (
             <div className="space-y-3">
-              {requests.map((item) => (
+              {visibleRequests.map((item) => (
                 <article key={item.permission_id} className="flex flex-col gap-4 rounded-2xl border border-surface-line bg-white p-4 shadow-soft md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
                     <p className="font-bold text-ink-900">{item.patient?.name || "Bệnh nhân"}</p>
@@ -90,17 +105,24 @@ const FamilyAccessRequests = () => {
               ))}
             </div>
           )}
+          <PaginationBar
+            currentPage={requestPage}
+            totalPages={requestTotalPages}
+            onPageChange={setRequestPage}
+            summaryText={requests.length > 0 ? `Hiển thị ${Math.min((requestPage - 1) * ITEMS_PER_PAGE + 1, requests.length)}-${Math.min(requestPage * ITEMS_PER_PAGE, requests.length)} / ${requests.length} yêu cầu` : "Chưa có yêu cầu để phân trang"}
+            className="mt-4"
+          />
         </div>
       </section>
 
       <section className="clinical-panel overflow-hidden">
         <div className="clinical-panel-header"><div><h2 className="section-title">Người thân đang theo dõi</h2><p className="section-subtitle">Mở nhanh hồ sơ y tế của từng bệnh nhân đã được cấp quyền.</p></div></div>
         <div className="clinical-panel-body">
-          {patients.length === 0 ? (
+          {visiblePatients.length === 0 ? (
             <div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-heart-pulse"></i></div><h3>Chưa có bệnh nhân nào</h3><p>Khi bệnh nhân cấp quyền, danh sách sẽ xuất hiện tại đây.</p></div>
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
-              {patients.map((item) => (
+              {visiblePatients.map((item) => (
                 <article key={item.patient?.user_id} className="rounded-2xl border border-surface-line bg-white p-4 shadow-soft">
                   <p className="font-bold text-ink-900">{item.patient?.name}</p>
                   <p className="text-sm text-ink-500">{item.patient?.email}</p>
@@ -109,6 +131,13 @@ const FamilyAccessRequests = () => {
               ))}
             </div>
           )}
+          <PaginationBar
+            currentPage={patientPage}
+            totalPages={patientTotalPages}
+            onPageChange={setPatientPage}
+            summaryText={patients.length > 0 ? `Hiển thị ${Math.min((patientPage - 1) * ITEMS_PER_PAGE + 1, patients.length)}-${Math.min(patientPage * ITEMS_PER_PAGE, patients.length)} / ${patients.length} bệnh nhân` : "Chưa có bệnh nhân để phân trang"}
+            className="mt-4"
+          />
         </div>
       </section>
     </div>

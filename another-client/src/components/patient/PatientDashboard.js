@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "react-toastify"
-import io from "socket.io-client"
-import { API_BASE_URL } from "../../config/env"
 import { useAuth } from "../../contexts/AuthContext"
 import { accessApi, alertsApi, devicesApi, readingsApi } from "../../services/api"
 import { ACCESS_ROLE, ACCESS_STATUS } from "../../services/string"
@@ -86,22 +84,13 @@ const PatientDashboard = () => {
     buffer: [],
   })
   const [recentAlerts, setRecentAlerts] = useState([])
-  const [isConnected, setIsConnected] = useState(false)
   const [analysisState, setAnalysisState] = useState(null)
   const [supervisingDoctors, setSupervisingDoctors] = useState([])
   const [selectedReadingId, setSelectedReadingId] = useState(null)
 
   useEffect(() => {
-    const socketClient = io(API_BASE_URL)
-
-    socketClient.on("connect", () => {
-      setIsConnected(true)
-      socketClient.emit("join-user-room", user.user_id)
-    })
-
-    socketClient.on("disconnect", () => setIsConnected(false))
-
-    const handleEcgData = (data) => {
+    const handleEcgData = (event) => {
+      const data = event.detail || {}
       const nextRealtimeHeartRate = Number.parseInt(data.heart_rate, 10)
       if (Number.isInteger(nextRealtimeHeartRate) && nextRealtimeHeartRate > 0) {
         setCurrentHeartRate(nextRealtimeHeartRate)
@@ -155,7 +144,7 @@ const PatientDashboard = () => {
       }
     }
 
-    socketClient.on("reading-update", handleEcgData)
+    window.addEventListener("appReadingUpdate", handleEcgData)
     window.addEventListener("readingAiUpdated", handleReadingAiUpdated)
     window.addEventListener("appAlert", handleAlert)
 
@@ -163,10 +152,9 @@ const PatientDashboard = () => {
     fetchSupervisingDoctors()
 
     return () => {
-      socketClient.off("reading-update", handleEcgData)
+      window.removeEventListener("appReadingUpdate", handleEcgData)
       window.removeEventListener("readingAiUpdated", handleReadingAiUpdated)
       window.removeEventListener("appAlert", handleAlert)
-      socketClient.close()
     }
   }, [user.user_id])
 
@@ -179,9 +167,9 @@ const PatientDashboard = () => {
 
   const fetchRecentAlerts = async () => {
     try {
-      const response = await alertsApi.getByUser(user.user_id, false)
+      const response = await alertsApi.getByUser(user.user_id, { resolved: false, limit: 4, offset: 0 })
       const nextAlerts = Array.isArray(response.data?.alerts) ? response.data.alerts : []
-      setRecentAlerts(nextAlerts.slice(0, 4))
+      setRecentAlerts(nextAlerts)
     } catch (error) {
       console.error("Lỗi lấy cảnh báo:", error)
     }
@@ -233,7 +221,7 @@ const PatientDashboard = () => {
       return {
         title: "Phân tích thất bại",
         detail: analysisState.error || "Không thể hoàn tất suy luận AI cho bản ghi này.",
-        tone: "bg-rose-50 text-rose-700",
+        tone: "bg-red-50 text-red-700",
       }
     }
 

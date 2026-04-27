@@ -7,6 +7,9 @@ import ECGChart from "../patient/ECGChart"
 import RecentAlertsPanel, { getAlertTypeLabel } from "../shared/RecentAlertsPanel"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
 import { alertsApi, familyApi, readingsApi } from "../../services/api"
+import PaginationBar from "../shared/PaginationBar"
+
+const READINGS_PER_PAGE = 6
 
 const FamilyMonitoring = () => {
   const { user } = useAuth()
@@ -16,6 +19,7 @@ const FamilyMonitoring = () => {
   const [memberAlerts, setMemberAlerts] = useState([])
   const [selectedReadingId, setSelectedReadingId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [readingPage, setReadingPage] = useState(1)
 
   useEffect(() => {
     if (user?.user_id) {
@@ -27,6 +31,10 @@ const FamilyMonitoring = () => {
     if (selectedMember?.user_id) {
       fetchMemberData(selectedMember.user_id)
     }
+  }, [selectedMember?.user_id])
+
+  useEffect(() => {
+    setReadingPage(1)
   }, [selectedMember?.user_id])
 
   const fetchFamilyMembers = async () => {
@@ -65,8 +73,8 @@ const FamilyMonitoring = () => {
       const readingsResponse = await readingsApi.getHistory(memberId, { limit: 10 })
       setMemberReadings(readingsResponse.data?.readings || [])
 
-      const alertsResponse = await alertsApi.getByUser(memberId)
-      setMemberAlerts((alertsResponse.data?.alerts || []).slice(0, 5))
+      const alertsResponse = await alertsApi.getByUser(memberId, { limit: 5, offset: 0 })
+      setMemberAlerts(alertsResponse.data?.alerts || [])
       setSelectedReadingId(null)
     } catch (error) {
       console.error("Lỗi lấy dữ liệu người thân:", error)
@@ -77,6 +85,12 @@ const FamilyMonitoring = () => {
   const formatDate = (dateString) => new Date(dateString).toLocaleString("vi-VN")
 
   const latestReading = memberReadings.length > 0 ? memberReadings[0] : null
+  const readingTotalPages = Math.max(1, Math.ceil(memberReadings.length / READINGS_PER_PAGE))
+  const visibleReadings = memberReadings.slice((readingPage - 1) * READINGS_PER_PAGE, readingPage * READINGS_PER_PAGE)
+
+  useEffect(() => {
+    if (readingPage > readingTotalPages) setReadingPage(readingTotalPages)
+  }, [readingPage, readingTotalPages])
 
   if (loading) {
     return (
@@ -163,27 +177,27 @@ const FamilyMonitoring = () => {
             </div>
           </section>
 
-            <RecentAlertsPanel
-              title="Cảnh báo gần nhất"
-              subtitle="Theo dõi cảnh báo mới nhất của người thân được chọn."
-              alerts={memberAlerts}
-              onAlertClick={(alert) => setSelectedReadingId(alert?.reading_id || null)}
-              isAlertDisabled={(alert) => !alert?.reading_id}
-              getAlertTitle={(alert) => getAlertTypeLabel(alert.alert_type)}
-              getAlertStatus={(alert) =>
-                alert?.resolved
-                  ? { label: "Đã xử lý", variant: "is-resolved" }
-                  : { label: "Mới", variant: "is-pending" }
-              }
-              getAlertTimestamp={(alert) => alert.timestamp}
-              formatDate={formatDate}
-              getAlertHint={(_alert, disabled, canClick) => {
-                if (disabled) return "Không có bản ghi"
-                if (canClick) return "Nhấn để xem đồ thị ECG"
-                return ""
-              }}
-              emptyText="Không có cảnh báo"
-            />
+          <RecentAlertsPanel
+            title="Cảnh báo gần nhất"
+            subtitle="Theo dõi cảnh báo mới nhất của người thân được chọn."
+            alerts={memberAlerts}
+            onAlertClick={(alert) => setSelectedReadingId(alert?.reading_id || null)}
+            isAlertDisabled={(alert) => !alert?.reading_id}
+            getAlertTitle={(alert) => getAlertTypeLabel(alert.alert_type)}
+            getAlertStatus={(alert) =>
+              alert?.resolved
+                ? { label: "Đã xử lý", variant: "is-resolved" }
+                : { label: "Mới", variant: "is-pending" }
+            }
+            getAlertTimestamp={(alert) => alert.timestamp}
+            formatDate={formatDate}
+            getAlertHint={(_alert, disabled, canClick) => {
+              if (disabled) return "Không có bản ghi"
+              if (canClick) return "Nhấn để xem đồ thị ECG"
+              return ""
+            }}
+            emptyText="Không có cảnh báo"
+          />
         </aside>
 
         <main className="min-w-0">
@@ -247,9 +261,9 @@ const FamilyMonitoring = () => {
                   </div>
                 </div>
                 <div className="clinical-panel-body">
-                  {memberReadings.length > 0 ? (
+                  {visibleReadings.length > 0 ? (
                     <div className="space-y-3">
-                      {memberReadings.map((reading) => (
+                      {visibleReadings.map((reading) => (
                         <button key={reading.reading_id} type="button" className="grid w-full gap-3 rounded-2xl border border-surface-line bg-white p-4 text-left shadow-soft transition hover:border-brand-200 hover:shadow-medium md:grid-cols-[minmax(0,1fr)_140px_130px]" onClick={() => setSelectedReadingId(reading.reading_id)}>
                           <div>
                             <p className="font-semibold text-ink-900">{formatDate(reading.timestamp)}</p>
@@ -274,6 +288,13 @@ const FamilyMonitoring = () => {
                       <p>Lịch sử đo của người thân sẽ xuất hiện tại đây.</p>
                     </div>
                   )}
+                  <PaginationBar
+                    currentPage={readingPage}
+                    totalPages={readingTotalPages}
+                    onPageChange={setReadingPage}
+                    summaryText={memberReadings.length > 0 ? `Hiển thị ${Math.min((readingPage - 1) * READINGS_PER_PAGE + 1, memberReadings.length)}-${Math.min(readingPage * READINGS_PER_PAGE, memberReadings.length)} / ${memberReadings.length} bản ghi` : "Chưa có bản ghi để phân trang"}
+                    className="mt-4"
+                  />
                 </div>
               </section>
             </div>

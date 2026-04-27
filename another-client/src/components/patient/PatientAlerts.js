@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from "react"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { alertsApi } from "../../services/api"
+import PaginationBar from "../shared/PaginationBar"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
+
+const ITEMS_PER_PAGE = 6
 
 const SEVERITY_META = {
   high: {
@@ -75,28 +78,41 @@ const formatDate = (dateString) => new Date(dateString).toLocaleString("vi-VN")
 const PatientAlerts = () => {
   const { user } = useAuth()
   const [alerts, setAlerts] = useState([])
+  const [pageTotal, setPageTotal] = useState(0)
+  const [alertSummary, setAlertSummary] = useState({ total: 0, unresolved: 0, resolved: 0 })
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
   const [selectedReadingId, setSelectedReadingId] = useState(null)
 
   useEffect(() => {
     if (!user?.user_id) {
       setAlerts([])
+      setPageTotal(0)
+      setAlertSummary({ total: 0, unresolved: 0, resolved: 0 })
       setLoading(false)
       return
     }
     fetchAlerts()
-  }, [filter, user?.user_id])
+  }, [filter, currentPage, user?.user_id])
 
-  const fetchAlerts = async () => {
+  const fetchAlerts = async (page = currentPage) => {
     try {
       setLoading(true)
       const resolved = filter === "all" ? undefined : filter === "resolved"
-      const response = await alertsApi.getByUser(user.user_id, resolved)
+      const response = await alertsApi.getByUser(user.user_id, {
+        ...(resolved !== undefined ? { resolved } : {}),
+        limit: ITEMS_PER_PAGE,
+        offset: (page - 1) * ITEMS_PER_PAGE,
+      })
       setAlerts(Array.isArray(response.data?.alerts) ? response.data.alerts : [])
+      setPageTotal(Number.isInteger(response.data?.total) ? response.data.total : 0)
+      setAlertSummary(response.data?.summary || { total: 0, unresolved: 0, resolved: 0 })
     } catch (error) {
       console.error("Lỗi lấy cảnh báo:", error)
       setAlerts([])
+      setPageTotal(0)
+      setAlertSummary({ total: 0, unresolved: 0, resolved: 0 })
       toast.error("Không thể tải danh sách cảnh báo")
     } finally {
       setLoading(false)
@@ -105,19 +121,24 @@ const PatientAlerts = () => {
 
   const groupedAlerts = useMemo(() => {
     const groups = { high: [], medium: [], low: [] }
+
     for (const alert of alerts) {
       groups[getAlertSeverity(alert.alert_type)].push(alert)
     }
     return groups
   }, [alerts])
 
+  const totalPages = Math.max(1, Math.ceil((pageTotal || 0) / ITEMS_PER_PAGE))
+  const visibleStart = pageTotal === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1
+  const visibleEnd = pageTotal === 0 ? 0 : Math.min(currentPage * ITEMS_PER_PAGE, pageTotal)
+
   const summary = useMemo(
     () => ({
-      total: alerts.length,
-      unresolved: alerts.filter((item) => !item.resolved).length,
-      resolved: alerts.filter((item) => item.resolved).length,
+      total: alertSummary.total,
+      unresolved: alertSummary.unresolved,
+      resolved: alertSummary.resolved,
     }),
-    [alerts]
+    [alertSummary]
   )
 
   const handleViewReading = (alert) => {
@@ -126,6 +147,17 @@ const PatientAlerts = () => {
       return
     }
     setSelectedReadingId(alert.reading_id)
+  }
+
+  const handleResolveAlert = async (alertId) => {
+    try {
+      await alertsApi.resolve(alertId)
+      toast.success("Đã đánh dấu cảnh báo đã xử lý")
+      await fetchAlerts()
+    } catch (error) {
+      console.error("Lỗi xử lý cảnh báo:", error)
+      toast.error(error.response?.data?.message || "Không thể xử lý cảnh báo")
+    }
   }
 
   if (loading) {
@@ -184,89 +216,109 @@ const PatientAlerts = () => {
             <p className="section-subtitle">Nhấn một cảnh báo để xem chi tiết bản ghi ECG.</p>
           </div>
           <div className="alert-filter-group" role="tablist" aria-label="Lọc cảnh báo">
-          {FILTER_ITEMS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={`alert-filter-pill ${filter === item.key ? "is-active" : ""}`}
-              onClick={() => setFilter(item.key)}
-            >
-              {item.label}
-            </button>
-          ))}
+            {FILTER_ITEMS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`alert-filter-pill ${filter === item.key ? "is-active" : ""}`}
+                onClick={() => {
+                  setFilter(item.key)
+                  setCurrentPage(1)
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
         </div>
         <div className="clinical-panel-body">
 
-      {alerts.length === 0 ? (
+          {alerts.length === 0 ? (
             <div className="empty-state-rich">
               <div className="empty-state-rich-icon success"><i className="fas fa-shield-heart"></i></div>
               <h3>
-              {filter === "all"
-                ? "Hiện chưa có cảnh báo"
-                : filter === "resolved"
-                  ? "Không có cảnh báo đã xử lý"
-                  : "Không có cảnh báo chờ xử lý"}
+                {filter === "all"
+                  ? "Hiện chưa có cảnh báo"
+                  : filter === "resolved"
+                    ? "Không có cảnh báo đã xử lý"
+                    : "Không có cảnh báo chờ xử lý"}
               </h3>
               <p>Dữ liệu cảnh báo sẽ xuất hiện tại đây khi có biến động nhịp tim.</p>
             </div>
-      ) : (
-        Object.keys(SEVERITY_META).map((severityKey) => {
-          const items = groupedAlerts[severityKey]
-          if (!items?.length) return null
+          ) : (
+            Object.keys(SEVERITY_META).map((severityKey) => {
+              const items = groupedAlerts[severityKey]
+              if (!items?.length) return null
 
-          const meta = SEVERITY_META[severityKey]
-          return (
-            <section key={severityKey} className="alert-group-section mb-4">
-              <div className="alert-group-header mb-3">
-                <div>
-                  <h2 className="alert-group-title mb-1">
-                    <i className={`${meta.icon} me-2`}></i>
-                    {meta.title}
-                    <span className="alert-group-count">{items.length}</span>
-                  </h2>
-                  <p className="alert-group-subtitle mb-0">{meta.subtitle}</p>
-                </div>
-              </div>
-              <div className="grid gap-3 lg:grid-cols-2">
-                {items.map((alert) => {
-                  const hasReading = Boolean(alert.reading_id)
-                  return (
-                    <div key={alert.alert_id}>
-                      <button
-                        type="button"
-                        className={`alert-clinical-card ${meta.className} ${!hasReading ? "alert-card-disabled" : ""}`}
-                        onClick={() => handleViewReading(alert)}
-                        disabled={!hasReading}
-                        title={hasReading ? "Nhấn để xem đồ thị ECG" : "Không có bản ghi tương ứng"}
-                      >
-                        <div className="alert-card-head">
-                          <div className="alert-card-type">{getAlertTypeLabel(alert.alert_type)}</div>
-                          <span className={`alert-status-chip ${alert.resolved ? "is-resolved" : "is-pending"}`}>
-                            {alert.resolved ? "Đã xử lý" : "Chưa xử lý"}
-                          </span>
-                        </div>
-                        <p className="alert-card-message">{alert.message}</p>
-                        <div className="alert-meta-row">
-                          <span>
-                            <i className="far fa-clock me-1"></i>
-                            {formatDate(alert.timestamp)}
-                          </span>
-                          <span className="alert-action-hint">
-                            {hasReading ? "Nhấn để xem đồ thị ECG" : "Không có bản ghi"}
-                          </span>
-                        </div>
-                      </button>
+              const meta = SEVERITY_META[severityKey]
+              return (
+                <section key={severityKey} className="alert-group-section mb-4">
+                  <div className="alert-group-header mb-3">
+                    <div>
+                      <h2 className="alert-group-title mb-1">
+                        <i className={`${meta.icon} me-2`}></i>
+                        {meta.title}
+                        <span className="alert-group-count">{items.length}</span>
+                      </h2>
+                      <p className="alert-group-subtitle mb-0">{meta.subtitle}</p>
                     </div>
-                  )
-                })}
-              </div>
-            </section>
-          )
-        })
-      )}
+                  </div>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    {items.map((alert) => {
+                      const hasReading = Boolean(alert.reading_id)
+                      return (
+                        <div key={alert.alert_id} className="space-y-2">
+                          <button
+                            type="button"
+                            className={`alert-clinical-card ${meta.className} ${!hasReading ? "alert-card-disabled" : ""}`}
+                            onClick={() => handleViewReading(alert)}
+                            disabled={!hasReading}
+                            title={hasReading ? "Nhấn để xem đồ thị ECG" : "Không có bản ghi tương ứng"}
+                          >
+                            <div className="alert-card-head">
+                              <div className="alert-card-type">{getAlertTypeLabel(alert.alert_type)}</div>
+                              <span className={`alert-status-chip ${alert.resolved ? "is-resolved" : "is-pending"}`}>
+                                {alert.resolved ? "Đã xử lý" : "Chưa xử lý"}
+                              </span>
+                            </div>
+                            <p className="alert-card-message">{alert.message}</p>
+                            <div className="alert-meta-row">
+                              <span>
+                                <i className="far fa-clock me-1"></i>
+                                {formatDate(alert.timestamp)}
+                              </span>
+                              <span className="alert-action-hint">
+                                {hasReading ? "Nhấn để xem đồ thị ECG" : "Không có bản ghi"}
+                              </span>
+                            </div>
+                          </button>
+                          {!alert.resolved ? (
+                            <button type="button" className="btn btn-outline-success btn-sm" onClick={() => handleResolveAlert(alert.alert_id)}>
+                              <i className="fas fa-check me-1"></i>Đánh dấu đã xử lý
+                            </button>
+                          ) : null}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )
+            })
+          )}
         </div>
       </section>
+
+      <PaginationBar
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        summaryText={
+          pageTotal > 0
+            ? `Hiển thị ${visibleStart}-${visibleEnd} / ${pageTotal} cảnh báo`
+            : "Chưa có cảnh báo để phân trang"
+        }
+        className="mt-4"
+      />
 
       <ReadingDetailModal
         show={Boolean(selectedReadingId)}

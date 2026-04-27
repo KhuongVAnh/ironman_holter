@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { devicesApi } from "../../services/api"
+import DeviceReadingsModal from "../shared/DeviceReadingsModal"
 
 const PatientDeviceRegistration = () => {
   const { user } = useAuth()
@@ -11,6 +12,7 @@ const PatientDeviceRegistration = () => {
   const [devices, setDevices] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [selectedDevice, setSelectedDevice] = useState(null)
   const [formData, setFormData] = useState({
     serial_number: "",
   })
@@ -184,14 +186,19 @@ const PatientDeviceRegistration = () => {
             ) : (
               <div className="space-y-3">
                 {devices.map((device, index) => (
-                  <div key={device.device_id} className="grid gap-4 rounded-2xl border border-surface-line bg-white p-4 shadow-soft md:grid-cols-[64px_minmax(0,1fr)_160px] md:items-center">
+                  <div key={device.device_id} className="grid gap-4 rounded-2xl border border-surface-line bg-white p-4 shadow-soft md:grid-cols-[64px_minmax(0,1fr)_220px] md:items-center">
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-100 text-lg font-bold text-sky-700">{index + 1}</div>
                     <div className="min-w-0">
                       <p className="font-bold text-ink-900">{device.serial_number}</p>
                       <p className="truncate text-sm text-ink-500">ID thiết bị: <code>{device.device_id}</code></p>
                       <p className="mt-1 text-xs text-ink-500">Ngày đăng ký: {formatDate(device.created_at)}</p>
                     </div>
-                    <div className="md:text-right">{renderStatus(device.status)}</div>
+                    <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                      {renderStatus(device.status)}
+                      <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedDevice(device)}>
+                        <i className="fas fa-chart-line me-1"></i>Readings
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -199,6 +206,12 @@ const PatientDeviceRegistration = () => {
           </div>
         </section>
       </div>
+
+      <DeviceReadingsModal
+        show={Boolean(selectedDevice)}
+        device={selectedDevice}
+        onClose={() => setSelectedDevice(null)}
+      />
     </div>
   )
 }

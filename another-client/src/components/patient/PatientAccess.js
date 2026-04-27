@@ -3,6 +3,9 @@ import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { accessApi } from "../../services/api"
 import { ACCESS_ROLE, ACCESS_STATUS } from "../../services/string"
+import PaginationBar from "../shared/PaginationBar"
+
+const ITEMS_PER_PAGE = 8
 
 const badgeTone = (status) => {
   if (status === ACCESS_STATUS.ACCEPTED) return "status-chip is-success"
@@ -27,11 +30,10 @@ const PatientAccess = () => {
   const [viewerEmail, setViewerEmail] = useState("")
   const [role, setRole] = useState(ACCESS_ROLE.BAC_SI)
   const [accessList, setAccessList] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     if (!user) return
-    fetchAccessList()
-
     const handleResponse = (event) => {
       const data = event.detail || {}
       if (String(data.patient_id) === String(user.user_id)) {
@@ -53,10 +55,20 @@ const PatientAccess = () => {
     }
   }, [user?.user_id])
 
+  useEffect(() => {
+    if (!user) return
+    fetchAccessList()
+  }, [currentPage])
+
   const fetchAccessList = async () => {
     try {
-      const response = await accessApi.list(user.user_id)
-      setAccessList(response.data || [])
+      const response = await accessApi.list(user.user_id, { limit: ITEMS_PER_PAGE, offset: (currentPage - 1) * ITEMS_PER_PAGE })
+      const list = Array.isArray(response.data?.access_permissions)
+        ? response.data.access_permissions
+        : Array.isArray(response.data)
+          ? response.data
+          : response.data?.access || []
+      setAccessList(list)
     } catch (error) {
       console.error("Không thể tải danh sách quyền:", error)
       toast.error("Không thể tải danh sách quyền truy cập")
@@ -90,6 +102,12 @@ const PatientAccess = () => {
 
   const acceptedCount = accessList.filter((item) => item.status === ACCESS_STATUS.ACCEPTED).length
   const pendingCount = accessList.filter((item) => item.status === ACCESS_STATUS.PENDING).length
+  const totalPages = Math.max(1, Math.ceil(accessList.length / ITEMS_PER_PAGE))
+  const visibleAccessList = accessList.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages)
+  }, [currentPage, totalPages])
 
   return (
     <div className="page-shell">
@@ -126,12 +144,12 @@ const PatientAccess = () => {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
         <section className="clinical-panel overflow-hidden">
           <div className="clinical-panel-header">
-          <div>
+            <div>
               <p className="panel-eyebrow">Cấp quyền mới</p>
               <h2 className="section-title">Mời người theo dõi</h2>
               <p className="section-subtitle">Email được mời sẽ nhận quyền theo vai trò bạn chọn.</p>
+            </div>
           </div>
-        </div>
           <div className="clinical-panel-body">
             <div className="highlight-band info mb-4">
               <div className="highlight-band-icon"><i className="fas fa-shield-heart"></i></div>
@@ -141,17 +159,17 @@ const PatientAccess = () => {
               </div>
             </div>
             <form className="space-y-4" onSubmit={handleShareAccess}>
-            <div>
-              <label className="form-label">Email người được cấp quyền</label>
-              <input className="form-control" type="email" value={viewerEmail} onChange={(event) => setViewerEmail(event.target.value)} placeholder="doctor@example.com" required />
-            </div>
-            <div>
-              <label className="form-label">Vai trò</label>
-              <select className="form-select" value={role} onChange={(event) => setRole(event.target.value)}>
-                <option value={ACCESS_ROLE.BAC_SI}>Bác sĩ</option>
-                <option value={ACCESS_ROLE.GIA_DINH}>Gia đình</option>
-              </select>
-            </div>
+              <div>
+                <label className="form-label">Email người được cấp quyền</label>
+                <input className="form-control" type="email" value={viewerEmail} onChange={(event) => setViewerEmail(event.target.value)} placeholder="doctor@example.com" required />
+              </div>
+              <div>
+                <label className="form-label">Vai trò</label>
+                <select className="form-select" value={role} onChange={(event) => setRole(event.target.value)}>
+                  <option value={ACCESS_ROLE.BAC_SI}>Bác sĩ</option>
+                  <option value={ACCESS_ROLE.GIA_DINH}>Gia đình</option>
+                </select>
+              </div>
               <button type="submit" className="btn btn-primary w-100"><i className="fas fa-share-nodes me-2"></i>Gửi yêu cầu</button>
             </form>
           </div>
@@ -174,7 +192,7 @@ const PatientAccess = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {accessList.map((item) => (
+                {visibleAccessList.map((item) => (
                   <div key={item.permission_id} className="flex flex-col gap-4 rounded-2xl border border-surface-line bg-white p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-4">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-100 font-bold text-brand-700">
@@ -196,6 +214,13 @@ const PatientAccess = () => {
                 ))}
               </div>
             )}
+            <PaginationBar
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              summaryText={accessList.length > 0 ? `Hiển thị ${Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, accessList.length)}-${Math.min(currentPage * ITEMS_PER_PAGE, accessList.length)} / ${accessList.length} quyền` : "Chưa có quyền để phân trang"}
+              className="mt-4"
+            />
           </div>
         </section>
       </div>

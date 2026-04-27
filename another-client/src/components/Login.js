@@ -48,14 +48,14 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-surface px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-holter-surface px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[minmax(0,1fr)_460px]">
-        <section className="relative overflow-hidden rounded-2xl border border-surface-line bg-ink-900 p-6 text-white shadow-panel sm:p-8 lg:p-10">
-          <div className="absolute inset-x-0 top-0 h-1 bg-brand-500"></div>
+        <section className="auth-panel-primary relative overflow-hidden rounded-[24px] border border-white/15 p-6 text-white shadow-holterAmbient sm:p-8 lg:p-10">
+          <div className="auth-grid-overlay"></div>
           <div className="flex h-full flex-col justify-between gap-8">
             <div>
-              <div className="inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white/80">
-                <i className="fas fa-heart-pulse text-brand-200"></i>
+              <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white/85 backdrop-blur">
+                <i className="fas fa-heart-pulse text-brand-100"></i>
                 Ironman Holter
               </div>
               <h1 className="mt-7 max-w-3xl text-4xl font-bold leading-tight sm:text-5xl">Đăng nhập để theo dõi ECG theo thời gian thực.</h1>
@@ -63,17 +63,17 @@ const Login = () => {
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-2xl border border-sky-400/25 bg-sky-400/10 p-4">
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/15 text-sky-100"><i className="fas fa-wave-square"></i></div>
                 <p className="mt-4 text-2xl font-bold">Realtime</p>
                 <p className="mt-1 text-sm text-white/70">Dữ liệu ECG trực tiếp</p>
               </div>
-              <div className="rounded-2xl border border-rose-400/25 bg-rose-400/10 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-400/15 text-rose-100"><i className="fas fa-triangle-exclamation"></i></div>
+              <div className="rounded-2xl border border-red-400/25 bg-red-400/10 p-4 backdrop-blur">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-400/15 text-red-100"><i className="fas fa-triangle-exclamation"></i></div>
                 <p className="mt-4 text-2xl font-bold">Alert</p>
                 <p className="mt-1 text-sm text-white/70">Nhấn mạnh cảnh báo cần xử lý</p>
               </div>
-              <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/10 p-4">
+              <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/10 p-4 backdrop-blur">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-100"><i className="fas fa-shield-halved"></i></div>
                 <p className="mt-4 text-2xl font-bold">Secure</p>
                 <p className="mt-1 text-sm text-white/70">Phân quyền theo vai trò</p>
@@ -107,7 +107,7 @@ const Login = () => {
                     key={account.email}
                     type="button"
                     onClick={() => applyDemoAccount(account)}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-surface-line bg-white px-4 py-3 text-left shadow-soft transition hover:border-brand-200 hover:bg-brand-50"
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-surface-line bg-white/85 px-4 py-3 text-left shadow-soft transition hover:border-brand-200 hover:bg-brand-50"
                   >
                     <span className="min-w-0">
                       <span className="block text-sm font-bold text-ink-900">{account.role}</span>

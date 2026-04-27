@@ -27,6 +27,7 @@ const useSocket = (userId, userRole) => {
 
       socket.emit("join-user-room", userId)
       if (userRole) socket.emit("join-role-room", userRole)
+      window.dispatchEvent(new CustomEvent("appSocketConnection", { detail: { connected: true } }))
     }
     socket.on("connect", handleConnect)
 
@@ -152,6 +153,11 @@ const useSocket = (userId, userRole) => {
     }
     socket.on("access-revoke", handleAccessRevoke)
 
+    const handleReadingUpdate = (payload) => {
+      window.dispatchEvent(new CustomEvent("appReadingUpdate", { detail: payload }))
+    }
+    socket.on("reading-update", handleReadingUpdate)
+
     // Event chua co consumer hoac chua co emitter trong flow hien tai.
     /*
     socket.on("direct-message:read", (payload) => {
@@ -189,6 +195,7 @@ const useSocket = (userId, userRole) => {
 
     const handleDisconnect = (reason) => {
       console.log("Ng\u1eaft k\u1ebft n\u1ed1i Socket.IO:", reason)
+      window.dispatchEvent(new CustomEvent("appSocketConnection", { detail: { connected: false, reason } }))
       if (reason === "io server disconnect") {
         socket.connect()
       }
@@ -204,6 +211,7 @@ const useSocket = (userId, userRole) => {
         socketRef.current.off("access-request", handleAccessRequest)
         socketRef.current.off("access-response", handleAccessResponse)
         socketRef.current.off("access-revoke", handleAccessRevoke)
+        socketRef.current.off("reading-update", handleReadingUpdate)
         socketRef.current.off("connect", handleConnect)
         socketRef.current.off("connection-status", handleConnectionStatus)
         socketRef.current.off("connect_error", handleConnectError)

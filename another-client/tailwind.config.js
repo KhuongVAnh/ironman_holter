@@ -33,6 +33,7 @@ module.exports = {
           600: "#9333EA"
         },
         ink: {
+          950: "#881337",
           900: "#111827",
           800: "#1F2937",
           700: "#374151",
@@ -40,11 +41,21 @@ module.exports = {
           500: "#6B7280"
         },
         surface: {
-          DEFAULT: "#F9FAFB",
+          DEFAULT: "#F8FAFB",
           panel: "#FFFFFF",
           soft: "#F9FAFB",
           muted: "#F3F4F6",
           line: "#E5E7EB"
+        },
+        holter: {
+          primary: "#002626",
+          primaryContainer: "#003D3D",
+          mint: "#CCE9E0",
+          mintSoft: "#E0F2F2",
+          surface: "#F8FAFB",
+          surfaceHigh: "#E1E3E4",
+          outline: "#C0C8C7",
+          muted: "#404848"
         },
         clinical: {
           success: "#059669",
@@ -57,7 +68,8 @@ module.exports = {
         panel: "0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 8px 10px -6px rgba(0, 0, 0, 0.10)",
         soft: "0 1px 2px rgba(0, 0, 0, 0.05)",
         medium: "0 4px 6px -1px rgba(0, 0, 0, 0.10), 0 2px 4px -2px rgba(0, 0, 0, 0.10)",
-        float: "0 4px 14px rgba(225, 29, 72, 0.24)"
+        float: "0 4px 14px rgba(225, 29, 72, 0.18)",
+        holterAmbient: "0 20px 40px rgba(225, 29, 72, 0.08)"
       },
       borderRadius: {
         "4xl": "2rem"

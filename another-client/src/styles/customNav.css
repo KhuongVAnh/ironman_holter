@@ -1,6 +1,7 @@
 .custom-navbar {
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.78);
+  border-bottom: 1px solid #c0c8c7;
+  backdrop-filter: blur(20px);
 }
 
 .custom-link {
@@ -9,14 +10,14 @@
 }
 
 .custom-link:hover {
-  color: #0f0f0f !important;
-  background: #fff1f2;
+  color: #002626 !important;
+  background: #e0f2f2;
 }
 
 .custom-link.active {
   font-weight: 600;
-  color: #be123c !important;
-  background: #fff1f2;
+  color: #002626 !important;
+  background: #e0f2f2;
 }
 
 .user-avatar {
@@ -24,7 +25,7 @@
   height: 28px;
   border-radius: 50%;
   background: #fff;
-  color: #e11d48;
+  color: #003d3d;
   display: flex;
   align-items: center;
   justify-content: center;

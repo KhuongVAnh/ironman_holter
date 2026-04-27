@@ -57,14 +57,16 @@ const NotificationBell = () => {
   return (
     <button
       type="button"
-      className={`relative inline-flex h-11 w-11 items-center justify-center rounded-xl ${isActive ? "bg-brand-50 text-brand-700" : "bg-white text-ink-700 hover:bg-surface-soft"}`}
+      className={`relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/45 shadow-soft ${
+        isActive ? "bg-holter-mintSoft text-holter-primaryContainer" : "bg-white/65 text-holter-primaryContainer hover:bg-holter-mintSoft"
+      }`}
       onClick={() => navigate("/notifications")}
       aria-label="Thông báo"
       title="Thông báo"
     >
       <i className="fas fa-bell text-base"></i>
       {unreadCount > 0 ? (
-        <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-accent-400 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+        <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-holter-primaryContainer px-1.5 py-0.5 text-[10px] font-bold leading-none text-white ring-2 ring-holter-surface">
           {unreadCount > 99 ? "99+" : unreadCount}
         </span>
       ) : null}

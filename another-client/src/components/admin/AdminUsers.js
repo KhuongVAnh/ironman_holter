@@ -1,17 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { toast } from "react-toastify"
 import { usersApi } from "../../services/api"
 import { ROLE, ROLE_BADGE } from "../../services/string"
+import PaginationBar from "../shared/PaginationBar"
+
+const ITEMS_PER_PAGE = 10
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([])
-  const [filteredUsers, setFilteredUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
   const [editingUser, setEditingUser] = useState(null)
   const [editForm, setEditForm] = useState({
     name: "",
@@ -25,13 +28,42 @@ const AdminUsers = () => {
   }, [])
 
   useEffect(() => {
-    filterUsers()
+    setCurrentPage(1)
+  }, [searchTerm, roleFilter, statusFilter])
+
+  const filteredUsers = useMemo(() => {
+    let filtered = users
+
+    if (searchTerm) {
+      const keyword = searchTerm.toLowerCase()
+      filtered = filtered.filter((user) => user.name.toLowerCase().includes(keyword) || user.email.toLowerCase().includes(keyword))
+    }
+
+    if (roleFilter !== "all") {
+      filtered = filtered.filter((user) => user.role === roleFilter)
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((user) => (statusFilter === "active" ? user.is_active : !user.is_active))
+    }
+
+    return filtered
   }, [users, searchTerm, roleFilter, statusFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / ITEMS_PER_PAGE))
+  const paginatedUsers = useMemo(
+    () => filteredUsers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE),
+    [filteredUsers, currentPage]
+  )
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages)
+  }, [currentPage, totalPages])
 
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const response = await usersApi.getAll()
+      const response = await usersApi.getAll({ limit: 1000, offset: 0 })
       setUsers(response.data.users)
     } catch (error) {
       console.error("Lỗi lấy danh sách người dùng:", error)
@@ -39,35 +71,6 @@ const AdminUsers = () => {
     } finally {
       setLoading(false)
     }
-  }
-
-  const filterUsers = () => {
-    let filtered = users
-
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (user) =>
-          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    }
-
-    // Filter by role
-    if (roleFilter !== "all") {
-      filtered = filtered.filter((user) => user.role === roleFilter)
-    }
-
-    // Filter by status
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((user) => {
-        if (statusFilter === "active") return user.is_active
-        if (statusFilter === "inactive") return !user.is_active
-        return true
-      })
-    }
-
-    setFilteredUsers(filtered)
   }
 
   const handleEdit = (user) => {
@@ -187,83 +190,90 @@ const AdminUsers = () => {
       <section className="clinical-panel overflow-hidden">
         <div className="clinical-panel-header"><div><h2 className="section-title">Danh sách người dùng</h2><p className="section-subtitle">Chip màu thể hiện vai trò và trạng thái tài khoản.</p></div></div>
         <div className="clinical-panel-body">
-              {filteredUsers.length > 0 ? (
-                <div className="table-responsive">
-                  <table className="table table-hover">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Người dùng</th>
-                        <th>Email</th>
-                        <th>Vai trò</th>
-                        <th>Trạng thái</th>
-                        <th>Ngày tạo</th>
-                        <th>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredUsers.map((user) => (
-                        <tr key={user.user_id}>
-                          <td>
-                            <div className="d-flex align-items-center">
-                              <div className="avatar-circle bg-primary text-white me-3">
-                                {user.name.charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                <h6 className="mb-0">{user.name}</h6>
-                                <small className="text-muted">ID: {user.user_id}</small>
-                              </div>
-                            </div>
-                          </td>
-                          <td>{user.email}</td>
-                          <td>{getRoleBadge(user.role)}</td>
-                          <td>
-                            {user.is_active ? (
-                              <span className="badge bg-success">
-                                <i className="fas fa-check-circle me-1"></i>
-                                Hoạt động
-                              </span>
-                            ) : (
-                              <span className="badge bg-secondary">
-                                <i className="fas fa-pause-circle me-1"></i>
-                                Ngưng
-                              </span>
-                            )}
-                          </td>
-                          <td>{formatDate(user.created_at)}</td>
-                          <td>
-                            <div className="btn-group" role="group">
-                              <button
-                                className="btn btn-outline-primary btn-sm"
-                                onClick={() => handleEdit(user)}
-                                title="Chỉnh sửa"
-                              >
-                                <i className="fas fa-edit"></i>
-                              </button>
-                              <button
-                                className="btn btn-outline-danger btn-sm"
-                                onClick={() => handleDelete(user.user_id, user.name)}
-                                title="Xóa"
-                              >
-                                <i className="fas fa-trash"></i>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="empty-state-rich">
-                  <div className="empty-state-rich-icon info"><i className="fas fa-users"></i></div>
-                  <h3>Không tìm thấy người dùng nào</h3>
-                  <p>
-                    {searchTerm || roleFilter !== "all" || statusFilter !== "all"
-                      ? "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm"
-                      : "Chưa có người dùng nào trong hệ thống"}
-                  </p>
-                </div>
-              )}
+          {paginatedUsers.length > 0 ? (
+            <div className="table-responsive">
+              <table className="table table-hover">
+                <thead className="table-light">
+                  <tr>
+                    <th>Người dùng</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedUsers.map((user) => (
+                    <tr key={user.user_id}>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <div className="avatar-circle bg-primary text-white me-3">
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h6 className="mb-0">{user.name}</h6>
+                            <small className="text-muted">ID: {user.user_id}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{user.email}</td>
+                      <td>{getRoleBadge(user.role)}</td>
+                      <td>
+                        {user.is_active ? (
+                          <span className="badge bg-success">
+                            <i className="fas fa-check-circle me-1"></i>
+                            Hoạt động
+                          </span>
+                        ) : (
+                          <span className="badge bg-secondary">
+                            <i className="fas fa-pause-circle me-1"></i>
+                            Ngưng
+                          </span>
+                        )}
+                      </td>
+                      <td>{formatDate(user.created_at)}</td>
+                      <td>
+                        <div className="btn-group" role="group">
+                          <button
+                            className="btn btn-outline-primary btn-sm"
+                            onClick={() => handleEdit(user)}
+                            title="Chỉnh sửa"
+                          >
+                            <i className="fas fa-edit"></i>
+                          </button>
+                          <button
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => handleDelete(user.user_id, user.name)}
+                            title="Xóa"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="empty-state-rich">
+              <div className="empty-state-rich-icon info"><i className="fas fa-users"></i></div>
+              <h3>Không tìm thấy người dùng nào</h3>
+              <p>
+                {searchTerm || roleFilter !== "all" || statusFilter !== "all"
+                  ? "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm"
+                  : "Chưa có người dùng nào trong hệ thống"}
+              </p>
+            </div>
+          )}
+          <PaginationBar
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            summaryText={filteredUsers.length > 0 ? `Hiển thị ${Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredUsers.length)}-${Math.min(currentPage * ITEMS_PER_PAGE, filteredUsers.length)} / ${filteredUsers.length} tài khoản` : "Chưa có dữ liệu để phân trang"}
+            className="mt-4"
+          />
         </div>
       </section>
 

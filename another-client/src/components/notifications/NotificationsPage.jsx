@@ -6,6 +6,7 @@ import { useAuth } from "../../contexts/AuthContext"
 import { notificationsApi } from "../../services/api"
 import { ROLE } from "../../services/string"
 import { buildNotificationKey } from "../../utils/realtimeDedupe"
+import PaginationBar from "../shared/PaginationBar"
 
 const TYPE_OPTIONS = [
   { value: "all", label: "Tất cả" },
@@ -145,6 +146,7 @@ const NotificationsPage = () => {
   }
 
   const formatDateTime = (value) => (value ? new Date(value).toLocaleString("vi-VN") : "-")
+  const currentPage = Math.floor(offset / limit) + 1
 
   return (
     <div className="page-shell">
@@ -221,12 +223,18 @@ const NotificationsPage = () => {
             })}
           </div>
         )}
+        <div className="px-6 pb-6">
+          <PaginationBar
+            mode="compact"
+            currentPage={currentPage}
+            onPageChange={(page) => setOffset(Math.max(0, (page - 1) * limit))}
+            canGoPrev={offset > 0}
+            canGoNext={hasMore}
+            pageLabel={`Trang ${currentPage}`}
+            summaryText={`Đang xem ${notifications.length} thông báo`}
+          />
+        </div>
       </section>
-
-      <div className="flex items-center justify-between gap-4">
-        <button type="button" className="btn btn-outline-secondary" onClick={() => setOffset((prev) => Math.max(prev - limit, 0))} disabled={offset === 0}>Trang trước</button>
-        <button type="button" className="btn btn-outline-secondary" onClick={() => setOffset((prev) => prev + limit)} disabled={!hasMore}>Trang sau</button>
-      </div>
     </div>
   )
 }

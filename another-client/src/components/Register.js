@@ -34,12 +34,12 @@ const Register = () => {
   }
 
   return (
-    <div className="min-h-screen bg-surface px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-holter-surface px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[430px_minmax(0,1fr)]">
-        <section className="relative overflow-hidden rounded-2xl border border-surface-line bg-white p-6 shadow-panel sm:p-8 lg:p-10">
-          <div className="absolute inset-x-0 top-0 h-1 bg-sky-500"></div>
+        <section className="relative overflow-hidden rounded-[24px] border border-white/60 bg-white/[0.82] p-6 shadow-holterAmbient backdrop-blur-xl sm:p-8 lg:p-10">
+          <div className="absolute inset-x-0 top-0 h-1 bg-brand-600"></div>
           <p className="panel-eyebrow">Tài khoản mới</p>
-          <h1 className="mt-3 text-4xl font-bold leading-tight text-ink-900">Tạo workspace theo đúng vai trò chăm sóc.</h1>
+          <h1 className="mt-3 text-4xl font-bold leading-tight text-brand-700">Tạo workspace theo đúng vai trò chăm sóc.</h1>
           <p className="mt-4 text-sm leading-6 text-ink-600">Mỗi vai trò có dashboard, quyền truy cập và hành động riêng để dữ liệu ECG được theo dõi đúng người, đúng thời điểm.</p>
 
           <div className="mt-8 space-y-4">
@@ -105,7 +105,7 @@ const Register = () => {
                       <button
                         key={item.value}
                         type="button"
-                        className={`rounded-2xl border p-4 text-left transition ${formData.role === item.value ? "border-brand-300 bg-brand-50 shadow-soft" : "border-surface-line bg-white hover:bg-surface-soft"}`}
+                        className={`rounded-2xl border p-4 text-left transition ${formData.role === item.value ? "border-brand-300 bg-brand-50 shadow-soft" : "border-surface-line bg-white/85 hover:bg-brand-50/60"}`}
                         onClick={() => updateField("role", item.value)}
                       >
                         <div className={`empty-state-rich-icon ${item.tone} mb-3 h-10 w-10 text-base`}><i className={item.icon}></i></div>

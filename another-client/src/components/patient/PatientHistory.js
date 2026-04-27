@@ -3,6 +3,7 @@ import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { readingsApi } from "../../services/api"
 import { formatAiResultForDisplay, isAbnormalAiResultText } from "../../strings/ecgAiStrings"
+import PaginationBar from "../shared/PaginationBar"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
 
 const ITEMS_PER_PAGE = 20
@@ -32,7 +33,7 @@ const getAiStatusBadge = (reading) => {
   if (status === "FAILED") {
     return {
       label: "Phân tích thất bại",
-      className: "bg-rose-100 text-rose-700",
+      className: "bg-red-100 text-red-700",
     }
   }
 
@@ -49,11 +50,18 @@ const PatientHistory = () => {
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalReadings, setTotalReadings] = useState(0)
   const [selectedReadingId, setSelectedReadingId] = useState(null)
 
   useEffect(() => {
     fetchReadings()
   }, [currentPage])
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   useEffect(() => {
     const handleReadingAiUpdated = (event) => {
@@ -93,6 +101,7 @@ const PatientHistory = () => {
       const list = response.data?.readings || []
       const total = response.data?.total ?? list.length
       setReadings(list)
+      setTotalReadings(total)
       setTotalPages(Math.max(1, Math.ceil(total / ITEMS_PER_PAGE)))
     } catch (error) {
       console.error("Lỗi lấy lịch sử:", error)
@@ -110,21 +119,22 @@ const PatientHistory = () => {
     return "text-emerald-600"
   }
 
-  const pageWindow = Array.from({ length: totalPages }, (_, index) => index + 1).slice(Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2))
+  const visibleStart = totalReadings === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1
+  const visibleEnd = totalReadings === 0 ? 0 : Math.min(currentPage * ITEMS_PER_PAGE, totalReadings)
 
   return (
     <div className="page-shell">
       <section className="page-hero">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="panel-eyebrow">Patient data</p>
-          <h1 className="page-hero-title">Lịch sử theo dõi</h1>
-          <p className="page-hero-subtitle">Tra cứu các phiên đo trước đây, kiểm tra nhịp tim trung bình và mở nhanh bản ghi ECG chi tiết khi cần.</p>
-        </div>
-        <button className="btn btn-outline-primary" onClick={fetchReadings}>
-          <i className="fas fa-rotate"></i>
-          Làm mới dữ liệu
-        </button>
+          <div>
+            <p className="panel-eyebrow">Patient data</p>
+            <h1 className="page-hero-title">Lịch sử theo dõi</h1>
+            <p className="page-hero-subtitle">Tra cứu các phiên đo trước đây, kiểm tra nhịp tim trung bình và mở nhanh bản ghi ECG chi tiết khi cần.</p>
+          </div>
+          <button className="btn btn-outline-primary" onClick={fetchReadings}>
+            <i className="fas fa-rotate"></i>
+            Làm mới dữ liệu
+          </button>
         </div>
       </section>
 
@@ -187,18 +197,17 @@ const PatientHistory = () => {
                 </table>
               </div>
 
-              {totalPages > 1 ? (
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-ink-500">Điều hướng qua các trang để xem toàn bộ lịch sử đo.</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1}>Trước</button>
-                    {pageWindow.map((page) => (
-                      <button key={page} type="button" className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 text-sm font-semibold ${page === currentPage ? "bg-brand-600 text-white" : "border border-surface-line bg-white text-ink-700 hover:bg-surface-soft"}`} onClick={() => setCurrentPage(page)}>{page}</button>
-                    ))}
-                    <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>Sau</button>
-                  </div>
-                </div>
-              ) : null}
+              <PaginationBar
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                summaryText={
+                  totalReadings > 0
+                    ? `Hiển thị ${visibleStart}-${visibleEnd} / ${totalReadings} bản ghi`
+                    : "Chưa có bản ghi để phân trang"
+                }
+                className="mt-6"
+              />
             </>
           )}
         </div>

@@ -5,21 +5,31 @@ import { Link } from "react-router-dom"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { alertsApi, doctorApi, reportsApi } from "../../services/api"
+import PaginationBar from "../shared/PaginationBar"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
 import { DoctorStatCard, EmptyState, PatientAvatar, formatDateTime, getAlertSeverity, getAlertTone, getPatientFromAccess } from "./DoctorUi"
+
+const ALERTS_PER_PAGE = 4
 
 const DoctorDashboard = () => {
   const { user } = useAuth()
   const [patients, setPatients] = useState([])
   const [alerts, setAlerts] = useState([])
+  const [alertSummary, setAlertSummary] = useState({ total: 0, unresolved: 0, resolved: 0 })
+  const [alertTotal, setAlertTotal] = useState(0)
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [selectedReadingId, setSelectedReadingId] = useState(null)
+  const [alertPage, setAlertPage] = useState(1)
 
   useEffect(() => {
     if (user?.user_id) fetchDashboardData()
   }, [user?.user_id])
+
+  useEffect(() => {
+    if (user?.user_id) fetchAlertPage(alertPage)
+  }, [user?.user_id, alertPage])
 
   const fetchDashboardData = async () => {
     try {
@@ -27,23 +37,9 @@ const DoctorDashboard = () => {
       const patientsResponse = await doctorApi.getPatients(user.user_id)
       const normalizedPatients = (patientsResponse.data || []).map(getPatientFromAccess).filter(Boolean)
 
-      const [alertResponses, reportsResponse] = await Promise.all([
-        Promise.all(normalizedPatients.map((patient) => alertsApi.getByUser(patient.user_id).catch(() => ({ data: { alerts: [] } })))),
-        reportsApi.getDoctorReports().catch(() => ({ data: { reports: [] } })),
-      ])
-
-      const nextAlerts = alertResponses.flatMap((response, index) => {
-        const patient = normalizedPatients[index]
-        return (response.data?.alerts || []).map((alert) => ({
-          ...alert,
-          patient_id: patient.user_id,
-          patient_name: patient.name,
-          patient_email: patient.email,
-        }))
-      })
+      const reportsResponse = await reportsApi.getDoctorReports().catch(() => ({ data: { reports: [] } }))
 
       setPatients(normalizedPatients)
-      setAlerts(nextAlerts.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp)))
       setReports(reportsResponse.data?.reports || [])
       setLastUpdated(new Date())
     } catch (error) {
@@ -53,6 +49,30 @@ const DoctorDashboard = () => {
       setLoading(false)
     }
   }
+
+  const fetchAlertPage = async (page = 1) => {
+    try {
+      const offset = (page - 1) * ALERTS_PER_PAGE
+      const response = await alertsApi.getAll({ limit: ALERTS_PER_PAGE, offset })
+      const nextAlerts = Array.isArray(response.data?.alerts) ? response.data.alerts : []
+      setAlerts(nextAlerts)
+      setAlertTotal(Number.isInteger(response.data?.total) ? response.data.total : nextAlerts.length)
+      setAlertSummary(response.data?.summary || { total: 0, unresolved: 0, resolved: 0 })
+    } catch (error) {
+      console.error("Lỗi tải cảnh báo bác sĩ:", error)
+      setAlerts([])
+      setAlertTotal(0)
+      setAlertSummary({ total: 0, unresolved: 0, resolved: 0 })
+    }
+  }
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(alertTotal / ALERTS_PER_PAGE))
+    if (alertPage < 1) setAlertPage(1)
+    if (alertPage > totalPages) {
+      setAlertPage(totalPages)
+    }
+  }, [alertPage, alertTotal])
 
   const unresolvedAlerts = alerts.filter((alert) => !alert.resolved)
   const highRiskAlerts = unresolvedAlerts.filter((alert) => getAlertSeverity(alert.alert_type) === "high")
@@ -72,6 +92,11 @@ const DoctorDashboard = () => {
       .sort((left, right) => right.alert_count - left.alert_count)
       .slice(0, 6)
   }, [patients, unresolvedAlerts])
+
+  const alertTotalPages = Math.max(1, Math.ceil(alertTotal / ALERTS_PER_PAGE))
+  const visibleAlerts = alerts
+  const visibleAlertStart = alertTotal === 0 ? 0 : (alertPage - 1) * ALERTS_PER_PAGE + 1
+  const visibleAlertEnd = alertTotal === 0 ? 0 : Math.min(alertPage * ALERTS_PER_PAGE, alertTotal)
 
   if (loading) return <div className="page-shell"><div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div><h3>Đang tải điều phối</h3><p>Hệ thống đang tổng hợp bệnh nhân, cảnh báo và báo cáo.</p></div></div>
 
@@ -98,7 +123,7 @@ const DoctorDashboard = () => {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <DoctorStatCard icon="fas fa-user-group" label="Bệnh nhân theo dõi" value={patients.length} tone="brand" hint="Đã cấp quyền accepted" />
-        <DoctorStatCard icon="fas fa-triangle-exclamation" label="Cảnh báo chưa xử lý" value={unresolvedAlerts.length} tone="red" hint="Cần ưu tiên trong ca trực" />
+        <DoctorStatCard icon="fas fa-triangle-exclamation" label="Cảnh báo chưa xử lý" value={alertSummary.unresolved} tone="red" hint="Cần ưu tiên trong ca trực" />
         <DoctorStatCard icon="fas fa-bolt" label="Nguy cơ cao" value={highRiskAlerts.length} tone="amber" hint="AFIB, rung nhĩ, critical" />
         <DoctorStatCard icon="fas fa-file-lines" label="Báo cáo hôm nay" value={reportsToday.length} tone="emerald" hint={`${reports.length} báo cáo tổng`} />
       </div>
@@ -113,9 +138,9 @@ const DoctorDashboard = () => {
             <Link to="/doctor/patients" className="btn btn-outline-primary btn-sm">Mở danh sách</Link>
           </div>
           <div className="clinical-panel-body">
-            {alerts.length ? (
+            {visibleAlerts.length ? (
               <div className="space-y-3">
-                {alerts.slice(0, 8).map((alert) => (
+                {visibleAlerts.map((alert) => (
                   <button
                     key={alert.alert_id}
                     type="button"
@@ -143,6 +168,13 @@ const DoctorDashboard = () => {
             ) : (
               <EmptyState icon="fas fa-circle-check" title="Không có cảnh báo" description="Các bệnh nhân đang theo dõi chưa có cảnh báo mới." />
             )}
+            <PaginationBar
+              currentPage={alertPage}
+              totalPages={alertTotalPages}
+              onPageChange={setAlertPage}
+              summaryText={alerts.length > 0 ? `Hiển thị ${visibleAlertStart}-${visibleAlertEnd} / ${alerts.length} cảnh báo` : "Chưa có cảnh báo để phân trang"}
+              className="mt-4"
+            />
           </div>
         </section>
 

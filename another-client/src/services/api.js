@@ -86,8 +86,8 @@ export const usersApi = {
 
 // ========== Devices ==========
 export const devicesApi = {
-  getAll: () => api.get("/devices"),
-  getByUser: (userId) => api.get(`/devices/${userId}`),
+  getAll: (params) => api.get("/devices", { params }),
+  getByUser: (userId, params) => api.get(`/devices/${userId}`, { params }),
   register: (data) => api.post("/devices/register", data),
   updateStatus: (deviceId, status) => api.put(`/devices/${deviceId}/status`, { status }),
 }
@@ -96,15 +96,31 @@ export const devicesApi = {
 export const readingsApi = {
   getHistory: (userId, params) => api.get(`/readings/history/${userId}`, { params }),
   getDetail: (readingId) => api.get(`/readings/detail/${readingId}`),
-  getByDevice: (deviceId) => api.get(`/readings/${deviceId}`),
+  getByDevice: (deviceId, params) => api.get(`/readings/${deviceId}`, { params }),
   createFake: (deviceId) => api.post("/readings/fake", { device_id: deviceId }),
 }
 
 // ========== Alerts ==========
 export const alertsApi = {
-  getByUser: (userId, resolved) =>
-    api.get(`/alerts/${userId}`, { params: resolved !== undefined ? { resolved } : undefined }),
-  getAll: (resolved) => api.get("/alerts", { params: resolved !== undefined ? { resolved } : undefined }),
+  create: (data) => api.post("/alerts", data),
+  getByUser: (userId, resolvedOrParams) => {
+    if (resolvedOrParams && typeof resolvedOrParams === "object" && !Array.isArray(resolvedOrParams)) {
+      return api.get(`/alerts/${userId}`, { params: resolvedOrParams })
+    }
+
+    return api.get(`/alerts/${userId}`, {
+      params: resolvedOrParams !== undefined ? { resolved: resolvedOrParams } : undefined,
+    })
+  },
+  getAll: (resolvedOrParams) => {
+    if (resolvedOrParams && typeof resolvedOrParams === "object" && !Array.isArray(resolvedOrParams)) {
+      return api.get("/alerts", { params: resolvedOrParams })
+    }
+
+    return api.get("/alerts", {
+      params: resolvedOrParams !== undefined ? { resolved: resolvedOrParams } : undefined,
+    })
+  },
   resolve: (alertId) => api.put(`/alerts/${alertId}/resolve`),
 }
 
@@ -118,7 +134,7 @@ export const notificationsApi = {
 
 // ========== Access ==========
 export const accessApi = {
-  list: (patientId) => api.get(`/access/list/${patientId}`),
+  list: (patientId, params) => api.get(`/access/list/${patientId}`, { params }),
   share: (viewerEmail, role) => api.post("/access/share", { viewer_email: viewerEmail, role }),
   respond: (id, action) => api.put(`/access/respond/${id}`, { action }),
   revoke: (id) => api.delete(`/access/${id}`),
@@ -154,17 +170,17 @@ export const medicationPlansApi = {
 export const reportsApi = {
   getByPatient: (patientId) => api.get(`/reports/${patientId}`),
   create: (patientId, data) => api.post(`/reports/${patientId}`, data),
-  getDoctorReports: () => api.get("/reports/doctor/my-reports"),
+  getDoctorReports: (params) => api.get("/reports/doctor/my-reports", { params }),
 }
 
 // ========== Doctor ==========
 export const doctorApi = {
-  getPatients: (viewerId) => api.get(`/doctor/patients/${viewerId}`),
+  getPatients: (viewerId, params) => api.get(`/doctor/patients/${viewerId}`, { params }),
 }
 
 // ========== Family ==========
 export const familyApi = {
-  getPatients: (viewerId) => api.get(`/family/patients/${viewerId}`),
+  getPatients: (viewerId, params) => api.get(`/family/patients/${viewerId}`, { params }),
 }
 
 export { api, API_BASE }

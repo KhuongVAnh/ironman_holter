@@ -4,12 +4,14 @@ import { useState, useEffect } from "react"
 import { toast } from "react-toastify"
 import { devicesApi, usersApi } from "../../services/api"
 import { DEVICE_STATUS, ROLE } from "../../services/string"
+import DeviceReadingsModal from "../shared/DeviceReadingsModal"
 
 const AdminDevices = () => {
   const [devices, setDevices] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [selectedDevice, setSelectedDevice] = useState(null)
   const [addForm, setAddForm] = useState({
     serial_number: "",
     user_id: "",
@@ -177,7 +179,7 @@ const AdminDevices = () => {
                                   <i className="fas fa-play"></i>
                                 </button>
                               )}
-                              <button className="btn btn-outline-info btn-sm" title="Chi tiết">
+                              <button className="btn btn-outline-info btn-sm" title="Chi tiết readings" onClick={() => setSelectedDevice(device)}>
                                 <i className="fas fa-info-circle"></i>
                               </button>
                             </div>
@@ -259,6 +261,12 @@ const AdminDevices = () => {
           </div>
         </div>
       )}
+
+      <DeviceReadingsModal
+        show={Boolean(selectedDevice)}
+        device={selectedDevice}
+        onClose={() => setSelectedDevice(null)}
+      />
     </div>
   )
 }

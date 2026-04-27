@@ -11,6 +11,8 @@ import MedicalVisitForm from "../shared/MedicalVisitForm"
 import MedicalVisitList from "../shared/MedicalVisitList"
 import MedicationPlanForm from "../shared/MedicationPlanForm"
 import MedicationPlanList from "../shared/MedicationPlanList"
+import ModalFrame from "../shared/ModalFrame"
+import PaginationBar from "../shared/PaginationBar"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
 import { formatAiResultForDisplay } from "../../strings/ecgAiStrings"
 import {
@@ -25,6 +27,7 @@ import {
 } from "./DoctorUi"
 
 const PatientDetail = () => {
+  const ALERTS_PER_PAGE = 6
   const { user } = useAuth()
   const { patientId } = useParams()
   const location = useLocation()
@@ -44,6 +47,15 @@ const PatientDetail = () => {
   const [showPlanForm, setShowPlanForm] = useState(false)
   const [editVisit, setEditVisit] = useState(null)
   const [editPlan, setEditPlan] = useState(null)
+  const [showAlertForm, setShowAlertForm] = useState(false)
+  const [alertPage, setAlertPage] = useState(1)
+  const [alertForm, setAlertForm] = useState({
+    reading_id: "",
+    alert_type: "",
+    message: "",
+    segment_start_sample: "",
+    segment_end_sample: "",
+  })
 
   useEffect(() => {
     if (user?.user_id) fetchPatientData()
@@ -73,7 +85,7 @@ const PatientDetail = () => {
 
       const [readingsResponse, alertsResponse, reportsResponse, visitsResponse, plansResponse] = await Promise.all([
         readingsApi.getHistory(patientId, { limit: 30 }),
-        alertsApi.getByUser(patientId),
+        alertsApi.getByUser(patientId, { limit: 100, offset: 0 }),
         reportsApi.getByPatient(patientId),
         medicalVisitsApi.getByUser(patientId),
         medicationPlansApi.getByUser(patientId),
@@ -100,6 +112,22 @@ const PatientDetail = () => {
     if (alertFilter === "resolved") return alerts.filter((alert) => alert.resolved)
     return alerts
   }, [alerts, alertFilter, openAlerts])
+
+  useEffect(() => {
+    setAlertPage(1)
+  }, [alertFilter, patientId])
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredAlerts.length / ALERTS_PER_PAGE))
+    if (alertPage > totalPages) {
+      setAlertPage(totalPages)
+    }
+  }, [alertPage, filteredAlerts.length])
+
+  const alertTotalPages = Math.max(1, Math.ceil(filteredAlerts.length / ALERTS_PER_PAGE))
+  const visibleAlerts = filteredAlerts.slice((alertPage - 1) * ALERTS_PER_PAGE, alertPage * ALERTS_PER_PAGE)
+  const visibleAlertStart = filteredAlerts.length === 0 ? 0 : (alertPage - 1) * ALERTS_PER_PAGE + 1
+  const visibleAlertEnd = filteredAlerts.length === 0 ? 0 : Math.min(alertPage * ALERTS_PER_PAGE, filteredAlerts.length)
 
   const tabs = [
     { value: "overview", label: "Tổng quan", icon: "fas fa-table-cells-large" },
@@ -135,6 +163,49 @@ const PatientDetail = () => {
     } catch (error) {
       console.error("Lỗi xử lý cảnh báo:", error)
       toast.error("Không thể xử lý cảnh báo")
+    }
+  }
+
+  const openCreateAlertForm = () => {
+    setAlertForm({
+      reading_id: latestReading?.reading_id ? String(latestReading.reading_id) : "",
+      alert_type: "",
+      message: "",
+      segment_start_sample: "",
+      segment_end_sample: "",
+    })
+    setShowAlertForm(true)
+  }
+
+  const createManualAlert = async (event) => {
+    event.preventDefault()
+    const payload = {
+      user_id: Number(patientId),
+      reading_id: Number(alertForm.reading_id),
+      alert_type: alertForm.alert_type.trim(),
+      message: alertForm.message.trim(),
+    }
+
+    if (alertForm.segment_start_sample !== "") {
+      payload.segment_start_sample = Number(alertForm.segment_start_sample)
+    }
+    if (alertForm.segment_end_sample !== "") {
+      payload.segment_end_sample = Number(alertForm.segment_end_sample)
+    }
+
+    if (!payload.reading_id || !payload.alert_type || !payload.message) {
+      toast.error("Vui lòng chọn bản ghi, loại cảnh báo và nội dung")
+      return
+    }
+
+    try {
+      await alertsApi.create(payload)
+      toast.success("Đã tạo cảnh báo thủ công")
+      setShowAlertForm(false)
+      await fetchPatientData()
+    } catch (error) {
+      console.error("Lỗi tạo cảnh báo thủ công:", error)
+      toast.error(error.response?.data?.message || "Không thể tạo cảnh báo")
     }
   }
 
@@ -322,14 +393,19 @@ const PatientDetail = () => {
         <section className="clinical-panel overflow-hidden">
           <div className="clinical-panel-header">
             <div><h2 className="section-title">Cảnh báo</h2><p className="section-subtitle">Lọc, mở ECG và đánh dấu xử lý.</p></div>
-            <select className="form-select w-auto" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value)}>
-              <option value="open">Chưa xử lý</option>
-              <option value="resolved">Đã xử lý</option>
-              <option value="all">Tất cả</option>
-            </select>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn btn-primary btn-sm" onClick={openCreateAlertForm} disabled={!readings.length}>
+                <i className="fas fa-plus me-1"></i>Tạo cảnh báo
+              </button>
+              <select className="form-select w-auto" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value)}>
+                <option value="open">Chưa xử lý</option>
+                <option value="resolved">Đã xử lý</option>
+                <option value="all">Tất cả</option>
+              </select>
+            </div>
           </div>
           <div className="clinical-panel-body space-y-3">
-            {filteredAlerts.length ? filteredAlerts.map((alert) => (
+            {visibleAlerts.length ? visibleAlerts.map((alert) => (
               <article key={alert.alert_id} className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -339,11 +415,18 @@ const PatientDetail = () => {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {alert.reading_id ? <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReadingId(alert.reading_id)}>Mở ECG</button> : null}
-                    {!alert.resolved ? <button type="button" className="btn btn-outline-success btn-sm" onClick={() => resolveAlert(alert.alert_id)}>Xử lý</button> : null}
+                    {!alert.resolved ? <button type="button" className="btn btn-outline-success btn-sm" onClick={() => resolveAlert(alert.alert_id)}>Đánh dấu đã xử lý</button> : null}
                   </div>
                 </div>
               </article>
             )) : <EmptyState icon="fas fa-circle-check" title="Không có cảnh báo trong bộ lọc này" />}
+            <PaginationBar
+              currentPage={alertPage}
+              totalPages={alertTotalPages}
+              onPageChange={setAlertPage}
+              summaryText={filteredAlerts.length > 0 ? `Hiển thị ${visibleAlertStart}-${visibleAlertEnd} / ${filteredAlerts.length} cảnh báo` : "Chưa có cảnh báo để phân trang"}
+              className="mt-4"
+            />
           </div>
         </section>
       ) : null}
@@ -394,6 +477,50 @@ const PatientDetail = () => {
       <MedicalVisitForm show={showVisitForm} handleClose={() => { setShowVisitForm(false); setEditVisit(null) }} onSubmit={handleVisitSubmit} initialData={editVisit} />
       <MedicationPlanForm show={showPlanForm} handleClose={() => { setShowPlanForm(false); setEditPlan(null) }} onSubmit={handlePlanSubmit} initialData={editPlan} />
       <ReadingDetailModal show={Boolean(selectedReadingId)} readingId={selectedReadingId} onHide={() => setSelectedReadingId(null)} />
+      <ModalFrame
+        show={showAlertForm}
+        onClose={() => setShowAlertForm(false)}
+        title="Tạo cảnh báo thủ công"
+        size="lg"
+        footer={
+          <>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setShowAlertForm(false)}>Hủy</button>
+            <button type="submit" form="manual-alert-form" className="btn btn-primary">Tạo cảnh báo</button>
+          </>
+        }
+      >
+        <form id="manual-alert-form" className="space-y-4" onSubmit={createManualAlert}>
+          <div>
+            <label className="form-label">Bản ghi ECG</label>
+            <select className="form-select" value={alertForm.reading_id} onChange={(event) => setAlertForm((prev) => ({ ...prev, reading_id: event.target.value }))} required>
+              <option value="">Chọn bản ghi</option>
+              {readings.map((reading) => (
+                <option key={reading.reading_id} value={reading.reading_id}>
+                  #{reading.reading_id} - {formatDateTime(reading.timestamp)} - {reading.heart_rate} BPM
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Loại cảnh báo</label>
+            <input className="form-control" value={alertForm.alert_type} onChange={(event) => setAlertForm((prev) => ({ ...prev, alert_type: event.target.value }))} placeholder="VD: Rung nhĩ, Nhịp nhanh, Ngoại tâm thu" required />
+          </div>
+          <div>
+            <label className="form-label">Nội dung</label>
+            <textarea className="form-control min-h-[120px]" value={alertForm.message} onChange={(event) => setAlertForm((prev) => ({ ...prev, message: event.target.value }))} placeholder="Mô tả dấu hiệu bất thường hoặc ghi chú xử lý..." required />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="form-label">Segment bắt đầu</label>
+              <input className="form-control" type="number" min="0" value={alertForm.segment_start_sample} onChange={(event) => setAlertForm((prev) => ({ ...prev, segment_start_sample: event.target.value }))} placeholder="Tùy chọn" />
+            </div>
+            <div>
+              <label className="form-label">Segment kết thúc</label>
+              <input className="form-control" type="number" min="0" value={alertForm.segment_end_sample} onChange={(event) => setAlertForm((prev) => ({ ...prev, segment_end_sample: event.target.value }))} placeholder="Tùy chọn" />
+            </div>
+          </div>
+        </form>
+      </ModalFrame>
     </div>
   )
 }

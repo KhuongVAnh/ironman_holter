@@ -6,6 +6,9 @@ import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { doctorApi } from "../../services/api"
 import { DoctorStatCard, EmptyState, PatientAvatar, formatDate, getPatientFromAccess, normalizeText } from "./DoctorUi"
+import PaginationBar from "../shared/PaginationBar"
+
+const ITEMS_PER_PAGE = 8
 
 const DoctorPatients = () => {
   const { user } = useAuth()
@@ -14,15 +17,20 @@ const DoctorPatients = () => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     if (user?.user_id) fetchPatients()
   }, [user?.user_id])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, statusFilter])
+
   const fetchPatients = async () => {
     try {
       setLoading(true)
-      const response = await doctorApi.getPatients(user.user_id)
+      const response = await doctorApi.getPatients(user.user_id, { limit: 1000, offset: 0 })
       setPatients((response.data || []).map(getPatientFromAccess).filter(Boolean))
     } catch (error) {
       console.error("Lỗi lấy danh sách bệnh nhân:", error)
@@ -43,6 +51,16 @@ const DoctorPatients = () => {
       return matchesSearch && matchesStatus
     })
   }, [patients, searchTerm, statusFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredPatients.length / ITEMS_PER_PAGE))
+  const visiblePatients = useMemo(
+    () => filteredPatients.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE),
+    [filteredPatients, currentPage]
+  )
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages)
+  }, [currentPage, totalPages])
 
   if (loading) return <div className="page-shell"><div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div><h3>Đang tải bệnh nhân</h3><p>Danh sách theo dõi đang được cập nhật.</p></div></div>
 
@@ -93,9 +111,9 @@ const DoctorPatients = () => {
             </select>
           </div>
 
-          {filteredPatients.length ? (
+          {visiblePatients.length ? (
             <div className="space-y-3">
-              {filteredPatients.map((patient) => (
+              {visiblePatients.map((patient) => (
                 <article key={patient.user_id} className="rounded-xl border border-surface-line bg-white p-4 shadow-soft transition hover:border-brand-200 hover:shadow-medium">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
@@ -127,6 +145,13 @@ const DoctorPatients = () => {
           ) : (
             <EmptyState icon="fas fa-user-magnifying-glass" title="Không tìm thấy bệnh nhân" description="Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc trạng thái." />
           )}
+          <PaginationBar
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            summaryText={filteredPatients.length > 0 ? `Hiển thị ${Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredPatients.length)}-${Math.min(currentPage * ITEMS_PER_PAGE, filteredPatients.length)} / ${filteredPatients.length} bệnh nhân` : "Chưa có bệnh nhân để phân trang"}
+            className="pt-2"
+          />
         </div>
       </section>
     </div>
