@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
@@ -26,15 +26,22 @@ import {
   getPatientFromAccess,
 } from "./DoctorUi"
 
+const READINGS_PER_PAGE = 10
+const ALERTS_PER_PAGE = 6
+
 const PatientDetail = () => {
-  const ALERTS_PER_PAGE = 6
   const { user } = useAuth()
   const { patientId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
   const [patient, setPatient] = useState(null)
+  const [latestReading, setLatestReading] = useState(null)
   const [readings, setReadings] = useState([])
+  const [readingTotal, setReadingTotal] = useState(0)
+  const [readingPage, setReadingPage] = useState(1)
   const [alerts, setAlerts] = useState([])
+  const [alertTotal, setAlertTotal] = useState(0)
+  const [alertSummary, setAlertSummary] = useState({ total: 0, unresolved: 0, resolved: 0 })
   const [reports, setReports] = useState([])
   const [visits, setVisits] = useState([])
   const [plans, setPlans] = useState([])
@@ -58,12 +65,24 @@ const PatientDetail = () => {
   })
 
   useEffect(() => {
-    if (user?.user_id) fetchPatientData()
+    if (user?.user_id) {
+      setReadingPage(1)
+      setAlertPage(1)
+      fetchPatientData()
+    }
   }, [patientId, user?.user_id])
 
   useEffect(() => {
     if (location.hash === "#create-report") setActiveTab("reports")
   }, [location.hash])
+
+  useEffect(() => {
+    if (patient?.user_id && String(patient.user_id) === String(patientId)) fetchReadingsPage(readingPage)
+  }, [patient?.user_id, patientId, readingPage])
+
+  useEffect(() => {
+    if (patient?.user_id && String(patient.user_id) === String(patientId)) fetchAlertsPage(alertPage, alertFilter)
+  }, [patient?.user_id, patientId, alertPage, alertFilter])
 
   const fetchPatientData = async () => {
     try {
@@ -75,24 +94,24 @@ const PatientDetail = () => {
       setPatient(patientData || null)
 
       if (!patientData) {
+        setLatestReading(null)
         setReadings([])
+        setReadingTotal(0)
         setAlerts([])
+        setAlertTotal(0)
+        setAlertSummary({ total: 0, unresolved: 0, resolved: 0 })
         setReports([])
         setVisits([])
         setPlans([])
         return
       }
 
-      const [readingsResponse, alertsResponse, reportsResponse, visitsResponse, plansResponse] = await Promise.all([
-        readingsApi.getHistory(patientId, { limit: 30 }),
-        alertsApi.getByUser(patientId, { limit: 100, offset: 0 }),
+      const [reportsResponse, visitsResponse, plansResponse] = await Promise.all([
         reportsApi.getByPatient(patientId),
         medicalVisitsApi.getByUser(patientId),
         medicationPlansApi.getByUser(patientId),
       ])
 
-      setReadings(readingsResponse.data?.readings || [])
-      setAlerts(alertsResponse.data?.alerts || [])
       setReports(reportsResponse.data?.reports || [])
       setVisits(visitsResponse.data || [])
       setPlans(plansResponse.data || [])
@@ -104,35 +123,79 @@ const PatientDetail = () => {
     }
   }
 
-  const latestReading = readings[0] || null
+  const fetchReadingsPage = async (page = readingPage) => {
+    try {
+      const offset = (page - 1) * READINGS_PER_PAGE
+      const response = await readingsApi.getHistory(patientId, { limit: READINGS_PER_PAGE, offset })
+      const nextReadings = Array.isArray(response.data?.readings) ? response.data.readings : []
+      const nextTotal = Number.isInteger(response.data?.total) ? response.data.total : nextReadings.length
+      setReadings(nextReadings)
+      setReadingTotal(nextTotal)
+      if (page === 1) {
+        setLatestReading(nextReadings[0] || null)
+      }
+    } catch (error) {
+      console.error("Lỗi tải dữ liệu ECG:", error)
+      setReadings([])
+      setReadingTotal(0)
+      if (page === 1) setLatestReading(null)
+      toast.error("Không thể tải dữ liệu ECG")
+    }
+  }
+
+  const fetchAlertsPage = async (page = alertPage, filterValue = alertFilter) => {
+    try {
+      const offset = (page - 1) * ALERTS_PER_PAGE
+      const resolved = filterValue === "all" ? undefined : filterValue === "resolved"
+      const response = await alertsApi.getByUser(patientId, {
+        ...(resolved !== undefined ? { resolved } : {}),
+        limit: ALERTS_PER_PAGE,
+        offset,
+      })
+      const nextAlerts = Array.isArray(response.data?.alerts) ? response.data.alerts : []
+      setAlerts(nextAlerts)
+      setAlertTotal(Number.isInteger(response.data?.total) ? response.data.total : nextAlerts.length)
+      setAlertSummary(response.data?.summary || { total: 0, unresolved: 0, resolved: 0 })
+    } catch (error) {
+      console.error("Lỗi tải cảnh báo:", error)
+      setAlerts([])
+      setAlertTotal(0)
+      setAlertSummary({ total: 0, unresolved: 0, resolved: 0 })
+      toast.error("Không thể tải cảnh báo")
+    }
+  }
+
   const activePlans = plans.filter((plan) => plan.is_active)
-  const openAlerts = alerts.filter((alert) => !alert.resolved)
-  const filteredAlerts = useMemo(() => {
-    if (alertFilter === "open") return openAlerts
-    if (alertFilter === "resolved") return alerts.filter((alert) => alert.resolved)
-    return alerts
-  }, [alerts, alertFilter, openAlerts])
 
   useEffect(() => {
     setAlertPage(1)
   }, [alertFilter, patientId])
 
   useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(filteredAlerts.length / ALERTS_PER_PAGE))
+    const totalPages = Math.max(1, Math.ceil(alertTotal / ALERTS_PER_PAGE))
     if (alertPage > totalPages) {
       setAlertPage(totalPages)
     }
-  }, [alertPage, filteredAlerts.length])
+  }, [alertPage, alertTotal])
 
-  const alertTotalPages = Math.max(1, Math.ceil(filteredAlerts.length / ALERTS_PER_PAGE))
-  const visibleAlerts = filteredAlerts.slice((alertPage - 1) * ALERTS_PER_PAGE, alertPage * ALERTS_PER_PAGE)
-  const visibleAlertStart = filteredAlerts.length === 0 ? 0 : (alertPage - 1) * ALERTS_PER_PAGE + 1
-  const visibleAlertEnd = filteredAlerts.length === 0 ? 0 : Math.min(alertPage * ALERTS_PER_PAGE, filteredAlerts.length)
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(readingTotal / READINGS_PER_PAGE))
+    if (readingPage > totalPages) {
+      setReadingPage(totalPages)
+    }
+  }, [readingPage, readingTotal])
+
+  const readingTotalPages = Math.max(1, Math.ceil(readingTotal / READINGS_PER_PAGE))
+  const visibleReadingStart = readingTotal === 0 ? 0 : (readingPage - 1) * READINGS_PER_PAGE + 1
+  const visibleReadingEnd = readingTotal === 0 ? 0 : Math.min(readingPage * READINGS_PER_PAGE, readingTotal)
+  const alertTotalPages = Math.max(1, Math.ceil(alertTotal / ALERTS_PER_PAGE))
+  const visibleAlertStart = alertTotal === 0 ? 0 : (alertPage - 1) * ALERTS_PER_PAGE + 1
+  const visibleAlertEnd = alertTotal === 0 ? 0 : Math.min(alertPage * ALERTS_PER_PAGE, alertTotal)
 
   const tabs = [
     { value: "overview", label: "Tổng quan", icon: "fas fa-table-cells-large" },
-    { value: "readings", label: "ECG", icon: "fas fa-wave-square", count: readings.length },
-    { value: "alerts", label: "Cảnh báo", icon: "fas fa-triangle-exclamation", count: openAlerts.length },
+    { value: "readings", label: "ECG", icon: "fas fa-wave-square", count: readingTotal },
+    { value: "alerts", label: "Cảnh báo", icon: "fas fa-triangle-exclamation", count: alertSummary.unresolved },
     { value: "records", label: "Hồ sơ y tế", icon: "fas fa-notes-medical" },
     { value: "reports", label: "Báo cáo", icon: "fas fa-file-lines", count: reports.length },
   ]
@@ -159,7 +222,7 @@ const PatientDetail = () => {
     try {
       await alertsApi.resolve(alertId)
       toast.success("Đã xử lý cảnh báo")
-      await fetchPatientData()
+      await fetchAlertsPage(alertPage, alertFilter)
     } catch (error) {
       console.error("Lỗi xử lý cảnh báo:", error)
       toast.error("Không thể xử lý cảnh báo")
@@ -202,7 +265,8 @@ const PatientDetail = () => {
       await alertsApi.create(payload)
       toast.success("Đã tạo cảnh báo thủ công")
       setShowAlertForm(false)
-      await fetchPatientData()
+      setAlertPage(1)
+      await fetchAlertsPage(1, alertFilter)
     } catch (error) {
       console.error("Lỗi tạo cảnh báo thủ công:", error)
       toast.error(error.response?.data?.message || "Không thể tạo cảnh báo")
@@ -303,8 +367,8 @@ const PatientDetail = () => {
       {activeTab === "overview" ? (
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-4">
-            <DoctorStatCard icon="fas fa-wave-square" label="Lần đo ECG" value={readings.length} tone="brand" />
-            <DoctorStatCard icon="fas fa-triangle-exclamation" label="Cảnh báo mở" value={openAlerts.length} tone="red" />
+            <DoctorStatCard icon="fas fa-wave-square" label="Lần đo ECG" value={readingTotal} tone="brand" />
+            <DoctorStatCard icon="fas fa-triangle-exclamation" label="Cảnh báo mở" value={alertSummary.unresolved} tone="red" />
             <DoctorStatCard icon="fas fa-pills" label="Đơn thuốc đang dùng" value={activePlans.length} tone="emerald" />
             <DoctorStatCard icon="fas fa-file-lines" label="Báo cáo" value={reports.length} tone="sky" />
           </div>
@@ -362,28 +426,37 @@ const PatientDetail = () => {
           <div className="clinical-panel-header"><div><h2 className="section-title">Dữ liệu ECG</h2><p className="section-subtitle">Nhấn từng lần đo để xem đồ thị và segment cảnh báo.</p></div></div>
           <div className="clinical-panel-body">
             {readings.length ? (
-              <div className="overflow-x-auto">
-                <table className="table align-middle">
-                  <thead><tr><th>Thời gian</th><th>Nhịp tim</th><th>AI</th><th>Trạng thái</th><th className="text-end">Chi tiết</th></tr></thead>
-                  <tbody>
-                    {readings.map((reading) => (
-                      <tr key={reading.reading_id}>
-                        <td>{formatDateTime(reading.timestamp)}</td>
-                        <td className={`font-bold ${getHeartRateTone(reading.heart_rate)}`}>{reading.heart_rate} BPM</td>
-                        <td>
-                          {String(reading.ai_status || "").toUpperCase() === "PENDING"
-                            ? "Đang phân tích"
-                            : String(reading.ai_status || "").toUpperCase() === "FAILED"
-                              ? (reading.ai_error || "Phân tích thất bại")
-                              : formatAiResultForDisplay(reading.ai_result)}
-                        </td>
-                        <td><span className={`rounded-full px-3 py-1 text-xs font-bold ${reading.abnormal_detected ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{reading.abnormal_detected ? "Bất thường" : "Bình thường"}</span></td>
-                        <td className="text-end"><button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="table align-middle">
+                    <thead><tr><th>Thời gian</th><th>Nhịp tim</th><th>AI</th><th>Trạng thái</th><th className="text-end">Chi tiết</th></tr></thead>
+                    <tbody>
+                      {readings.map((reading) => (
+                        <tr key={reading.reading_id}>
+                          <td>{formatDateTime(reading.timestamp)}</td>
+                          <td className={`font-bold ${getHeartRateTone(reading.heart_rate)}`}>{reading.heart_rate} BPM</td>
+                          <td>
+                            {String(reading.ai_status || "").toUpperCase() === "PENDING"
+                              ? "Đang phân tích"
+                              : String(reading.ai_status || "").toUpperCase() === "FAILED"
+                                ? (reading.ai_error || "Phân tích thất bại")
+                                : formatAiResultForDisplay(reading.ai_result)}
+                          </td>
+                          <td><span className={`rounded-full px-3 py-1 text-xs font-bold ${reading.abnormal_detected ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{reading.abnormal_detected ? "Bất thường" : "Bình thường"}</span></td>
+                          <td className="text-end"><button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <PaginationBar
+                  currentPage={readingPage}
+                  totalPages={readingTotalPages}
+                  onPageChange={setReadingPage}
+                  summaryText={`Hiển thị ${visibleReadingStart}-${visibleReadingEnd} / ${readingTotal} ECG`}
+                  className="mt-4"
+                />
+              </>
             ) : <EmptyState icon="fas fa-wave-square" title="Chưa có dữ liệu ECG" />}
           </div>
         </section>
@@ -394,7 +467,7 @@ const PatientDetail = () => {
           <div className="clinical-panel-header">
             <div><h2 className="section-title">Cảnh báo</h2><p className="section-subtitle">Lọc, mở ECG và đánh dấu xử lý.</p></div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn btn-primary btn-sm" onClick={openCreateAlertForm} disabled={!readings.length}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={openCreateAlertForm} disabled={!readingTotal}>
                 <i className="fas fa-plus me-1"></i>Tạo cảnh báo
               </button>
               <select className="form-select w-auto" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value)}>
@@ -405,7 +478,7 @@ const PatientDetail = () => {
             </div>
           </div>
           <div className="clinical-panel-body space-y-3">
-            {visibleAlerts.length ? visibleAlerts.map((alert) => (
+            {alerts.length ? alerts.map((alert) => (
               <article key={alert.alert_id} className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -424,7 +497,7 @@ const PatientDetail = () => {
               currentPage={alertPage}
               totalPages={alertTotalPages}
               onPageChange={setAlertPage}
-              summaryText={filteredAlerts.length > 0 ? `Hiển thị ${visibleAlertStart}-${visibleAlertEnd} / ${filteredAlerts.length} cảnh báo` : "Chưa có cảnh báo để phân trang"}
+              summaryText={alertTotal > 0 ? `Hiển thị ${visibleAlertStart}-${visibleAlertEnd} / ${alertTotal} cảnh báo` : "Chưa có cảnh báo để phân trang"}
               className="mt-4"
             />
           </div>

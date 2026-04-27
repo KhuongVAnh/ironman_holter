@@ -18,57 +18,46 @@ const toTextArray = (value) => {
   return text ? [text] : []
 }
 
-const getPlanTone = (plan) => {
-  if (plan.is_active) return "border-emerald-100 bg-emerald-50 text-emerald-700"
-  return "border-slate-200 bg-slate-50 text-slate-700"
-}
+const getPlanStatus = (plan) =>
+  plan.is_active
+    ? { label: "Đang dùng", className: "is-active", icon: "fas fa-circle-play" }
+    : { label: "Đã kết thúc", className: "is-ended", icon: "fas fa-circle-check" }
 
-const MedicationCard = ({ medication, index }) => {
+const MedicationScheduleRow = ({ medication, index }) => {
   const times = toTextArray(medication.times)
+  const name = displayText(medication.name, `Thuốc ${index + 1}`)
 
   return (
-    <article className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-            <i className="fas fa-pills"></i>
-          </span>
-          <div className="min-w-0">
-            <p className="mb-0 text-base font-bold leading-6 text-ink-950">
-              {displayText(medication.name, `Thuốc ${index + 1}`)}
-            </p>
-            {medication.type ? (
-              <p className="mb-0 mt-1 text-xs font-bold uppercase tracking-[0.08em] text-ink-500">{medication.type}</p>
-            ) : null}
-          </div>
+    <div className="medication-schedule-row">
+      <div className="medication-name-cell">
+        <span className="medication-row-index">{index + 1}</span>
+        <div className="min-w-0">
+          <p className="medication-name">{name}</p>
+          {medication.type ? <p className="medication-type">{medication.type}</p> : null}
         </div>
-        <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-700">
-          {displayText(medication.dosage, "Chưa có liều")}
-        </span>
       </div>
 
-      <div className="mt-4 rounded-xl bg-surface-soft p-3">
-        <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-ink-500">
-          <i className="far fa-clock"></i>
-          Thời điểm uống
-        </p>
+      <div className="medication-dose-cell">
+        <span className="medication-dose-chip">{displayText(medication.dosage, "Chưa có liều")}</span>
+      </div>
+
+      <div className="medication-times-cell">
         {times.length ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="medication-time-list">
             {times.map((time, timeIndex) => (
-              <span key={`${timeIndex}-${time}`} className="rounded-full border border-surface-line bg-white px-3 py-1 text-xs font-semibold text-ink-700">
+              <span key={`${timeIndex}-${time}`} className="medication-time-chip">
+                <i className="far fa-clock"></i>
                 {time}
               </span>
             ))}
           </div>
         ) : (
-          <p className="mb-0 text-sm text-ink-500">Chưa có</p>
+          <span className="medication-muted-text">Chưa có</span>
         )}
       </div>
 
-      {medication.description ? (
-        <p className="mb-0 mt-3 whitespace-pre-line text-sm font-medium leading-6 text-ink-700">{medication.description}</p>
-      ) : null}
-    </article>
+      <p className="medication-note-cell">{displayText(medication.description, "Chưa có")}</p>
+    </div>
   )
 }
 
@@ -86,87 +75,88 @@ const MedicationPlanList = ({ plans, onEdit, onDelete, role }) => {
   }
 
   return (
-    <div className="space-y-4">
-      {plans.map((plan) => {
+    <div className="medication-plan-list">
+      {plans.map((plan, planIndex) => {
         const medications = plan.medications || []
+        const status = getPlanStatus(plan)
 
         return (
-          <article key={plan.plan_id} className="overflow-hidden rounded-2xl border border-surface-line bg-white shadow-soft">
-            <div className="border-b border-surface-line bg-surface-soft/70 p-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex min-w-0 items-start gap-4">
-                  <span className="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-white text-xl text-emerald-700 shadow-soft">
-                    <i className="fas fa-briefcase-medical"></i>
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="mb-0 text-lg font-bold leading-7 text-ink-950">{displayText(plan.title, "Kế hoạch thuốc")}</h3>
-                      <span className={`rounded-full border px-3 py-1 text-xs font-bold ${getPlanTone(plan)}`}>
-                        {plan.is_active ? "Đang dùng" : "Đã kết thúc"}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-ink-700">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-surface-line bg-white px-3 py-1">
-                        <i className="far fa-calendar-plus text-emerald-700"></i>
-                        {formatDate(plan.start_date)}
-                      </span>
-                      <span className="inline-flex items-center gap-2 rounded-full border border-surface-line bg-white px-3 py-1">
-                        <i className="far fa-calendar-check text-sky-700"></i>
-                        {plan.end_date ? formatDate(plan.end_date) : "Hiện tại"}
-                      </span>
-                      {plan.doctor?.name ? (
-                        <span className="inline-flex items-center gap-2 rounded-full border border-surface-line bg-white px-3 py-1">
-                          <i className="fas fa-user-doctor text-ink-600"></i>
-                          {plan.doctor.name}
-                        </span>
-                      ) : null}
-                    </div>
+          <article key={plan.plan_id} className="medication-plan-card">
+            <header className="medication-plan-compact-header">
+              <div className="medication-plan-heading">
+                <span className="medication-plan-number">{planIndex + 1}</span>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="medication-plan-title">{displayText(plan.title, "Kế hoạch thuốc")}</h3>
+                    <span className={`medication-status-chip ${status.className}`}>
+                      <i className={status.icon}></i>
+                      {status.label}
+                    </span>
                   </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-emerald-100 bg-white px-4 py-2 text-sm font-bold text-emerald-700 shadow-soft">
-                    {medications.length} thuốc
-                  </span>
-                  {canManage ? (
-                    <>
-                      <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => onEdit?.(plan)}>
-                        <i className="fas fa-pen"></i>
-                        Sửa
-                      </button>
-                      <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => onDelete?.(plan.plan_id)}>
-                        <i className="fas fa-trash"></i>
-                        Xóa
-                      </button>
-                    </>
-                  ) : null}
+                  <div className="medication-plan-facts">
+                    <span>
+                      <i className="far fa-calendar-plus"></i>
+                      {formatDate(plan.start_date)}
+                    </span>
+                    <span>
+                      <i className="far fa-calendar-check"></i>
+                      {plan.end_date ? formatDate(plan.end_date) : "Hiện tại"}
+                    </span>
+                    {plan.doctor?.name ? (
+                      <span>
+                        <i className="fas fa-user-doctor"></i>
+                        {plan.doctor.name}
+                      </span>
+                    ) : null}
+                    <span>
+                      <i className="fas fa-pills"></i>
+                      {medications.length} thuốc
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {plan.notes ? (
-                <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-medium leading-6 text-amber-900">
-                  <p className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-amber-700">
+              <div className="medication-plan-header-side">
+                {plan.notes ? (
+                  <p className="medication-plan-inline-note">
                     <i className="fas fa-circle-info"></i>
-                    Ghi chú
+                    {plan.notes}
                   </p>
-                  <p className="mb-0 whitespace-pre-line">{plan.notes}</p>
-                </div>
-              ) : null}
-            </div>
+                ) : null}
+                {canManage ? (
+                  <div className="medication-plan-actions">
+                  <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => onEdit?.(plan)}>
+                    <i className="fas fa-pen"></i>
+                    
+                  </button>
+                  <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => onDelete?.(plan.plan_id)}>
+                    <i className="fas fa-trash"></i>
 
-            <div className="p-5">
+                  </button>
+                  </div>
+                ) : null}
+              </div>
+            </header>
+
+            <section className="medication-schedule">
+              <div className="medication-schedule-header">
+                <span>Thuốc</span>
+                <span>Liều</span>
+                <span>Thời điểm uống</span>
+                <span>Ghi chú</span>
+              </div>
+
               {medications.length ? (
-                <div className="grid gap-3 xl:grid-cols-2">
-                  {medications.map((medication, index) => (
-                    <MedicationCard key={medication.medication_id || `${plan.plan_id}-${index}`} medication={medication} index={index} />
-                  ))}
-                </div>
+                medications.map((medication, index) => (
+                  <MedicationScheduleRow key={medication.medication_id || `${plan.plan_id}-${index}`} medication={medication} index={index} />
+                ))
               ) : (
-                <div className="rounded-xl border border-dashed border-surface-line bg-surface-soft px-4 py-6 text-center text-sm text-ink-500">
+                <div className="medication-empty-row">
+                  <i className="fas fa-prescription-bottle-medical"></i>
                   Chưa có thuốc trong kế hoạch này.
                 </div>
               )}
-            </div>
+            </section>
           </article>
         )
       })}

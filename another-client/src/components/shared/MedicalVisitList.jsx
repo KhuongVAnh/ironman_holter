@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 import { ROLE } from "../../services/string"
 
 const PAGE_SIZE = 3
@@ -29,10 +30,12 @@ const getTestComment = (item) => {
   return item.doctorComment || item.doctor_comment || item.comment || item.note || item.result || ""
 }
 
-const SectionTitle = ({ icon, children }) => (
-  <h3 className="mb-3 flex items-center gap-2 text-[13px] font-bold uppercase tracking-[0.14em] text-ink-600">
-    {icon ? <i className={`${icon} text-sky-700`}></i> : null}
-    {children}
+const SectionTitle = ({ icon = "fas fa-circle-dot", children }) => (
+  <h3 className="medical-visit-section-title">
+    <span className="medical-visit-section-icon">
+      <i className={icon}></i>
+    </span>
+    <span>{children}</span>
   </h3>
 )
 
@@ -153,16 +156,17 @@ const MedicalVisitDetailModal = ({ visit, canManage, onClose, onEdit, onDelete }
 
   const doctorName = displayText(visit.doctor_name || visit.doctor?.name, "Chưa có bác sĩ")
 
-  return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="modal-panel max-w-4xl rounded-[24px]" onClick={(event) => event.stopPropagation()}>
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-surface-line bg-white px-5 py-5 sm:px-6">
+  return createPortal(
+    <div className="modal-overlay medical-visit-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+      <div className="modal-panel medical-visit-modal-panel" onClick={(event) => event.stopPropagation()}>
+        <div className="medical-visit-modal-header">
           <div className="min-w-0">
-            <h2 className="text-2xl font-bold leading-tight text-ink-950">Chi tiết khám bệnh</h2>
-            <p className="mb-0 mt-2 flex flex-wrap items-center gap-2 text-sm font-medium text-ink-700">
-              <i className="far fa-calendar text-ink-600"></i>
+            <p className="medical-visit-modal-eyebrow">Hồ sơ lần khám</p>
+            <h2 className="medical-visit-modal-title">Chi tiết khám bệnh</h2>
+            <p className="medical-visit-modal-meta">
+              <i className="far fa-calendar"></i>
               <span>{formatDate(visit.visit_date)}</span>
-              <span className="text-ink-400">•</span>
+              <span className="medical-visit-meta-dot">•</span>
               <span className="truncate">{displayText(visit.facility, "Chưa có cơ sở y tế")}</span>
             </p>
           </div>
@@ -171,7 +175,7 @@ const MedicalVisitDetailModal = ({ visit, canManage, onClose, onEdit, onDelete }
               <>
                 <button
                   type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-sky-50 text-sky-700 transition hover:bg-sky-100"
+                  className="medical-visit-icon-button is-edit"
                   onClick={() => {
                     onClose?.()
                     onEdit?.(visit)
@@ -182,7 +186,7 @@ const MedicalVisitDetailModal = ({ visit, canManage, onClose, onEdit, onDelete }
                 </button>
                 <button
                   type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100"
+                  className="medical-visit-icon-button is-delete"
                   onClick={() => {
                     onDelete?.(visit.visit_id)
                     onClose?.()
@@ -195,7 +199,7 @@ const MedicalVisitDetailModal = ({ visit, canManage, onClose, onEdit, onDelete }
             ) : null}
             <button
               type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-surface-muted text-ink-900 transition hover:bg-surface-line"
+              className="medical-visit-icon-button is-close"
               onClick={onClose}
               aria-label="Đóng"
             >
@@ -204,52 +208,53 @@ const MedicalVisitDetailModal = ({ visit, canManage, onClose, onEdit, onDelete }
           </div>
         </div>
 
-        <div className="modal-body space-y-6 px-5 py-6 sm:px-6">
-          <section>
-            <SectionTitle>Bác sĩ phụ trách</SectionTitle>
-            <p className="mb-0 text-xl font-bold text-ink-900">{doctorName}</p>
+        <div className="modal-body medical-visit-modal-body">
+          <section className="medical-visit-section">
+            <SectionTitle icon="fas fa-user-doctor">Bác sĩ phụ trách</SectionTitle>
+            <p className="medical-visit-lead-text">{doctorName}</p>
           </section>
 
-          <section className="rounded-xl border border-surface-line bg-surface-soft p-5">
-            <p className="mb-2 text-[13px] font-bold uppercase tracking-[0.14em] text-sky-500">Chẩn đoán xác định</p>
-            <p className="mb-0 whitespace-pre-line text-base font-bold leading-7 text-ink-950">
+          <section className="medical-visit-diagnosis-card">
+            <SectionTitle icon="fas fa-notes-medical">Chẩn đoán xác định</SectionTitle>
+            <p className="medical-visit-diagnosis-text">
               {displayText(visit.diagnosis, "Chưa có chẩn đoán")}
             </p>
             {visit.diagnosis_details ? (
-              <p className="mb-0 mt-3 whitespace-pre-line text-sm font-medium leading-6 text-ink-700">
+              <p className="medical-visit-body-text mt-3">
                 {visit.diagnosis_details}
               </p>
             ) : null}
           </section>
 
-          <section>
-            <SectionTitle>Lý do khám / Triệu chứng ban đầu</SectionTitle>
-            <p className="mb-0 whitespace-pre-line text-sm font-medium leading-7 text-ink-800">{displayText(visit.reason)}</p>
+          <section className="medical-visit-section">
+            <SectionTitle icon="fas fa-stethoscope">Lý do khám / Triệu chứng ban đầu</SectionTitle>
+            <p className="medical-visit-body-text">{displayText(visit.reason)}</p>
           </section>
 
-          <section>
-            <SectionTitle>Kết quả xét nghiệm / Chụp chiếu</SectionTitle>
+          <section className="medical-visit-section">
+            <SectionTitle icon="fas fa-vial-circle-check">Kết quả xét nghiệm / Chụp chiếu</SectionTitle>
             {renderTests(visit.tests)}
           </section>
 
-          <section className="border-t border-surface-line pt-6">
+          <section className="medical-visit-section">
             <SectionTitle icon="fas fa-prescription-bottle-medical">Đơn thuốc</SectionTitle>
             {renderPrescription(visit.prescription)}
           </section>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <section className="rounded-xl border border-surface-line bg-white p-4">
-              <SectionTitle>Lời khuyên</SectionTitle>
-              <p className="mb-0 whitespace-pre-line text-sm font-medium leading-6 text-ink-800">{displayText(visit.advice)}</p>
+            <section className="medical-visit-section">
+              <SectionTitle icon="fas fa-heart-pulse">Lời khuyên</SectionTitle>
+              <p className="medical-visit-body-text">{displayText(visit.advice)}</p>
             </section>
-            <section className="rounded-xl border border-surface-line bg-white p-4">
-              <SectionTitle>Lịch hẹn</SectionTitle>
-              <p className="mb-0 whitespace-pre-line text-sm font-medium leading-6 text-ink-800">{displayText(visit.appointment)}</p>
+            <section className="medical-visit-section">
+              <SectionTitle icon="far fa-calendar-check">Lịch hẹn</SectionTitle>
+              <p className="medical-visit-body-text">{displayText(visit.appointment)}</p>
             </section>
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

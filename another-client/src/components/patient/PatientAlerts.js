@@ -149,17 +149,6 @@ const PatientAlerts = () => {
     setSelectedReadingId(alert.reading_id)
   }
 
-  const handleResolveAlert = async (alertId) => {
-    try {
-      await alertsApi.resolve(alertId)
-      toast.success("Đã đánh dấu cảnh báo đã xử lý")
-      await fetchAlerts()
-    } catch (error) {
-      console.error("Lỗi xử lý cảnh báo:", error)
-      toast.error(error.response?.data?.message || "Không thể xử lý cảnh báo")
-    }
-  }
-
   if (loading) {
     return (
       <div className="page-shell">
@@ -292,11 +281,6 @@ const PatientAlerts = () => {
                               </span>
                             </div>
                           </button>
-                          {!alert.resolved ? (
-                            <button type="button" className="btn btn-outline-success btn-sm" onClick={() => handleResolveAlert(alert.alert_id)}>
-                              <i className="fas fa-check me-1"></i>Đánh dấu đã xử lý
-                            </button>
-                          ) : null}
                         </div>
                       )
                     })}

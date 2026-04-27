@@ -11,7 +11,7 @@ router.post("/", authenticateToken, authorizeRoles("admin", "bác sĩ"), createA
 router.get("/:user_id", authenticateToken, getUserAlerts)
 
 // Đánh dấu cảnh báo đã xử lý
-router.put("/:id/resolve", authenticateToken, resolveAlert)
+router.put("/:id/resolve", authenticateToken, authorizeRoles("admin", "bác sĩ"), resolveAlert)
 
 // Lấy tất cả cảnh báo (admin, bác sĩ)
 router.get("/", authenticateToken, authorizeRoles("admin", "bác sĩ"), getAllAlerts)

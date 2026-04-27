@@ -695,6 +695,293 @@
     font-size: 1.5rem;
     line-height: 1;
   }
+
+  .medical-visit-modal-panel {
+    @apply h-[min(680px,calc(100dvh-6rem))] max-w-[64rem] rounded-[24px] border-white/70 bg-white shadow-panel;
+  }
+
+  .medical-visit-modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483000 !important;
+    @apply items-center p-4 sm:p-6;
+  }
+
+  .medical-visit-modal-header {
+    @apply shrink-0 flex flex-wrap items-start justify-between gap-4 border-b border-rose-100 bg-white px-5 py-4 sm:px-6;
+    background:
+      linear-gradient(135deg, rgba(255, 241, 242, 0.95), rgba(255, 255, 255, 0.98) 56%, rgba(240, 249, 255, 0.88)),
+      #fff;
+  }
+
+  .medical-visit-modal-eyebrow {
+    @apply mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-brand-700;
+  }
+
+  .medical-visit-modal-title {
+    @apply font-display text-2xl font-bold leading-tight text-ink-950;
+  }
+
+  .medical-visit-modal-meta {
+    @apply mb-0 mt-2 flex max-w-full flex-wrap items-center gap-2 text-sm font-semibold text-ink-700;
+  }
+
+  .medical-visit-modal-meta i {
+    @apply text-brand-600;
+  }
+
+  .medical-visit-meta-dot {
+    @apply text-brand-300;
+  }
+
+  .medical-visit-modal-body {
+    @apply min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-surface-soft/80 px-5 py-5 sm:px-6;
+  }
+
+  .medical-visit-modal-body::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .medical-visit-modal-body::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300;
+  }
+
+  .medical-visit-modal-body::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .medical-visit-section {
+    @apply rounded-2xl border border-surface-line bg-white p-5 shadow-soft;
+  }
+
+  .medical-visit-section-title {
+    @apply mb-3 flex items-center gap-2 text-[13px] font-bold uppercase tracking-[0.12em] text-ink-700;
+  }
+
+  .medical-visit-section-title::after {
+    content: "";
+    @apply h-px min-w-8 flex-1 bg-gradient-to-r from-brand-200 to-transparent;
+  }
+
+  .medical-visit-section-icon {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-100;
+  }
+
+  .medical-visit-lead-text {
+    @apply mb-0 text-xl font-bold text-ink-900;
+  }
+
+  .medical-visit-body-text {
+    @apply mb-0 whitespace-pre-line text-sm font-medium leading-7 text-ink-800;
+  }
+
+  .medical-visit-diagnosis-card {
+    @apply relative overflow-hidden rounded-2xl border border-brand-100 bg-white p-5 shadow-soft;
+  }
+
+  .medical-visit-diagnosis-card::before {
+    content: "";
+    @apply absolute inset-y-0 left-0 w-1.5 bg-brand-600;
+  }
+
+  .medical-visit-diagnosis-card .medical-visit-section-title {
+    @apply text-brand-700;
+  }
+
+  .medical-visit-diagnosis-card .medical-visit-section-icon {
+    @apply bg-brand-50 text-brand-700 ring-brand-100;
+  }
+
+  .medical-visit-diagnosis-text {
+    @apply mb-0 whitespace-pre-line text-lg font-bold leading-7 text-ink-950;
+  }
+
+  .medical-visit-icon-button {
+    @apply inline-flex h-12 w-12 items-center justify-center rounded-2xl border text-base shadow-soft transition hover:-translate-y-0.5 hover:shadow-medium focus:outline-none focus:ring-2;
+  }
+
+  .medical-visit-icon-button.is-edit {
+    @apply border-sky-100 bg-sky-50 text-sky-700 hover:bg-sky-100 focus:ring-sky-100;
+  }
+
+  .medical-visit-icon-button.is-delete {
+    @apply border-red-100 bg-red-50 text-red-600 hover:bg-red-100 focus:ring-red-100;
+  }
+
+  .medical-visit-icon-button.is-close {
+    @apply border-surface-line bg-white text-ink-800 hover:bg-surface-soft focus:ring-surface-line;
+  }
+
+  .medication-plan-list {
+    @apply space-y-3;
+  }
+
+  .medication-plan-card {
+    @apply overflow-hidden rounded-2xl border border-surface-line bg-white shadow-soft;
+  }
+
+  .medication-plan-compact-header {
+    @apply flex flex-wrap items-start justify-between gap-3 border-b border-surface-line bg-surface-soft/70 px-4 py-3;
+  }
+
+  .medication-plan-heading {
+    @apply flex min-w-0 flex-1 items-start gap-3;
+  }
+
+  .medication-plan-number {
+    @apply mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-sm font-bold text-white shadow-soft;
+  }
+
+  .medication-plan-title {
+    @apply mb-0 text-base font-bold leading-6 text-ink-950;
+  }
+
+  .medication-status-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold;
+  }
+
+  .medication-status-chip.is-active {
+    @apply border-emerald-100 bg-emerald-50 text-emerald-700;
+  }
+
+  .medication-status-chip.is-ended {
+    @apply border-slate-200 bg-slate-50 text-slate-700;
+  }
+
+  .medication-plan-facts {
+    @apply mt-2 flex flex-wrap gap-2 text-xs font-semibold text-ink-700;
+  }
+
+  .medication-plan-facts span {
+    @apply inline-flex min-w-0 items-center gap-1.5 rounded-lg border border-surface-line bg-white px-2.5 py-1;
+  }
+
+  .medication-plan-facts i {
+    @apply w-3.5 shrink-0 text-center text-emerald-700;
+  }
+
+  .medication-plan-header-side {
+    @apply flex max-w-full flex-wrap items-start justify-end gap-2;
+  }
+
+  .medication-plan-inline-note {
+    @apply mb-0 line-clamp-2 max-w-xl rounded-lg border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-semibold leading-5 text-amber-900;
+  }
+
+  .medication-plan-inline-note i {
+    @apply mr-1.5 text-amber-700;
+  }
+
+  .medication-plan-actions {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .medication-schedule {
+    @apply min-w-0 bg-white;
+  }
+
+  .medication-schedule-header,
+  .medication-schedule-row {
+    @apply grid gap-3;
+    grid-template-columns: minmax(220px, 1.1fr) minmax(130px, 0.55fr) minmax(220px, 1fr) minmax(180px, 0.9fr);
+  }
+
+  .medication-schedule-header {
+    @apply hidden border-b border-surface-line bg-white px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-ink-500 lg:grid;
+  }
+
+  .medication-schedule-row {
+    @apply border-b border-surface-line px-4 py-3 last:border-b-0;
+  }
+
+  .medication-name-cell {
+    @apply flex min-w-0 items-start gap-3;
+  }
+
+  .medication-row-index {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100;
+  }
+
+  .medication-name {
+    @apply mb-0 text-sm font-bold leading-5 text-ink-950;
+  }
+
+  .medication-type {
+    @apply mb-0 mt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-ink-500;
+  }
+
+  .medication-dose-cell,
+  .medication-times-cell {
+    @apply min-w-0;
+  }
+
+  .medication-dose-chip {
+    @apply inline-flex max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold leading-5 text-emerald-700;
+  }
+
+  .medication-time-list {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .medication-time-chip {
+    @apply inline-flex items-center gap-1.5 rounded-lg border border-surface-line bg-surface-soft px-2.5 py-1 text-xs font-bold text-ink-700;
+  }
+
+  .medication-time-chip i {
+    @apply text-emerald-700;
+  }
+
+  .medication-note-cell {
+    @apply mb-0 whitespace-pre-line text-xs font-medium leading-5 text-ink-700;
+  }
+
+  .medication-muted-text {
+    @apply text-sm font-medium text-ink-500;
+  }
+
+  .medication-empty-row {
+    @apply flex min-h-20 items-center justify-center gap-2 px-4 py-5 text-center text-sm font-semibold text-ink-500;
+  }
+
+  .structured-entry-panel {
+    @apply rounded-2xl border border-surface-line bg-surface-soft/70 p-4;
+  }
+
+  .structured-entry-header {
+    @apply mb-3 flex flex-wrap items-start justify-between gap-3;
+  }
+
+  .structured-entry-hint {
+    @apply mb-0 text-xs font-medium leading-5 text-ink-500;
+  }
+
+  .structured-entry-row {
+    @apply space-y-3 rounded-xl border border-surface-line bg-white p-4 shadow-soft;
+  }
+
+  @media (max-width: 1023px) {
+    .medication-schedule-row {
+      @apply grid-cols-1 gap-4;
+    }
+
+    .medication-dose-cell::before,
+    .medication-times-cell::before,
+    .medication-note-cell::before {
+      @apply mb-2 block text-xs font-bold uppercase tracking-[0.1em] text-ink-500;
+    }
+
+    .medication-dose-cell::before {
+      content: "Liều";
+    }
+
+    .medication-times-cell::before {
+      content: "Thời điểm uống";
+    }
+
+    .medication-note-cell::before {
+      content: "Ghi chú";
+    }
+  }
 }
 
 @keyframes spinner-border {
