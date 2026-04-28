@@ -12,6 +12,9 @@ import {
 } from "../../strings/ecgAiStrings"
 
 const DEFAULT_SAMPLE_RATE = 250
+const ECG_GRID_TIME_STEP_SECONDS = 0.1
+const ECG_GRID_VOLTAGE_STEP = 0.1
+const ECG_GRID_MAJOR_EVERY = 5
 
 const normalizeEcgData = (value) => {
   if (Array.isArray(value)) {
@@ -84,6 +87,125 @@ const buildHighlightPlugin = (ranges) => ({
     ],
   },
 })
+
+const isMajorGridLine = (value, step) => {
+  const index = Math.round(value / step)
+  return Math.abs(value / step - index) < 0.001 && Math.abs(index) % ECG_GRID_MAJOR_EVERY === 0
+}
+
+const drawGridLine = (ctx, x1, y1, x2, y2, major) => {
+  ctx.beginPath()
+  ctx.strokeStyle = major ? "rgba(225, 29, 72, 0.18)" : "rgba(225, 29, 72, 0.08)"
+  ctx.lineWidth = major ? 1.2 : 0.7
+  ctx.moveTo(Math.round(x1) + 0.5, Math.round(y1) + 0.5)
+  ctx.lineTo(Math.round(x2) + 0.5, Math.round(y2) + 0.5)
+  ctx.stroke()
+}
+
+const buildEcgGridPlugin = () => ({
+  hooks: {
+    drawClear: [
+      (chart) => {
+        const { ctx, bbox } = chart
+        const xMin = Number(chart.scales.x.min)
+        const xMax = Number(chart.scales.x.max)
+        const yMin = Number(chart.scales.y.min)
+        const yMax = Number(chart.scales.y.max)
+
+        if (![xMin, xMax, yMin, yMax].every(Number.isFinite)) return
+
+        ctx.save()
+        ctx.rect(bbox.left, bbox.top, bbox.width, bbox.height)
+        ctx.clip()
+
+        const firstTimeLine = Math.ceil(xMin / ECG_GRID_TIME_STEP_SECONDS) * ECG_GRID_TIME_STEP_SECONDS
+        for (let value = firstTimeLine; value <= xMax + 0.0001; value += ECG_GRID_TIME_STEP_SECONDS) {
+          const x = chart.valToPos(Number(value.toFixed(6)), "x", true)
+          drawGridLine(ctx, x, bbox.top, x, bbox.top + bbox.height, isMajorGridLine(value, ECG_GRID_TIME_STEP_SECONDS))
+        }
+
+        const firstVoltageLine = Math.ceil(yMin / ECG_GRID_VOLTAGE_STEP) * ECG_GRID_VOLTAGE_STEP
+        for (let value = firstVoltageLine; value <= yMax + 0.0001; value += ECG_GRID_VOLTAGE_STEP) {
+          const y = chart.valToPos(Number(value.toFixed(6)), "y", true)
+          drawGridLine(ctx, bbox.left, y, bbox.left + bbox.width, y, isMajorGridLine(value, ECG_GRID_VOLTAGE_STEP))
+        }
+
+        ctx.restore()
+      },
+    ],
+  },
+})
+
+const buildHoverValuePlugin = () => {
+  let marker = null
+  let tooltip = null
+  let leaveHandler = null
+
+  const hideHover = () => {
+    if (marker) marker.style.display = "none"
+    if (tooltip) tooltip.style.display = "none"
+  }
+
+  return {
+    hooks: {
+      ready: [
+        (chart) => {
+          const hoverLayer = chart.root.querySelector(".u-wrap") || chart.root
+          hoverLayer.style.position = "relative"
+
+          marker = document.createElement("div")
+          marker.className = "ecg-hover-marker"
+          marker.style.display = "none"
+
+          tooltip = document.createElement("div")
+          tooltip.className = "ecg-hover-tooltip"
+          tooltip.style.display = "none"
+
+          hoverLayer.appendChild(marker)
+          hoverLayer.appendChild(tooltip)
+
+          leaveHandler = hideHover
+          chart.root.addEventListener("mouseleave", leaveHandler)
+        },
+      ],
+      setCursor: [
+        (chart) => {
+          const index = chart.cursor.idx
+          const time = chart.data?.[0]?.[index]
+          const amplitude = chart.data?.[1]?.[index]
+
+          if (!Number.isInteger(index) || !Number.isFinite(time) || !Number.isFinite(amplitude)) {
+            hideHover()
+            return
+          }
+
+          const x = chart.bbox.left + chart.valToPos(time, "x", false)
+          const y = chart.bbox.top + chart.valToPos(amplitude, "y", false)
+          const tooltipOffsetX = x > chart.bbox.left + chart.bbox.width - 160 ? -152 : 12
+          const tooltipOffsetY = y < chart.bbox.top + 54 ? 14 : -44
+
+          marker.style.display = "block"
+          marker.style.transform = `translate(${x - 6}px, ${y - 6}px)`
+
+          tooltip.style.display = "block"
+          tooltip.style.transform = `translate(${x + tooltipOffsetX}px, ${y + tooltipOffsetY}px)`
+          tooltip.innerHTML = `
+            <span class="ecg-hover-tooltip-label">Biên độ</span>
+            <strong>${amplitude.toFixed(3)} V</strong>
+            <small>${time.toFixed(2)}s</small>
+          `
+        },
+      ],
+      destroy: [
+        (chart) => {
+          if (leaveHandler) chart.root.removeEventListener("mouseleave", leaveHandler)
+          marker?.remove()
+          tooltip?.remove()
+        },
+      ],
+    },
+  }
+}
 
 const ECGChart = ({
   data = [],
@@ -166,8 +288,8 @@ const ECGChart = ({
       {
         width,
         height,
-        padding: [64, 32, 0, 0],
-        plugins: [buildHighlightPlugin(prepared.visibleRanges)],
+        padding: [76, 32, 0, 0],
+        plugins: [buildEcgGridPlugin(), buildHighlightPlugin(prepared.visibleRanges), buildHoverValuePlugin()],
         cursor: {
           drag: { x: false, y: false },
           focus: { prox: 18 },
@@ -179,20 +301,19 @@ const ECGChart = ({
         axes: [
           {
             stroke: "#64748b",
-            grid: { stroke: "rgba(225, 29, 72, 0.12)", width: 1 },
+            grid: { show: false },
             ticks: { stroke: "rgba(225, 29, 72, 0.16)", width: 1 },
             font: "11px Be Vietnam Pro, Arial, sans-serif",
             values: (_chart, values) => values.map((value) => `${Number(value).toFixed(1)}s`),
           },
           {
-            label: "(Volt)",
             labelSize: 28,
             labelFont: "12px Be Vietnam Pro, Arial, sans-serif",
             stroke: "#64748b",
-            grid: { stroke: "rgba(225, 29, 72, 0.10)", width: 1 },
+            grid: { show: false },
             ticks: { stroke: "rgba(225, 29, 72, 0.16)", width: 1 },
             font: "11px Be Vietnam Pro, Arial, sans-serif",
-            values: (_chart, values) => values.map((value) => Number(value).toFixed(1)),
+            values: (_chart, values) => values.map((value) => `${Number(value).toFixed(1)}V`),
           },
         ],
         series: [

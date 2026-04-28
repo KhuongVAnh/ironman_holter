@@ -142,6 +142,7 @@ const PatientProfile = () => {
       <ModalFrame
         show={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
+        eyebrow="Bảo mật tài khoản"
         title="Đổi mật khẩu"
         footer={<><button type="button" className="btn btn-outline-secondary" onClick={() => setShowPasswordModal(false)}>Hủy</button><button type="submit" form="change-password-form" className="btn btn-primary" disabled={loading}>{loading ? "Đang đợi..." : "Lưu mật khẩu mới"}</button></>}
       >

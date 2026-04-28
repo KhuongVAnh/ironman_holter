@@ -103,6 +103,7 @@ const DeviceReadingsModal = ({ show, onClose, device }) => {
       <ModalFrame
         show={show}
         onClose={onClose}
+        eyebrow="Thiết bị Holter"
         title="Chi tiết thiết bị"
         size="xl"
         footer={

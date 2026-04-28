@@ -265,7 +265,7 @@ const MedicalVisitForm = ({ show, handleClose, onSubmit, initialData }) => {
   )
 
   return (
-    <ModalFrame show={show} onClose={handleClose} title={formData.visit_id ? "Cập nhật lần khám" : "Thêm lần khám"} size="lg" footer={footer}>
+    <ModalFrame show={show} onClose={handleClose} eyebrow="Hồ sơ khám bệnh" title={formData.visit_id ? "Cập nhật lần khám" : "Thêm lần khám"} size="lg" footer={footer}>
       <form id="medical-visit-form" className="space-y-4" onSubmit={submit}>
         <div className="grid gap-4 md:grid-cols-2">
           <div>

@@ -57,7 +57,12 @@ const getAlertSeverity = (alertType) => {
   ) {
     return "high"
   }
-  if (normalized.includes("nhip nhanh") || normalized.includes("nhip cham")) {
+  if (
+    normalized.includes("ngoai tam thu") ||
+    normalized.includes("nhip nhanh") ||
+    normalized.includes("nhip cham") ||
+    normalized.includes("tachy")
+  ) {
     return "medium"
   }
   return "low"

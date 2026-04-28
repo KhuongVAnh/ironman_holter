@@ -262,6 +262,7 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
     <ModalFrame
       show={show}
       onClose={onHide}
+      eyebrow="Phân tích ECG"
       title="Chi tiết bản ghi ECG"
       size="xl"
       footer={<button type="button" className="btn btn-outline-secondary" onClick={onHide}>Đóng</button>}

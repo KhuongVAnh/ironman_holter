@@ -20,7 +20,12 @@ export const getAlertSeverity = (alertType) => {
   ) {
     return "high"
   }
-  if (normalized.includes("nhip nhanh") || normalized.includes("nhip cham")) {
+  if (
+    normalized.includes("ngoai tam thu") ||
+    normalized.includes("nhip nhanh") ||
+    normalized.includes("nhip cham") ||
+    normalized.includes("tachy")
+  ) {
     return "medium"
   }
   return "low"
@@ -39,7 +44,7 @@ export const getAlertTypeLabel = (alertType) => {
 const DEFAULT_SEVERITY_META = {
   high: { className: "alert-severity-high", icon: "fas fa-triangle-exclamation", label: "Nguy cơ cao" },
   medium: { className: "alert-severity-medium", icon: "fas fa-wave-square", label: "Theo dõi" },
-  low: { className: "alert-severity-low", icon: "fas fa-circle-check", label: "Ổn định" },
+  low: { className: "alert-severity-low", icon: "fas fa-circle-check", label: "Thấp" },
 }
 
 const truncateMessage = (message, limit = 96) => {

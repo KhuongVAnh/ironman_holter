@@ -553,6 +553,7 @@ const PatientDetail = () => {
       <ModalFrame
         show={showAlertForm}
         onClose={() => setShowAlertForm(false)}
+        eyebrow="Cảnh báo lâm sàng"
         title="Tạo cảnh báo thủ công"
         size="lg"
         footer={

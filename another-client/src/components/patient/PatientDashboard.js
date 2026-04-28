@@ -86,6 +86,7 @@ const PatientDashboard = () => {
   const [recentAlerts, setRecentAlerts] = useState([])
   const [analysisState, setAnalysisState] = useState(null)
   const [supervisingDoctors, setSupervisingDoctors] = useState([])
+  const [familyMembers, setFamilyMembers] = useState([])
   const [selectedReadingId, setSelectedReadingId] = useState(null)
 
   useEffect(() => {
@@ -149,7 +150,7 @@ const PatientDashboard = () => {
     window.addEventListener("appAlert", handleAlert)
 
     fetchRecentAlerts()
-    fetchSupervisingDoctors()
+    fetchCareTeam()
 
     return () => {
       window.removeEventListener("appReadingUpdate", handleEcgData)
@@ -175,20 +176,30 @@ const PatientDashboard = () => {
     }
   }
 
-  const fetchSupervisingDoctors = async () => {
+  const fetchCareTeam = async () => {
     try {
       const response = await accessApi.list(user.user_id)
-      const doctors = (response.data || [])
-        .filter((item) => item.role === ACCESS_ROLE.BAC_SI && item.status === ACCESS_STATUS.ACCEPTED)
+      const acceptedAccessList = (response.data || []).filter((item) => item.status === ACCESS_STATUS.ACCEPTED)
+      const doctors = acceptedAccessList
+        .filter((item) => item.role === ACCESS_ROLE.BAC_SI)
         .map((item) => ({
           id: item.viewer_id,
           name: item.viewer?.name || "Không rõ tên",
           email: item.viewer?.email || "-",
           specialty: item.viewer?.specialty || "Tim mạch",
         }))
+      const relatives = acceptedAccessList
+        .filter((item) => item.role === ACCESS_ROLE.GIA_DINH)
+        .map((item) => ({
+          id: item.viewer_id,
+          name: item.viewer?.name || "Không rõ tên",
+          email: item.viewer?.email || "-",
+        }))
+
       setSupervisingDoctors(doctors)
+      setFamilyMembers(relatives)
     } catch (error) {
-      console.error("Lỗi tải danh sách bác sĩ:", error)
+      console.error("Lỗi tải danh sách người theo dõi:", error)
     }
   }
 
@@ -263,8 +274,8 @@ const PatientDashboard = () => {
                 <i className="fas fa-play text-xs"></i>
                 Mô phỏng
               </button>
-              <span className="status-chip is-info">25 mm/s</span>
-              <span className="status-chip is-neutral">10 mm/mV</span>
+              <span className="status-chip is-info">0.1s / ô ly</span>
+              <span className="status-chip is-neutral">0.1V / ô ly</span>
             </div>
           </div>
           <div className="p-2">
@@ -322,6 +333,33 @@ const PatientDashboard = () => {
                 <div className="empty-state-rich py-6">
                   <div className="empty-state-rich-icon info"><i className="fas fa-user-doctor"></i></div>
                   <p className="mt-3 text-sm text-ink-600">Chưa có bác sĩ nào đang theo dõi dữ liệu của bạn.</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="clinical-panel overflow-hidden">
+            <div className="clinical-panel-header">
+              <div>
+                <p className="panel-eyebrow">Người thân theo dõi</p>
+                <h2 className="section-title">{familyMembers.length} người</h2>
+              </div>
+            </div>
+            <div className="clinical-panel-body space-y-3">
+              {familyMembers.length > 0 ? familyMembers.map((member) => (
+                <div key={member.id} className="flex items-center gap-3 rounded-2xl border border-surface-line bg-white p-3 shadow-soft">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                    <i className="fas fa-user-group"></i>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-ink-900">{member.name}</p>
+                    <p className="truncate text-xs text-ink-500">{member.email}</p>
+                  </div>
+                </div>
+              )) : (
+                <div className="empty-state-rich py-6">
+                  <div className="empty-state-rich-icon info"><i className="fas fa-user-group"></i></div>
+                  <p className="mt-3 text-sm text-ink-600">Chưa có người thân nào được cấp quyền theo dõi.</p>
                 </div>
               )}
             </div>

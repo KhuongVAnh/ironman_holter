@@ -110,7 +110,7 @@ const MedicationPlanForm = ({ show, handleClose, onSubmit, initialData }) => {
   )
 
   return (
-    <ModalFrame show={show} onClose={handleClose} title={formData.plan_id ? "Cập nhật đơn thuốc" : "Thêm đơn thuốc"} size="xl" footer={footer}>
+    <ModalFrame show={show} onClose={handleClose} eyebrow="Kế hoạch thuốc" title={formData.plan_id ? "Cập nhật đơn thuốc" : "Thêm đơn thuốc"} size="xl" footer={footer}>
       <form id="medication-plan-form" className="space-y-4" onSubmit={submit}>
         <div className="grid gap-4 md:grid-cols-2">
           <div>

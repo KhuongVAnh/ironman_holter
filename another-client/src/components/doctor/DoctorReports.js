@@ -107,6 +107,7 @@ const DoctorReports = () => {
       <ModalFrame
         show={Boolean(selectedReport)}
         onClose={() => setSelectedReport(null)}
+        eyebrow="Báo cáo bác sĩ"
         title={selectedReport ? `Báo cáo #${selectedReport.report_id}` : "Báo cáo"}
         size="lg"
         footer={<button type="button" className="btn btn-primary" onClick={() => setSelectedReport(null)}>Đóng</button>}
