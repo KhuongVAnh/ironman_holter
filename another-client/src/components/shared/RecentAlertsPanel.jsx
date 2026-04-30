@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { Link } from "react-router-dom"
 
@@ -66,7 +66,7 @@ const defaultStatus = (alert) =>
 const RecentAlertsPanel = ({
   title = "Cảnh báo gần nhất",
   subtitle = "",
-  iconClass = "fas fa-triangle-exclamation me-2 text-warning",
+  iconClass = "fas fa-triangle-exclamation me-2 text-amber-600",
   alerts = [],
   viewAllLink = null,
   emptyText = "Không có cảnh báo nào",
@@ -92,15 +92,15 @@ const RecentAlertsPanel = ({
         <div className="clinical-panel-header">
           <div>
             {title ? (
-              <h5 className="card-title mb-1 flex items-center gap-2">
+              <h5 className="mb-1 flex items-center gap-2 font-display text-base font-semibold text-ink-900">
                 <i className={iconClass}></i>
                 {title}
               </h5>
             ) : null}
-            {subtitle ? <small className="text-muted">{subtitle}</small> : null}
+            {subtitle ? <small className="text-ink-500">{subtitle}</small> : null}
           </div>
           {viewAllLink ? (
-            <Link to={viewAllLink.to} className="btn btn-outline-primary btn-sm">
+            <Link to={viewAllLink.to} className="ui-btn ui-btn-outline-primary ui-btn-sm">
               {viewAllLink.label || "Xem tất cả"}
             </Link>
           ) : null}

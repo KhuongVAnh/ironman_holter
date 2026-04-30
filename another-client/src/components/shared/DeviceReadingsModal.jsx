@@ -108,10 +108,10 @@ const DeviceReadingsModal = ({ show, onClose, device }) => {
         size="xl"
         footer={
           <>
-            <button type="button" className="btn btn-outline-primary" onClick={fetchReadings} disabled={loading}>
+            <button type="button" className="ui-btn ui-btn-outline-primary" onClick={fetchReadings} disabled={loading}>
               <i className="fas fa-rotate-right me-2"></i>Làm mới
             </button>
-            <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Đóng</button>
+            <button type="button" className="ui-btn ui-btn-outline-secondary" onClick={onClose}>Đóng</button>
           </>
         }
       >
@@ -146,11 +146,11 @@ const DeviceReadingsModal = ({ show, onClose, device }) => {
 
           <section className="rounded-xl border border-surface-line bg-white shadow-soft">
             {loading ? (
-              <div className="flex justify-center py-12"><div className="spinner-border" role="status" /></div>
+              <div className="flex justify-center py-12"><div className="ui-spinner" role="status" /></div>
             ) : readings.length ? (
               <div className="table-mobile-cards overflow-hidden rounded-xl">
                 <div className="overflow-x-auto">
-                  <table className="table align-middle mb-0">
+                  <table className="ui-table align-middle mb-0">
                     <thead>
                       <tr>
                         <th>Thời gian</th>
@@ -172,7 +172,7 @@ const DeviceReadingsModal = ({ show, onClose, device }) => {
                             </span>
                           </td>
                           <td className="text-end">
-                            <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}>
+                            <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}>
                               <i className="fas fa-eye me-1"></i>Xem ECG
                             </button>
                           </td>
@@ -201,7 +201,7 @@ const DeviceReadingsModal = ({ show, onClose, device }) => {
                         <span className="mobile-data-card-label">AI</span>
                         <span className="mobile-data-card-value">{getAiStatusLabel(reading)}</span>
                       </div>
-                      <button type="button" className="btn btn-outline-primary btn-sm mt-3 w-full" onClick={() => setSelectedReadingId(reading.reading_id)}>
+                      <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm mt-3 w-full" onClick={() => setSelectedReadingId(reading.reading_id)}>
                         <i className="fas fa-eye me-1"></i>Xem ECG
                       </button>
                     </article>

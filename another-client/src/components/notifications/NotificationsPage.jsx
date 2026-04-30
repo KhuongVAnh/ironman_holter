@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useRef } from "react"
 import { toast } from "react-toastify"
@@ -157,7 +157,7 @@ const NotificationsPage = () => {
           <h1 className="page-hero-title">Thông báo hệ thống</h1>
           <p className="page-hero-subtitle">Theo dõi cảnh báo, yêu cầu truy cập và tin nhắn mới trong một hộp thư thống nhất.</p>
         </div>
-        <button type="button" className="btn btn-outline-primary" onClick={markAllRead} disabled={unreadOnPage === 0}>
+        <button type="button" className="ui-btn ui-btn-outline-primary" onClick={markAllRead} disabled={unreadOnPage === 0}>
           <i className="fas fa-check-double"></i>
           Đánh dấu đọc tất cả
         </button>
@@ -172,28 +172,28 @@ const NotificationsPage = () => {
       <section className="clinical-panel p-6">
         <div className="grid gap-4 md:grid-cols-3">
           <div>
-            <label className="form-label">Trạng thái</label>
-            <select className="form-select" value={filterRead} onChange={(event) => { setOffset(0); setFilterRead(event.target.value) }}>
+            <label className="ui-label">Trạng thái</label>
+            <select className="ui-select" value={filterRead} onChange={(event) => { setOffset(0); setFilterRead(event.target.value) }}>
               <option value="all">Tất cả</option>
               <option value="false">Chưa đọc</option>
               <option value="true">Đã đọc</option>
             </select>
           </div>
           <div>
-            <label className="form-label">Loại thông báo</label>
-            <select className="form-select" value={filterType} onChange={(event) => { setOffset(0); setFilterType(event.target.value) }}>
+            <label className="ui-label">Loại thông báo</label>
+            <select className="ui-select" value={filterType} onChange={(event) => { setOffset(0); setFilterType(event.target.value) }}>
               {TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </div>
           <div className="flex items-end">
-            <button type="button" className="btn btn-outline-secondary w-full" onClick={fetchNotifications}>Làm mới danh sách</button>
+            <button type="button" className="ui-btn ui-btn-outline-secondary w-full" onClick={fetchNotifications}>Làm mới danh sách</button>
           </div>
         </div>
       </section>
 
       <section className="clinical-panel overflow-hidden">
         {loading ? (
-          <div className="flex justify-center py-14"><div className="spinner-border" role="status" /></div>
+          <div className="flex justify-center py-14"><div className="ui-spinner" role="status" /></div>
         ) : notifications.length === 0 ? (
           <div className="py-16 text-center">
             <i className="fas fa-bell-slash fa-3x text-slate-300"></i>
@@ -216,7 +216,7 @@ const NotificationsPage = () => {
                     <p className="mt-3 text-xs font-medium text-ink-500">{formatDateTime(notification.created_at)}</p>
                   </button>
                   {!notification.is_read ? (
-                    <button type="button" className="btn btn-outline-success btn-sm self-start" onClick={() => markRead(notification)} disabled={isProcessing}>Đánh dấu đã đọc</button>
+                    <button type="button" className="ui-btn ui-btn-outline-success ui-btn-sm self-start" onClick={() => markRead(notification)} disabled={isProcessing}>Đánh dấu đã đọc</button>
                   ) : null}
                 </div>
               )

@@ -84,10 +84,10 @@ const MedicalVisitTestsEditor = ({ tests, onChange }) => (
   <div className="structured-entry-panel">
     <div className="structured-entry-header">
       <div>
-        <label className="form-label mb-1">Xét nghiệm</label>
+        <label className="ui-label mb-1">Xét nghiệm</label>
         <p className="structured-entry-hint">Mỗi dòng là một kết quả xét nghiệm/chụp chiếu.</p>
       </div>
-      <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => onChange([...tests, emptyTest()])}>
+      <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => onChange([...tests, emptyTest()])}>
         <i className="fas fa-plus"></i>
         Thêm
       </button>
@@ -98,18 +98,18 @@ const MedicalVisitTestsEditor = ({ tests, onChange }) => (
         <div key={index} className="structured-entry-row">
           <div className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <div>
-              <label className="form-label">Tên xét nghiệm</label>
+              <label className="ui-label">Tên xét nghiệm</label>
               <input
-                className="form-control"
+                className="ui-field"
                 value={item.name}
                 onChange={(event) => onChange(updateListItem(ensureOneItem(tests, emptyTest), index, "name", event.target.value))}
                 placeholder="VD: Holter ECG"
               />
             </div>
             <div>
-              <label className="form-label">Link ảnh/kết quả</label>
+              <label className="ui-label">Link ảnh/kết quả</label>
               <input
-                className="form-control"
+                className="ui-field"
                 value={item.imageUrl}
                 onChange={(event) => onChange(updateListItem(ensureOneItem(tests, emptyTest), index, "imageUrl", event.target.value))}
                 placeholder="https://..."
@@ -117,16 +117,16 @@ const MedicalVisitTestsEditor = ({ tests, onChange }) => (
             </div>
           </div>
           <div>
-            <label className="form-label">Nhận xét bác sĩ</label>
+            <label className="ui-label">Nhận xét bác sĩ</label>
             <textarea
-              className="form-control min-h-[72px]"
+              className="ui-field min-h-[72px]"
               value={item.doctorComment}
               onChange={(event) => onChange(updateListItem(ensureOneItem(tests, emptyTest), index, "doctorComment", event.target.value))}
               placeholder="VD: Ổn định hơn, chưa ghi nhận cơn nguy hiểm kéo dài."
             />
           </div>
           {ensureOneItem(tests, emptyTest).length > 1 ? (
-            <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => onChange(removeListItem(tests, index))}>
+            <button type="button" className="ui-btn ui-btn-outline-danger ui-btn-sm" onClick={() => onChange(removeListItem(tests, index))}>
               <i className="fas fa-trash"></i>
               Xóa xét nghiệm này
             </button>
@@ -141,10 +141,10 @@ const MedicalVisitPrescriptionEditor = ({ prescriptions, onChange }) => (
   <div className="structured-entry-panel">
     <div className="structured-entry-header">
       <div>
-        <label className="form-label mb-1">Đơn thuốc tại lần khám</label>
+        <label className="ui-label mb-1">Đơn thuốc tại lần khám</label>
         <p className="structured-entry-hint">Nhập từng thuốc/chỉ định theo các ô riêng.</p>
       </div>
-      <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => onChange([...prescriptions, emptyPrescription()])}>
+      <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => onChange([...prescriptions, emptyPrescription()])}>
         <i className="fas fa-plus"></i>
         Thêm
       </button>
@@ -155,18 +155,18 @@ const MedicalVisitPrescriptionEditor = ({ prescriptions, onChange }) => (
         <div key={index} className="structured-entry-row">
           <div className="grid gap-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
             <div>
-              <label className="form-label">Tên thuốc/chỉ định</label>
+              <label className="ui-label">Tên thuốc/chỉ định</label>
               <input
-                className="form-control"
+                className="ui-field"
                 value={item.name}
                 onChange={(event) => onChange(updateListItem(ensureOneItem(prescriptions, emptyPrescription), index, "name", event.target.value))}
                 placeholder="VD: Magie B6"
               />
             </div>
             <div>
-              <label className="form-label">Liều lượng / cách dùng</label>
+              <label className="ui-label">Liều lượng / cách dùng</label>
               <input
-                className="form-control"
+                className="ui-field"
                 value={item.dosage}
                 onChange={(event) => onChange(updateListItem(ensureOneItem(prescriptions, emptyPrescription), index, "dosage", event.target.value))}
                 placeholder="VD: Buổi tối trong 14 ngày"
@@ -174,16 +174,16 @@ const MedicalVisitPrescriptionEditor = ({ prescriptions, onChange }) => (
             </div>
           </div>
           <div>
-            <label className="form-label">Ghi chú</label>
+            <label className="ui-label">Ghi chú</label>
             <textarea
-              className="form-control min-h-[72px]"
+              className="ui-field min-h-[72px]"
               value={item.note}
               onChange={(event) => onChange(updateListItem(ensureOneItem(prescriptions, emptyPrescription), index, "note", event.target.value))}
               placeholder="VD: Ngưng sau đợt hiện tại nếu không còn triệu chứng"
             />
           </div>
           {ensureOneItem(prescriptions, emptyPrescription).length > 1 ? (
-            <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => onChange(removeListItem(prescriptions, index))}>
+            <button type="button" className="ui-btn ui-btn-outline-danger ui-btn-sm" onClick={() => onChange(removeListItem(prescriptions, index))}>
               <i className="fas fa-trash"></i>
               Xóa thuốc này
             </button>
@@ -256,8 +256,8 @@ const MedicalVisitForm = ({ show, handleClose, onSubmit, initialData }) => {
 
   const footer = (
     <>
-      <button type="button" className="btn btn-outline-secondary" onClick={handleClose}>Hủy</button>
-      <button type="submit" form="medical-visit-form" className="btn btn-primary">
+      <button type="button" className="ui-btn ui-btn-outline-secondary" onClick={handleClose}>Hủy</button>
+      <button type="submit" form="medical-visit-form" className="ui-btn ui-btn-primary">
         <i className={`fas ${formData.visit_id ? "fa-rotate" : "fa-save"} me-2`}></i>
         {formData.visit_id ? "Cập nhật" : "Lưu mới"}
       </button>
@@ -269,30 +269,30 @@ const MedicalVisitForm = ({ show, handleClose, onSubmit, initialData }) => {
       <form id="medical-visit-form" className="space-y-4" onSubmit={submit}>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="form-label">Cơ sở y tế</label>
-            <input className="form-control" name="facility" value={formData.facility} onChange={handleChange} placeholder="Ví dụ: BV Tim mạch..." />
+            <label className="ui-label">Cơ sở y tế</label>
+            <input className="ui-field" name="facility" value={formData.facility} onChange={handleChange} placeholder="Ví dụ: BV Tim mạch..." />
           </div>
           <div>
-            <label className="form-label">Bác sĩ phụ trách</label>
-            <input className="form-control" name="doctor_name" value={formData.doctor_name} onChange={handleChange} placeholder="Tên bác sĩ hoặc khoa khám" />
+            <label className="ui-label">Bác sĩ phụ trách</label>
+            <input className="ui-field" name="doctor_name" value={formData.doctor_name} onChange={handleChange} placeholder="Tên bác sĩ hoặc khoa khám" />
           </div>
           <div>
-            <label className="form-label">Ngày khám</label>
-            <input className="form-control" type="date" name="visit_date" value={formData.visit_date} onChange={handleChange} required />
+            <label className="ui-label">Ngày khám</label>
+            <input className="ui-field" type="date" name="visit_date" value={formData.visit_date} onChange={handleChange} required />
           </div>
           <div>
-            <label className="form-label">Chẩn đoán</label>
-            <input className="form-control" name="diagnosis" value={formData.diagnosis} onChange={handleChange} required />
+            <label className="ui-label">Chẩn đoán</label>
+            <input className="ui-field" name="diagnosis" value={formData.diagnosis} onChange={handleChange} required />
           </div>
         </div>
 
         <div>
-          <label className="form-label">Lý do khám</label>
-          <textarea className="form-control min-h-[90px]" name="reason" value={formData.reason} onChange={handleChange} />
+          <label className="ui-label">Lý do khám</label>
+          <textarea className="ui-field min-h-[90px]" name="reason" value={formData.reason} onChange={handleChange} />
         </div>
         <div>
-          <label className="form-label">Chi tiết chẩn đoán</label>
-          <textarea className="form-control min-h-[100px]" name="diagnosis_details" value={formData.diagnosis_details} onChange={handleChange} />
+          <label className="ui-label">Chi tiết chẩn đoán</label>
+          <textarea className="ui-field min-h-[100px]" name="diagnosis_details" value={formData.diagnosis_details} onChange={handleChange} />
         </div>
         <MedicalVisitTestsEditor
           tests={formData.tests}
@@ -305,12 +305,12 @@ const MedicalVisitForm = ({ show, handleClose, onSubmit, initialData }) => {
         />
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="form-label">Lời khuyên</label>
-            <textarea className="form-control min-h-[100px]" name="advice" value={formData.advice} onChange={handleChange} />
+            <label className="ui-label">Lời khuyên</label>
+            <textarea className="ui-field min-h-[100px]" name="advice" value={formData.advice} onChange={handleChange} />
           </div>
           <div>
-            <label className="form-label">Lịch hẹn</label>
-            <textarea className="form-control min-h-[100px]" name="appointment" value={formData.appointment} onChange={handleChange} />
+            <label className="ui-label">Lịch hẹn</label>
+            <textarea className="ui-field min-h-[100px]" name="appointment" value={formData.appointment} onChange={handleChange} />
           </div>
         </div>
       </form>

@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, lazy } from "react"
-import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom"
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
@@ -51,10 +51,12 @@ const ScreenLoader = () => (
 
 const AppContent = () => {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   useSocket(user?.user_id, user?.role)
 
   const defaultRoute = getDashboardPath(user?.role)
+  const hideFloatingChatbot = location.pathname === "/chat" || location.pathname === "/doctor/chat"
 
   if (loading) {
     return (
@@ -111,7 +113,7 @@ const AppContent = () => {
               <Route path="/admin/devices" element={<ProtectedRoute allowedRoles={[ROLE.ADMIN]}><AdminDevices /></ProtectedRoute>} />
               <Route path="/admin/logs" element={<ProtectedRoute allowedRoles={[ROLE.ADMIN]}><AdminLogs /></ProtectedRoute>} />
             </Routes>
-            <Chatbot userId={user.user_id} userRole={user.role} />
+            {!hideFloatingChatbot ? <Chatbot userId={user.user_id} userRole={user.role} /> : null}
           </AppShell>
         ) : (
           <Routes>

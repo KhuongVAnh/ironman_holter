@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "react-toastify"
 import { chatApi } from "../../services/api"
 import { ROLE } from "../../services/string"
@@ -76,14 +76,14 @@ const Chatbot = ({ userId, userRole }) => {
   return (
     <>
       <div className="fixed bottom-4 right-4 z-40 sm:bottom-5 sm:right-5">
-        <button type="button" className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-lg text-white shadow-float transition hover:bg-brand-700" onClick={() => setIsOpen((prev) => !prev)}>
+        <button type="button" className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-base text-white shadow-soft transition hover:bg-brand-700" onClick={() => setIsOpen((prev) => !prev)}>
           <i className={`fas ${isOpen ? "fa-xmark" : "fa-robot"}`}></i>
         </button>
       </div>
 
       {isOpen ? (
-        <div className="fixed inset-x-2 bottom-20 z-40 flex h-[min(620px,calc(100dvh-6rem))] flex-col overflow-hidden rounded-2xl border border-surface-line bg-white shadow-panel sm:inset-x-auto sm:bottom-24 sm:right-5 sm:h-[520px] sm:w-[400px] sm:max-w-[calc(100vw-2rem)]">
-          <div className="flex items-center justify-between bg-brand-600 px-5 py-4 text-white">
+        <div className="fixed inset-x-2 bottom-20 z-40 flex h-[min(620px,calc(100dvh-6rem))] flex-col overflow-hidden rounded-xl border border-surface-line bg-white shadow-panel sm:inset-x-auto sm:bottom-24 sm:right-5 sm:h-[520px] sm:w-[400px] sm:max-w-[calc(100vw-2rem)]">
+          <div className="flex items-center justify-between bg-brand-600 px-4 py-3.5 text-white">
             <div>
               <p className="text-sm font-bold">Tro ly AI Ironman</p>
               <p className="text-xs text-white/75">Ho tro tim mach 24/7</p>
@@ -111,7 +111,7 @@ const Chatbot = ({ userId, userRole }) => {
             {messages.length === 0 ? <div className="rounded-xl border border-brand-100 bg-brand-50 p-4 text-sm text-ink-800">{getWelcomeMessage()}</div> : null}
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm shadow-soft ${message.sender === "user" ? "bg-brand-600 text-white" : "border border-surface-line bg-white text-ink-800"}`}>
+                <div className={`max-w-[82%] rounded-xl px-3.5 py-2.5 text-sm shadow-soft ${message.sender === "user" ? "bg-brand-600 text-white" : "border border-surface-line bg-white text-ink-800"}`}>
                   {message.sender === "bot" ? <div className="mb-1 text-[11px] font-semibold uppercase text-brand-600">AI</div> : null}
                   <div className="whitespace-pre-wrap">{message.text}</div>
                   <div className={`mt-2 text-[11px] ${message.sender === "user" ? "text-white/70" : "text-ink-500"}`}>{formatTime(message.timestamp)}</div>
@@ -121,7 +121,7 @@ const Chatbot = ({ userId, userRole }) => {
             {isLoading ? (
               <div className="flex justify-start">
                 <div className="rounded-2xl border border-surface-line bg-white px-4 py-3 shadow-soft">
-                  <div className="flex items-center gap-2 text-sm text-ink-600"><div className="spinner-border spinner-border-sm"></div>Đang suy nghĩ...</div>
+                  <div className="flex items-center gap-2 text-sm text-ink-600"><div className="ui-spinner ui-spinner-sm"></div>Đang suy nghĩ...</div>
                 </div>
               </div>
             ) : null}
@@ -129,9 +129,9 @@ const Chatbot = ({ userId, userRole }) => {
           </div>
 
           <div className="border-t border-surface-line bg-white p-3 sm:p-4">
-            <div className="input-group">
-              <textarea className="form-control min-h-[52px]" placeholder="Nhap cau hoi ve tim mach..." value={inputMessage} onChange={(event) => setInputMessage(event.target.value)} onKeyDown={handleKeyPress} disabled={isLoading} />
-              <button type="button" className="btn btn-primary" onClick={sendMessage} disabled={!inputMessage.trim() || isLoading}><i className="fas fa-paper-plane"></i></button>
+            <div className="ui-input-group">
+              <textarea className="ui-field min-h-[52px]" placeholder="Nhap cau hoi ve tim mach..." value={inputMessage} onChange={(event) => setInputMessage(event.target.value)} onKeyDown={handleKeyPress} disabled={isLoading} />
+              <button type="button" className="ui-btn ui-btn-primary" onClick={sendMessage} disabled={!inputMessage.trim() || isLoading}><i className="fas fa-paper-plane"></i></button>
             </div>
             <p className="mt-2 text-xs text-ink-500">Nhan Enter de gui, Shift+Enter de xuong dong.</p>
           </div>

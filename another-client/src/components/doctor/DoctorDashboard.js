@@ -114,7 +114,7 @@ const DoctorDashboard = () => {
             <span className="rounded-full bg-surface-soft px-4 py-2 text-sm font-medium text-ink-600">
               <i className="far fa-clock me-2"></i>{lastUpdated ? formatDateTime(lastUpdated) : "-"}
             </span>
-            <button type="button" className="btn btn-primary" onClick={fetchDashboardData}>
+            <button type="button" className="ui-btn ui-btn-primary" onClick={fetchDashboardData}>
               <i className="fas fa-rotate me-2"></i>Làm mới
             </button>
           </div>
@@ -135,7 +135,7 @@ const DoctorDashboard = () => {
               <h2 className="section-title"><i className="fas fa-bell me-2 text-red-600"></i>Hàng đợi cảnh báo</h2>
               <p className="section-subtitle">Cảnh báo mới nhất từ các bệnh nhân đang được theo dõi.</p>
             </div>
-            <Link to="/doctor/patients" className="btn btn-outline-primary btn-sm">Mở danh sách</Link>
+            <Link to="/doctor/patients" className="ui-btn ui-btn-outline-primary ui-btn-sm">Mở danh sách</Link>
           </div>
           <div className="clinical-panel-body">
             {visibleAlerts.length ? (
@@ -197,7 +197,7 @@ const DoctorDashboard = () => {
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${patient.alert_count ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
                         {patient.alert_count ? `${patient.alert_count} cảnh báo` : "Ổn định"}
                       </span>
-                      <Link to={`/doctor/patient/${patient.user_id}`} className="btn btn-outline-primary btn-sm">
+                      <Link to={`/doctor/patient/${patient.user_id}`} className="ui-btn ui-btn-outline-primary ui-btn-sm">
                         Mở workspace
                       </Link>
                     </div>

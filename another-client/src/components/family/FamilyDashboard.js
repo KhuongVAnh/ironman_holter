@@ -99,22 +99,22 @@ const FamilyDashboard = () => {
       .trim()
 
     if (type.includes("ngung tim") || type.includes("tim ngung")) {
-      return { className: "badge bg-danger", label: "Khẩn cấp" }
+      return { className: "ui-badge bg-red-600", label: "Khẩn cấp" }
     }
     if (type.includes("afib") || type.includes("rung nhi") || type.includes("rung tim")) {
-      return { className: "badge bg-danger", label: "Cao" }
+      return { className: "ui-badge bg-red-600", label: "Cao" }
     }
     if (type.includes("nhip nhanh") || type.includes("tang nhip")) {
-      return { className: "badge bg-warning", label: "Trung bình" }
+      return { className: "ui-badge bg-amber-500", label: "Trung bình" }
     }
     if (type.includes("nhip cham") || type.includes("giam nhip")) {
-      return { className: "badge bg-info", label: "Thấp" }
+      return { className: "ui-badge bg-sky-600", label: "Thấp" }
     }
     if (type.includes("ngoai tam thu")) {
-      return { className: "badge bg-secondary", label: "Theo dõi" }
+      return { className: "ui-badge bg-slate-500", label: "Theo dõi" }
     }
 
-    return { className: "badge bg-danger", label: "Chú ý" }
+    return { className: "ui-badge bg-red-600", label: "Chú ý" }
   }
 
   if (loading) {
@@ -140,7 +140,7 @@ const FamilyDashboard = () => {
           </div>
           <div className="flex flex-wrap gap-2">
             <span className="status-chip is-info"><i className="fas fa-clock"></i>{new Date().toLocaleString("vi-VN")}</span>
-            <button className="btn btn-outline-primary btn-sm" onClick={fetchDashboardData}>
+            <button className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={fetchDashboardData}>
               <i className="fas fa-sync-alt"></i>
               Làm mới
             </button>
@@ -204,12 +204,12 @@ const FamilyDashboard = () => {
               <p className="panel-eyebrow">Danh sách theo dõi</p>
               <h2 className="section-title">Người thân</h2>
             </div>
-            <Link to="/family/monitoring" className="btn btn-outline-primary btn-sm">Chi tiết</Link>
+            <Link to="/family/monitoring" className="ui-btn ui-btn-outline-primary ui-btn-sm">Chi tiết</Link>
           </div>
           <div className="clinical-panel-body space-y-3">
             {familyMembers.length > 0 ? familyMembers.map((member) => (
               <div key={member.user_id} className="flex items-center gap-3 rounded-2xl border border-surface-line bg-white p-3 shadow-soft">
-                <div className="avatar-circle bg-primary text-white">{member.name.charAt(0).toUpperCase()}</div>
+                <div className="ui-avatar bg-brand-600 text-white">{member.name.charAt(0).toUpperCase()}</div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold text-ink-900">{member.name}</p>
                   <p className="truncate text-xs text-ink-500">{member.email}</p>

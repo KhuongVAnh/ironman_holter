@@ -101,8 +101,8 @@ const MedicationPlanForm = ({ show, handleClose, onSubmit, initialData }) => {
 
   const footer = (
     <>
-      <button type="button" className="btn btn-outline-secondary" onClick={handleClose}>Hủy</button>
-      <button type="submit" form="medication-plan-form" className="btn btn-primary">
+      <button type="button" className="ui-btn ui-btn-outline-secondary" onClick={handleClose}>Hủy</button>
+      <button type="submit" form="medication-plan-form" className="ui-btn ui-btn-primary">
         <i className={`fas ${formData.plan_id ? "fa-rotate" : "fa-save"} me-2`}></i>
         {formData.plan_id ? "Cập nhật" : "Lưu mới"}
       </button>
@@ -114,8 +114,8 @@ const MedicationPlanForm = ({ show, handleClose, onSubmit, initialData }) => {
       <form id="medication-plan-form" className="space-y-4" onSubmit={submit}>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="form-label">Tên đơn/kế hoạch</label>
-            <input className="form-control" name="title" value={formData.title} onChange={handleChange} required />
+            <label className="ui-label">Tên đơn/kế hoạch</label>
+            <input className="ui-field" name="title" value={formData.title} onChange={handleChange} required />
           </div>
           <div className="flex items-end">
             <label className="flex min-h-10 items-center gap-2 text-sm font-medium text-ink-800">
@@ -124,24 +124,24 @@ const MedicationPlanForm = ({ show, handleClose, onSubmit, initialData }) => {
             </label>
           </div>
           <div>
-            <label className="form-label">Ngày bắt đầu</label>
-            <input className="form-control" type="date" name="start_date" value={formData.start_date} onChange={handleChange} required />
+            <label className="ui-label">Ngày bắt đầu</label>
+            <input className="ui-field" type="date" name="start_date" value={formData.start_date} onChange={handleChange} required />
           </div>
           <div>
-            <label className="form-label">Ngày kết thúc</label>
-            <input className="form-control" type="date" name="end_date" value={formData.end_date} onChange={handleChange} />
+            <label className="ui-label">Ngày kết thúc</label>
+            <input className="ui-field" type="date" name="end_date" value={formData.end_date} onChange={handleChange} />
           </div>
         </div>
 
         <div>
-          <label className="form-label">Ghi chú</label>
-          <textarea className="form-control min-h-[90px]" name="notes" value={formData.notes} onChange={handleChange} />
+          <label className="ui-label">Ghi chú</label>
+          <textarea className="ui-field min-h-[90px]" name="notes" value={formData.notes} onChange={handleChange} />
         </div>
 
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h4 className="text-base font-bold text-ink-900">Danh sách thuốc</h4>
-            <button type="button" className="btn btn-outline-primary btn-sm" onClick={addMedication}>
+            <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={addMedication}>
               <i className="fas fa-plus me-1"></i>Thêm thuốc
             </button>
           </div>
@@ -150,28 +150,28 @@ const MedicationPlanForm = ({ show, handleClose, onSubmit, initialData }) => {
             <div key={index} className="rounded-xl border border-surface-line bg-surface-soft p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <strong className="text-sm text-ink-900">Thuốc #{index + 1}</strong>
-                <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => removeMedication(index)} disabled={formData.medications.length === 1}>
+                <button type="button" className="ui-btn ui-btn-outline-danger ui-btn-sm" onClick={() => removeMedication(index)} disabled={formData.medications.length === 1}>
                   <i className="fas fa-trash me-1"></i>Xóa
                 </button>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <label className="form-label">Tên thuốc</label>
-                  <input className="form-control" value={item.name} onChange={(event) => updateMedication(index, "name", event.target.value)} required />
+                  <label className="ui-label">Tên thuốc</label>
+                  <input className="ui-field" value={item.name} onChange={(event) => updateMedication(index, "name", event.target.value)} required />
                 </div>
                 <div>
-                  <label className="form-label">Liều dùng</label>
-                  <input className="form-control" value={item.dosage} onChange={(event) => updateMedication(index, "dosage", event.target.value)} required />
+                  <label className="ui-label">Liều dùng</label>
+                  <input className="ui-field" value={item.dosage} onChange={(event) => updateMedication(index, "dosage", event.target.value)} required />
                 </div>
                 <div>
-                  <label className="form-label">Thời điểm uống</label>
-                  <textarea className="form-control min-h-[90px]" value={item.timesText} onChange={(event) => updateMedication(index, "timesText", event.target.value)} required placeholder="Mỗi dòng một mốc giờ hoặc hướng dẫn" />
+                  <label className="ui-label">Thời điểm uống</label>
+                  <textarea className="ui-field min-h-[90px]" value={item.timesText} onChange={(event) => updateMedication(index, "timesText", event.target.value)} required placeholder="Mỗi dòng một mốc giờ hoặc hướng dẫn" />
                 </div>
                 <div>
-                  <label className="form-label">Loại thuốc</label>
-                  <input className="form-control" value={item.type} onChange={(event) => updateMedication(index, "type", event.target.value)} />
-                  <label className="form-label mt-3">Mô tả</label>
-                  <textarea className="form-control min-h-[52px]" value={item.description} onChange={(event) => updateMedication(index, "description", event.target.value)} />
+                  <label className="ui-label">Loại thuốc</label>
+                  <input className="ui-field" value={item.type} onChange={(event) => updateMedication(index, "type", event.target.value)} />
+                  <label className="ui-label mt-3">Mô tả</label>
+                  <textarea className="ui-field min-h-[52px]" value={item.description} onChange={(event) => updateMedication(index, "description", event.target.value)} />
                 </div>
               </div>
             </div>

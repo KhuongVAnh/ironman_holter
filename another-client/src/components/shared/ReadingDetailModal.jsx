@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "react-toastify"
 import ECGChart from "../patient/ECGChart"
 import { readingsApi } from "../../services/api"
@@ -265,7 +265,7 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
       eyebrow="Phân tích ECG"
       title="Chi tiết bản ghi ECG"
       size="xl"
-      footer={<button type="button" className="btn btn-outline-secondary" onClick={onHide}>Đóng</button>}
+      footer={<button type="button" className="ui-btn ui-btn-outline-secondary" onClick={onHide}>Đóng</button>}
     >
       {loading ? (
         <div className="space-y-3">
@@ -376,12 +376,6 @@ const ReadingDetailModal = ({ show, onHide, readingId }) => {
                     <p className="rounded-lg bg-white px-3 py-2 text-sm text-ink-600 shadow-soft">Không có segment bất thường.</p>
                   )}
                 </div>
-              </section>
-
-              <section className="rounded-xl border border-surface-line bg-white p-4 shadow-soft">
-                <h4 className="text-sm font-bold text-ink-900">Diễn giải nhanh</h4>
-                <p className="mt-2 text-sm leading-6 text-ink-700">{analysisSummary.status}</p>
-                {heartRateMeta.helper ? <p className="mt-1 text-xs leading-5 text-ink-600">{heartRateMeta.helper}</p> : null}
               </section>
             </aside>
           </div>

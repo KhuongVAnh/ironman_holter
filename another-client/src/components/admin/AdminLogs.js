@@ -95,13 +95,13 @@ const AdminLogs = () => {
   const getAlertTypeIcon = (alertType) => {
     switch ((alertType || "").toLowerCase()) {
       case ALERT_TYPE.NHIP_NHANH:
-        return "fas fa-arrow-up text-danger"
+        return "fas fa-arrow-up text-red-600"
       case ALERT_TYPE.NHIP_CHAM:
-        return "fas fa-arrow-down text-warning"
+        return "fas fa-arrow-down text-amber-600"
       case ALERT_TYPE.RUNG_NHI:
-        return "fas fa-exclamation-triangle text-danger"
+        return "fas fa-exclamation-triangle text-red-600"
       default:
-        return "fas fa-exclamation-circle text-info"
+        return "fas fa-exclamation-circle text-sky-600"
     }
   }
 
@@ -137,7 +137,7 @@ const AdminLogs = () => {
           <h1 className="page-hero-title">Thống kê & nhật ký hệ thống</h1>
           <p className="page-hero-subtitle">Theo dõi sức khỏe vận hành, cảnh báo mới và nhật ký hệ thống quan trọng.</p>
         </div>
-        <button className="btn btn-outline-primary" onClick={fetchLogsData}>
+        <button className="ui-btn ui-btn-outline-primary" onClick={fetchLogsData}>
           <i className="fas fa-sync-alt me-1"></i>
           Làm mới
         </button>
@@ -155,7 +155,7 @@ const AdminLogs = () => {
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="clinical-panel overflow-hidden">
           <div className="clinical-panel-header">
-            <h2 className="section-title"><i className="fas fa-bell me-2 text-warning"></i>Cảnh báo gần đây</h2>
+            <h2 className="section-title"><i className="fas fa-bell me-2 text-amber-600"></i>Cảnh báo gần đây</h2>
           </div>
           <div className="clinical-panel-body">
             {visibleAlerts.length === 0 ? (
@@ -165,22 +165,22 @@ const AdminLogs = () => {
                 <p>Hệ thống chưa ghi nhận cảnh báo gần đây.</p>
               </div>
             ) : (
-              <div className="list-group list-group-flush">
+              <div className="divide-y divide-surface-line">
                 {visibleAlerts.map((alert) => (
-                  <div key={alert.alert_id || alert.id} className="list-group-item border-0 px-0">
-                    <div className="d-flex align-items-center">
+                  <div key={alert.alert_id || alert.id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-center">
                       <i className={`${getAlertTypeIcon(alert.alert_type)} me-3`}></i>
-                      <div className="flex-grow-1">
+                      <div className="flex-1">
                         <h6 className="mb-1">{alert.alert_type}</h6>
-                        <p className="mb-1 text-muted small">{alert.message}</p>
-                        <small className="text-muted">{formatDate(alert.timestamp || alert.created_at)}</small>
+                        <p className="mb-1 text-sm text-ink-500">{alert.message}</p>
+                        <small className="text-ink-500">{formatDate(alert.timestamp || alert.created_at)}</small>
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <span className={`status-chip ${alert.resolved ? "is-success" : "is-warning"}`}>
                           {alert.resolved ? "Đã xử lý" : "Chờ xử lý"}
                         </span>
                         {!alert.resolved ? (
-                          <button type="button" className="btn btn-outline-success btn-sm" onClick={() => resolveAlert(alert.alert_id)}>
+                          <button type="button" className="ui-btn ui-btn-outline-success ui-btn-sm" onClick={() => resolveAlert(alert.alert_id)}>
                             Xử lý
                           </button>
                         ) : null}
@@ -202,22 +202,22 @@ const AdminLogs = () => {
 
         <section className="clinical-panel overflow-hidden">
           <div className="clinical-panel-header">
-            <h2 className="section-title"><i className="fas fa-server me-2 text-info"></i>Nhật ký hệ thống</h2>
+            <h2 className="section-title"><i className="fas fa-server me-2 text-sky-600"></i>Nhật ký hệ thống</h2>
           </div>
           <div className="clinical-panel-body">
-            <div className="list-group list-group-flush">
+            <div className="divide-y divide-surface-line">
               {visibleLogs.length ? visibleLogs.map((log) => (
-                <div key={log.id} className="list-group-item border-0 px-0">
-                  <div className="d-flex align-items-start">
+                <div key={log.id} className="py-3 first:pt-0 last:pb-0">
+                  <div className="flex items-start">
                     <div className="me-3">{getLogLevelBadge(log.level)}</div>
-                    <div className="flex-grow-1">
+                    <div className="flex-1">
                       <p className="mb-1">{log.message}</p>
-                      <div className="d-flex justify-content-between">
-                        <small className="text-muted">
+                      <div className="flex justify-between">
+                        <small className="text-ink-500">
                           <i className="fas fa-tag me-1"></i>
                           {log.source}
                         </small>
-                        <small className="text-muted">{formatDate(log.timestamp)}</small>
+                        <small className="text-ink-500">{formatDate(log.timestamp)}</small>
                       </div>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
@@ -40,7 +40,7 @@ const FamilyHistorySelector = () => {
       <section className="clinical-panel overflow-hidden">
         <div className="clinical-panel-header"><div><h2 className="section-title">Người thân được cấp quyền</h2><p className="section-subtitle">Mở hồ sơ để xem lần khám và đơn thuốc.</p></div></div>
         <div className="clinical-panel-body">
-          {loading ? <div className="flex justify-center py-10"><div className="spinner-border"></div></div> : patients.length === 0 ? (
+          {loading ? <div className="flex justify-center py-10"><div className="ui-spinner"></div></div> : patients.length === 0 ? (
             <div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-user-lock"></i></div><h3>Chưa có bệnh nhân nào</h3><p>Khi bệnh nhân cấp quyền, hồ sơ sẽ xuất hiện tại đây.</p></div>
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
@@ -48,7 +48,7 @@ const FamilyHistorySelector = () => {
                 <article key={item.permission_id || item.patient?.user_id} className="rounded-2xl border border-surface-line bg-white p-4 shadow-soft">
                   <p className="font-bold text-ink-900">{item.patient?.name}</p>
                   <p className="text-sm text-ink-500">{item.patient?.email}</p>
-                  <button type="button" className="btn btn-outline-primary btn-sm mt-4" onClick={() => navigate(`/family/history/${item.patient.user_id}`)}><i className="fas fa-folder-open me-1"></i>Xem hồ sơ</button>
+                  <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm mt-4" onClick={() => navigate(`/family/history/${item.patient.user_id}`)}><i className="fas fa-folder-open me-1"></i>Xem hồ sơ</button>
                 </article>
               ))}
             </div>

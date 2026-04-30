@@ -26,15 +26,15 @@ const ModalFrame = ({
 
   if (!show) return null
 
-  const sizeClass = size === "xl" ? "modal-size-xl" : size === "lg" ? "modal-size-lg" : "modal-size-md"
+  const sizeClass = size === "xl" ? "ui-dialog-size-xl" : size === "lg" ? "ui-dialog-size-lg" : "ui-dialog-size-md"
   const isMedicalVariant = variant === "medical"
-  const overlayClass = isMedicalVariant ? "modal-overlay medical-visit-modal-overlay" : "modal-overlay"
-  const panelClass = isMedicalVariant ? "modal-panel medical-visit-modal-panel" : `modal-panel ${sizeClass}`
-  const headerClass = isMedicalVariant ? "medical-visit-modal-header" : "modal-header"
-  const bodyClass = isMedicalVariant ? "modal-body medical-visit-modal-body" : "modal-body"
-  const footerClass = isMedicalVariant ? "medical-visit-modal-footer" : "modal-footer"
-  const eyebrowClass = isMedicalVariant ? "medical-visit-modal-eyebrow" : "modal-eyebrow"
-  const titleClass = isMedicalVariant ? "medical-visit-modal-title" : "modal-title-text"
+  const overlayClass = isMedicalVariant ? "ui-dialog-overlay medical-visit-modal-overlay" : "ui-dialog-overlay"
+  const panelClass = isMedicalVariant ? "ui-dialog-panel medical-visit-modal-panel" : `ui-dialog-panel ${sizeClass}`
+  const headerClass = isMedicalVariant ? "medical-visit-modal-header" : "ui-dialog-header"
+  const bodyClass = isMedicalVariant ? "ui-dialog-body medical-visit-modal-body" : "ui-dialog-body"
+  const footerClass = isMedicalVariant ? "medical-visit-modal-footer" : "ui-dialog-footer"
+  const eyebrowClass = isMedicalVariant ? "medical-visit-modal-eyebrow" : "ui-dialog-eyebrow"
+  const titleClass = isMedicalVariant ? "medical-visit-modal-title" : "ui-dialog-title"
 
   return createPortal(
     <div className={overlayClass} role="dialog" aria-modal="true" onClick={onClose}>
@@ -46,7 +46,7 @@ const ModalFrame = ({
           </div>
           <button
             type="button"
-            className={isMedicalVariant ? "medical-visit-icon-button is-close" : "btn-close"}
+            className={isMedicalVariant ? "medical-visit-icon-button is-close" : "ui-close-btn"}
             onClick={onClose}
             aria-label="Đóng"
           >

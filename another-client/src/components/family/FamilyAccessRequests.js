@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "react-toastify"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../contexts/AuthContext"
@@ -100,7 +100,7 @@ const FamilyAccessRequests = () => {
                     <p className="text-sm text-ink-500">{item.patient?.email || "-"}</p>
                     <div className="mt-2 flex flex-wrap gap-2"><span className="status-chip is-info">{item.role}</span><span className={badgeTone(item.status)}>{item.status === ACCESS_STATUS.PENDING ? "Đang chờ" : "Đã chấp nhận"}</span></div>
                   </div>
-                  {item.status === ACCESS_STATUS.PENDING ? <div className="flex flex-wrap gap-2"><button type="button" className="btn btn-outline-success btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "accept")}><i className="fas fa-check me-1"></i>Đồng ý</button><button type="button" className="btn btn-outline-danger btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "reject")}><i className="fas fa-xmark me-1"></i>Từ chối</button></div> : null}
+                  {item.status === ACCESS_STATUS.PENDING ? <div className="flex flex-wrap gap-2"><button type="button" className="ui-btn ui-btn-outline-success ui-btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "accept")}><i className="fas fa-check me-1"></i>Đồng ý</button><button type="button" className="ui-btn ui-btn-outline-danger ui-btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "reject")}><i className="fas fa-xmark me-1"></i>Từ chối</button></div> : null}
                 </article>
               ))}
             </div>
@@ -126,7 +126,7 @@ const FamilyAccessRequests = () => {
                 <article key={item.patient?.user_id} className="rounded-2xl border border-surface-line bg-white p-4 shadow-soft">
                   <p className="font-bold text-ink-900">{item.patient?.name}</p>
                   <p className="text-sm text-ink-500">{item.patient?.email}</p>
-                  <button type="button" className="btn btn-outline-primary btn-sm mt-4" onClick={() => navigate(`/family/history/${item.patient.user_id}`)}><i className="fas fa-folder-open me-1"></i>Xem hồ sơ</button>
+                  <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm mt-4" onClick={() => navigate(`/family/history/${item.patient.user_id}`)}><i className="fas fa-folder-open me-1"></i>Xem hồ sơ</button>
                 </article>
               ))}
             </div>

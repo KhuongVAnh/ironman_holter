@@ -104,10 +104,9 @@ const PatientMedicalHistory = () => {
         <div className="page-hero-icon"><i className="fas fa-notes-medical"></i></div>
         <div className="min-w-0 flex-1">
           <p className="panel-eyebrow">Hồ sơ y tế</p>
-          <h1 className="page-hero-title">Lịch sử khám và đơn thuốc</h1>
-          <p className="page-hero-subtitle">Gom các lần khám, nhận định và kế hoạch dùng thuốc để dễ đối chiếu với dữ liệu ECG.</p>
+          <p className="page-hero-subtitle">Hãy lưu trữ thông tin các lần khám và đơn thuốc của bạn tại đây, thông tin này sẽ giúp bác sĩ có cái nhìn tổng quan hơn về sức khỏe của bạn.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => activeTab === "plans" ? setShowPlanForm(true) : setShowVisitForm(true)}>
+        <button type="button" className="ui-btn ui-btn-primary" onClick={() => activeTab === "plans" ? setShowPlanForm(true) : setShowVisitForm(true)}>
           <i className="fas fa-plus me-2"></i>{activeTab === "plans" ? "Thêm đơn thuốc" : "Thêm lần khám"}
         </button>
       </section>
@@ -115,21 +114,13 @@ const PatientMedicalHistory = () => {
       <section className="metric-grid">
         <div className="priority-metric metric-info">
           <div className="metric-icon"><i className="fas fa-stethoscope"></i></div>
-          <p className="metric-label">Lần khám</p>
+          <p className="metric-label">Lịch sử khám</p>
           <p className="metric-value">{visits.length}</p>
-          <p className="metric-helper">Mốc khám đã ghi nhận</p>
         </div>
         <div className="priority-metric metric-warning">
           <div className="metric-icon"><i className="fas fa-pills"></i></div>
           <p className="metric-label">Đơn thuốc</p>
           <p className="metric-value">{plans.length}</p>
-          <p className="metric-helper">Kế hoạch dùng thuốc đã lưu</p>
-        </div>
-        <div className="priority-metric metric-success">
-          <div className="metric-icon"><i className="fas fa-folder-open"></i></div>
-          <p className="metric-label">Đang xem</p>
-          <p className="metric-value text-2xl">{activeTab === "plans" ? "Đơn thuốc" : "Lần khám"}</p>
-          <p className="metric-helper">Chuyển tab để xem nhóm còn lại</p>
         </div>
       </section>
 
@@ -153,13 +144,13 @@ const PatientMedicalHistory = () => {
           <div className="highlight-band info">
             <div className="highlight-band-icon"><i className="fas fa-circle-info"></i></div>
             <div>
-              <h3>{activeTab === "plans" ? "Theo dõi thuốc đang dùng" : "Ghi lại bối cảnh thăm khám"}</h3>
+              <h3>{activeTab === "plans" ? "Các đơn thuốc từng dùng" : "Ghi lại lịch sử khám bệnh"}</h3>
               <p>{activeTab === "plans" ? "Đơn thuốc giúp đối chiếu triệu chứng và thay đổi nhịp tim theo thời gian." : "Các lần khám giúp hệ thống có thêm dữ liệu nền khi đánh giá bất thường."}</p>
             </div>
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-10"><div className="spinner-border"></div></div>
+            <div className="flex justify-center py-10"><div className="ui-spinner"></div></div>
           ) : activeTab === "visits" ? (
             <MedicalVisitList visits={visits} role={user.role} onCreate={() => setShowVisitForm(true)} onEdit={(record) => { setEditVisit(record); setShowVisitForm(true) }} onDelete={handleVisitDelete} />
           ) : (

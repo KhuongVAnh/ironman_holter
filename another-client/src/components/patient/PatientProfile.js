@@ -15,7 +15,7 @@ const PatientProfile = () => {
 
   const getRoleBadge = (role) => {
     const config = ROLE_BADGE[role] || ROLE_BADGE[ROLE.BENH_NHAN]
-    return <span className={`badge ${config.class}`}><i className={`${config.icon} me-1`}></i>{role}</span>
+    return <span className={`ui-badge ${config.class}`}><i className={`${config.icon} me-1`}></i>{role}</span>
   }
 
   const handleSubmit = async (event) => {
@@ -67,7 +67,7 @@ const PatientProfile = () => {
           <h1 className="page-hero-title">{user?.name || "Hồ sơ cá nhân"}</h1>
           <p className="page-hero-subtitle">Quản lý thông tin nhận dạng, email đăng nhập và thiết lập bảo mật của tài khoản.</p>
         </div>
-        {!isEditing ? <button type="button" className="btn btn-primary" onClick={() => setIsEditing(true)}><i className="fas fa-pen me-2"></i>Chỉnh sửa</button> : null}
+        {!isEditing ? <button type="button" className="ui-btn ui-btn-primary" onClick={() => setIsEditing(true)}><i className="fas fa-pen me-2"></i>Chỉnh sửa</button> : null}
       </section>
 
       <section className="metric-grid">
@@ -103,19 +103,19 @@ const PatientProfile = () => {
           <div className="clinical-panel-body">
           {isEditing ? (
             <form className="space-y-4" onSubmit={handleSubmit}>
-                <div><label className="form-label">Họ và tên</label><input className="form-control" value={formData.name} onChange={(event) => setFormData((prev) => ({ ...prev, name: event.target.value }))} required /></div>
-              <div><label className="form-label">Email</label><input className="form-control" type="email" value={formData.email} onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))} required /></div>
+                <div><label className="ui-label">Họ và tên</label><input className="ui-field" value={formData.name} onChange={(event) => setFormData((prev) => ({ ...prev, name: event.target.value }))} required /></div>
+              <div><label className="ui-label">Email</label><input className="ui-field" type="email" value={formData.email} onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))} required /></div>
               <div className="flex flex-wrap gap-3">
-                <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? <><span className="spinner-border spinner-border-sm me-2"></span>Đang lưu...</> : <><i className="fas fa-save me-2"></i>Lưu thay đổi</>}</button>
-                  <button type="button" className="btn btn-outline-secondary" onClick={() => { setIsEditing(false); setFormData({ name: user?.name || "", email: user?.email || "" }) }}>Hủy</button>
+                <button type="submit" className="ui-btn ui-btn-primary" disabled={loading}>{loading ? <><span className="ui-spinner ui-spinner-sm me-2"></span>Đang lưu...</> : <><i className="fas fa-save me-2"></i>Lưu thay đổi</>}</button>
+                  <button type="button" className="ui-btn ui-btn-outline-secondary" onClick={() => { setIsEditing(false); setFormData({ name: user?.name || "", email: user?.email || "" }) }}>Hủy</button>
               </div>
             </form>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="highlight-band info"><div className="highlight-band-icon"><i className="fas fa-user"></i></div><div><h3>Họ và tên</h3><p className="break-words">{user?.name}</p></div></div>
                 <div className="highlight-band brand"><div className="highlight-band-icon"><i className="fas fa-envelope"></i></div><div><h3>Email</h3><p className="break-words">{user?.email}</p></div></div>
-                <div className="rounded-2xl border border-surface-line bg-white p-5 shadow-soft"><p className="text-sm font-semibold text-ink-500">Vai trò</p><div className="mt-3">{getRoleBadge(user?.role)}</div></div>
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5 shadow-soft"><p className="text-sm font-semibold text-emerald-700">Trạng thái</p><span className="mt-3 status-chip is-success">Hoạt động</span></div>
+                <div className="rounded-xl border border-surface-line bg-white p-4 shadow-soft"><p className="text-sm font-semibold text-ink-500">Vai trò</p><div className="mt-2">{getRoleBadge(user?.role)}</div></div>
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 shadow-soft"><p className="text-sm font-semibold text-emerald-700">Trạng thái</p><span className="mt-2 status-chip is-success">Hoạt động</span></div>
             </div>
           )}
         </div>
@@ -134,7 +134,7 @@ const PatientProfile = () => {
               <div className="info-list-row"><span className="info-list-label">Đăng nhập gần nhất</span><span className="info-list-value">Hôm nay</span></div>
               <div className="info-list-row"><span className="info-list-label">Email tài khoản</span><span className="info-list-value break-all">{user?.email}</span></div>
             </div>
-          <button type="button" className="btn btn-outline-warning w-100" onClick={() => setShowPasswordModal(true)}><i className="fas fa-lock me-2"></i>Đổi mật khẩu</button>
+          <button type="button" className="ui-btn ui-btn-outline-warning w-full" onClick={() => setShowPasswordModal(true)}><i className="fas fa-lock me-2"></i>Đổi mật khẩu</button>
         </div>
       </aside>
       </div>
@@ -144,12 +144,12 @@ const PatientProfile = () => {
         onClose={() => setShowPasswordModal(false)}
         eyebrow="Bảo mật tài khoản"
         title="Đổi mật khẩu"
-        footer={<><button type="button" className="btn btn-outline-secondary" onClick={() => setShowPasswordModal(false)}>Hủy</button><button type="submit" form="change-password-form" className="btn btn-primary" disabled={loading}>{loading ? "Đang đợi..." : "Lưu mật khẩu mới"}</button></>}
+        footer={<><button type="button" className="ui-btn ui-btn-outline-secondary" onClick={() => setShowPasswordModal(false)}>Hủy</button><button type="submit" form="change-password-form" className="ui-btn ui-btn-primary" disabled={loading}>{loading ? "Đang đợi..." : "Lưu mật khẩu mới"}</button></>}
       >
         <form id="change-password-form" className="space-y-4" onSubmit={handlePasswordSubmit}>
-          <div><label className="form-label">Mật khẩu hiện tại</label><input className="form-control" type="password" value={passwordData.currentPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, currentPassword: event.target.value }))} required /></div>
-          <div><label className="form-label">Mật khẩu mới</label><input className="form-control" type="password" value={passwordData.newPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, newPassword: event.target.value }))} required minLength="6" /></div>
-          <div><label className="form-label">Xác nhận mật khẩu mới</label><input className="form-control" type="password" value={passwordData.confirmPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, confirmPassword: event.target.value }))} required minLength="6" /></div>
+          <div><label className="ui-label">Mật khẩu hiện tại</label><input className="ui-field" type="password" value={passwordData.currentPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, currentPassword: event.target.value }))} required /></div>
+          <div><label className="ui-label">Mật khẩu mới</label><input className="ui-field" type="password" value={passwordData.newPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, newPassword: event.target.value }))} required minLength="6" /></div>
+          <div><label className="ui-label">Xác nhận mật khẩu mới</label><input className="ui-field" type="password" value={passwordData.confirmPassword} onChange={(event) => setPasswordData((prev) => ({ ...prev, confirmPassword: event.target.value }))} required minLength="6" /></div>
         </form>
       </ModalFrame>
     </div>

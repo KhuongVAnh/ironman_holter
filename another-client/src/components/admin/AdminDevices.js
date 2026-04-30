@@ -90,11 +90,11 @@ const AdminDevices = () => {
           <p className="page-hero-subtitle">Theo dõi serial, bệnh nhân sở hữu và trạng thái hoạt động của thiết bị ECG.</p>
         </div>
             <div className="mobile-stack-actions">
-              <button className="btn btn-success" onClick={() => setShowAddModal(true)}>
+              <button className="ui-btn ui-btn-success" onClick={() => setShowAddModal(true)}>
                 <i className="fas fa-plus me-1"></i>
                 Thêm thiết bị
               </button>
-              <button className="btn btn-outline-primary" onClick={fetchData}>
+              <button className="ui-btn ui-btn-outline-primary" onClick={fetchData}>
                 <i className="fas fa-sync-alt me-1"></i>
                 Làm mới
               </button>
@@ -115,9 +115,9 @@ const AdminDevices = () => {
         <div className="clinical-panel-body">
               {devices.length > 0 ? (
                 <div className="table-mobile-cards">
-                  <div className="table-responsive">
-                    <table className="table table-hover">
-                      <thead className="table-light">
+                  <div className="ui-table-wrap">
+                    <table className="ui-table ui-table-hover">
+                      <thead className="ui-table-light">
                         <tr>
                           <th>ID Thiết bị</th>
                           <th>Số serial</th>
@@ -131,19 +131,19 @@ const AdminDevices = () => {
                         {devices.map((device) => (
                           <tr key={device.device_id}>
                             <td>
-                              <code className="text-primary">{device.device_id}</code>
+                              <code className="text-brand-600">{device.device_id}</code>
                             </td>
                             <td>
                               <strong>{device.serial_number}</strong>
                             </td>
                             <td>
-                              <div className="d-flex align-items-center">
-                                <div className="avatar-circle bg-primary text-white me-2">
+                              <div className="flex items-center">
+                                <div className="ui-avatar bg-brand-600 text-white me-2">
                                   {device.user?.name?.charAt(0).toUpperCase() || "?"}
                                 </div>
                                 <div>
                                   <h6 className="mb-0">{device.user?.name || "Không xác định"}</h6>
-                                  <small className="text-muted">{device.user?.email}</small>
+                                  <small className="text-ink-500">{device.user?.email}</small>
                                 </div>
                               </div>
                             </td>
@@ -162,10 +162,10 @@ const AdminDevices = () => {
                             </td>
                             <td>{formatDate(device.created_at)}</td>
                             <td>
-                              <div className="btn-group" role="group">
+                              <div className="ui-btn-group" role="group">
                                 {device.status === DEVICE_STATUS.DANG_HOAT_DONG ? (
                                   <button
-                                    className="btn btn-outline-warning btn-sm"
+                                    className="ui-btn ui-btn-outline-warning ui-btn-sm"
                                     onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.NGUNG_HOAT_DONG)}
                                     title="Tạm dừng"
                                   >
@@ -173,14 +173,14 @@ const AdminDevices = () => {
                                   </button>
                                 ) : (
                                   <button
-                                    className="btn btn-outline-success btn-sm"
+                                    className="ui-btn ui-btn-outline-success ui-btn-sm"
                                     onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.DANG_HOAT_DONG)}
                                     title="Kích hoạt"
                                   >
                                     <i className="fas fa-play"></i>
                                   </button>
                                 )}
-                                <button className="btn btn-outline-info btn-sm" title="Chi tiết readings" onClick={() => setSelectedDevice(device)}>
+                                <button className="ui-btn ui-btn-outline-info ui-btn-sm" title="Chi tiết readings" onClick={() => setSelectedDevice(device)}>
                                   <i className="fas fa-info-circle"></i>
                                 </button>
                               </div>
@@ -195,7 +195,7 @@ const AdminDevices = () => {
                     {devices.map((device) => (
                       <article key={device.device_id} className="mobile-data-card">
                         <div className="mb-3 flex items-center gap-3">
-                          <div className="avatar-circle bg-primary text-white">
+                          <div className="ui-avatar bg-brand-600 text-white">
                             {device.user?.name?.charAt(0).toUpperCase() || "?"}
                           </div>
                           <div className="min-w-0">
@@ -205,7 +205,7 @@ const AdminDevices = () => {
                         </div>
                         <div className="mobile-data-card-row">
                           <span className="mobile-data-card-label">ID thiết bị</span>
-                          <code className="mobile-data-card-value text-primary">{device.device_id}</code>
+                          <code className="mobile-data-card-value text-brand-600">{device.device_id}</code>
                         </div>
                         <div className="mobile-data-card-row">
                           <span className="mobile-data-card-label">Email</span>
@@ -233,17 +233,17 @@ const AdminDevices = () => {
                         </div>
                         <div className="mt-3 grid grid-cols-2 gap-2">
                           {device.status === DEVICE_STATUS.DANG_HOAT_DONG ? (
-                            <button className="btn btn-outline-warning btn-sm" onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.NGUNG_HOAT_DONG)}>
+                            <button className="ui-btn ui-btn-outline-warning ui-btn-sm" onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.NGUNG_HOAT_DONG)}>
                               <i className="fas fa-pause"></i>
                               Tạm dừng
                             </button>
                           ) : (
-                            <button className="btn btn-outline-success btn-sm" onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.DANG_HOAT_DONG)}>
+                            <button className="ui-btn ui-btn-outline-success ui-btn-sm" onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.DANG_HOAT_DONG)}>
                               <i className="fas fa-play"></i>
                               Kích hoạt
                             </button>
                           )}
-                          <button className="btn btn-outline-info btn-sm" onClick={() => setSelectedDevice(device)}>
+                          <button className="ui-btn ui-btn-outline-info ui-btn-sm" onClick={() => setSelectedDevice(device)}>
                             <i className="fas fa-info-circle"></i>
                             Chi tiết
                           </button>
@@ -264,25 +264,24 @@ const AdminDevices = () => {
 
       {/* Add Device Modal */}
       {showAddModal && (
-        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">
+        <div className="ui-dialog-overlay" tabIndex="-1">
+          <div className="ui-dialog-panel ui-dialog-size-md">
+              <div className="ui-dialog-header">
+                <h5 className="ui-dialog-title">
                   <i className="fas fa-plus me-2"></i>
                   Thêm thiết bị mới
                 </h5>
-                <button type="button" className="btn-close" onClick={() => setShowAddModal(false)}></button>
+                <button type="button" className="ui-close-btn" onClick={() => setShowAddModal(false)}></button>
               </div>
-              <form onSubmit={handleAddDevice}>
-                <div className="modal-body">
+              <form onSubmit={handleAddDevice} className="flex min-h-0 flex-1 flex-col">
+                <div className="ui-dialog-body">
                   <div className="mb-3">
-                    <label htmlFor="serialNumber" className="form-label">
+                    <label htmlFor="serialNumber" className="ui-label">
                       Số Serial
                     </label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="ui-field"
                       id="serialNumber"
                       value={addForm.serial_number}
                       onChange={(e) => setAddForm({ ...addForm, serial_number: e.target.value })}
@@ -291,11 +290,11 @@ const AdminDevices = () => {
                     />
                   </div>
                   <div className="mb-3">
-                    <label htmlFor="userId" className="form-label">
+                    <label htmlFor="userId" className="ui-label">
                       Bệnh nhân
                     </label>
                     <select
-                      className="form-select"
+                      className="ui-select"
                       id="userId"
                       value={addForm.user_id}
                       onChange={(e) => setAddForm({ ...addForm, user_id: e.target.value })}
@@ -310,17 +309,16 @@ const AdminDevices = () => {
                     </select>
                   </div>
                 </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
+                <div className="ui-dialog-footer">
+                  <button type="button" className="ui-btn ui-btn-secondary" onClick={() => setShowAddModal(false)}>
                     Hủy
                   </button>
-                  <button type="submit" className="btn btn-success">
+                  <button type="submit" className="ui-btn ui-btn-success">
                     <i className="fas fa-plus me-1"></i>
                     Thêm thiết bị
                   </button>
                 </div>
               </form>
-            </div>
           </div>
         </div>
       )}

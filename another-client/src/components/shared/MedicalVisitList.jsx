@@ -68,7 +68,7 @@ const renderTests = (tests) => {
                   <span className="truncate">{name}</span>
                 </p>
                 {imageUrl ? (
-                  <a href={imageUrl} target="_blank" rel="noreferrer" className="btn btn-outline-success btn-sm">
+                  <a href={imageUrl} target="_blank" rel="noreferrer" className="ui-btn ui-btn-outline-success ui-btn-sm">
                     <i className="fas fa-image"></i>
                     Mở ảnh
                   </a>
@@ -157,8 +157,8 @@ const MedicalVisitDetailModal = ({ visit, canManage, onClose, onEdit, onDelete }
   const doctorName = displayText(visit.doctor_name || visit.doctor?.name, "Chưa có bác sĩ")
 
   return createPortal(
-    <div className="modal-overlay medical-visit-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="modal-panel medical-visit-modal-panel" onClick={(event) => event.stopPropagation()}>
+    <div className="ui-dialog-overlay medical-visit-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+      <div className="ui-dialog-panel medical-visit-modal-panel" onClick={(event) => event.stopPropagation()}>
         <div className="medical-visit-modal-header">
           <div className="min-w-0">
             <p className="medical-visit-modal-eyebrow">Hồ sơ lần khám</p>
@@ -208,7 +208,7 @@ const MedicalVisitDetailModal = ({ visit, canManage, onClose, onEdit, onDelete }
           </div>
         </div>
 
-        <div className="modal-body medical-visit-modal-body">
+        <div className="ui-dialog-body medical-visit-modal-body">
           <section className="medical-visit-section">
             <SectionTitle icon="fas fa-user-doctor">Bác sĩ phụ trách</SectionTitle>
             <p className="medical-visit-lead-text">{doctorName}</p>
@@ -284,7 +284,7 @@ const MedicalVisitList = ({ visits, onEdit, onDelete, role, onCreate }) => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-2xl font-bold text-ink-900">Lịch sử Y tế</h2>
           {canManage && onCreate ? (
-            <button type="button" className="btn btn-primary rounded-pill px-4" onClick={onCreate}>
+            <button type="button" className="ui-btn ui-btn-primary px-4" onClick={onCreate}>
               <i className="fas fa-plus me-2"></i>Thêm lịch sử mới
             </button>
           ) : null}
@@ -301,35 +301,35 @@ const MedicalVisitList = ({ visits, onEdit, onDelete, role, onCreate }) => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-bold text-ink-900">Lịch sử Y tế</h2>
         {canManage && onCreate ? (
-          <button type="button" className="btn btn-primary rounded-pill px-4" onClick={onCreate}>
+          <button type="button" className="ui-btn ui-btn-primary px-4" onClick={onCreate}>
             <i className="fas fa-plus me-2"></i>Thêm lịch sử mới
           </button>
         ) : null}
       </div>
 
-      <div className="relative space-y-8 pl-11">
-        <div className="absolute bottom-0 left-[14px] top-2 w-px bg-sky-100"></div>
+      <div className="relative space-y-5 pl-8">
+        <div className="absolute bottom-0 left-[10px] top-2 w-px bg-slate-200"></div>
 
         {visibleVisits.map((item) => (
           <article key={item.visit_id} className="relative">
-            <span className="absolute -left-[51px] top-2 z-10 h-6 w-6 rounded-full border-4 border-white bg-sky-500 shadow-soft"></span>
+            <span className="absolute -left-[30px] top-3 z-10 h-5 w-5 rounded-full border-[3px] border-white bg-sky-500 shadow-soft"></span>
             <button
               type="button"
-              className="w-full rounded-[28px] border border-sky-100 bg-white px-5 py-5 text-left shadow-soft transition hover:border-sky-200 hover:shadow-medium focus:outline-none focus:ring-2 focus:ring-sky-100 sm:px-7"
+              className="w-full rounded-xl border border-surface-line bg-white px-4 py-4 text-left shadow-soft transition hover:border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-100 sm:px-5"
               onClick={() => setSelectedVisit(item)}
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-sm font-bold tracking-wide text-sky-500">{formatDate(item.visit_date)}</p>
-                  <h3 className="mt-2 text-xl font-bold leading-7 text-ink-950">{displayText(item.diagnosis, "Chưa có chẩn đoán")}</h3>
+                  <h3 className="mt-1.5 text-lg font-semibold leading-6 text-ink-950">{displayText(item.diagnosis, "Chưa có chẩn đoán")}</h3>
                 </div>
-                <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-surface-line bg-surface-soft px-4 py-2 text-sm font-medium text-ink-700">
+                <span className="inline-flex max-w-full items-center gap-2 rounded-lg border border-surface-line bg-surface-soft px-3 py-1.5 text-sm font-medium text-ink-700">
                   <i className="far fa-hospital text-sky-700"></i>
                   <span className="truncate">{displayText(item.facility, "Chưa có cơ sở y tế")}</span>
                 </span>
               </div>
 
-              <div className="mt-5 border-t border-surface-line pt-4">
+              <div className="mt-4 border-t border-surface-line pt-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="mb-0 inline-flex items-center gap-2 text-sm font-semibold text-ink-700">
                     <i className="fas fa-stethoscope text-ink-600"></i>
@@ -352,15 +352,15 @@ const MedicalVisitList = ({ visits, onEdit, onDelete, role, onCreate }) => {
             Trang {currentPage}/{totalPages} · {visits.length} lần khám
           </p>
           <div className="flex items-center gap-2">
-            <button type="button" className="btn btn-outline-secondary btn-sm" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}>
+            <button type="button" className="ui-btn ui-btn-outline-secondary ui-btn-sm" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}>
               <i className="fas fa-chevron-left me-1"></i>Trước
             </button>
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-              <button key={page} type="button" className={`btn btn-sm ${page === currentPage ? "btn-primary" : "btn-outline-secondary"}`} onClick={() => setCurrentPage(page)}>
+              <button key={page} type="button" className={`ui-btn ui-btn-sm ${page === currentPage ? "ui-btn-primary" : "ui-btn-outline-secondary"}`} onClick={() => setCurrentPage(page)}>
                 {page}
               </button>
             ))}
-            <button type="button" className="btn btn-outline-secondary btn-sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}>
+            <button type="button" className="ui-btn ui-btn-outline-secondary ui-btn-sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}>
               Sau<i className="fas fa-chevron-right ms-1"></i>
             </button>
           </div>

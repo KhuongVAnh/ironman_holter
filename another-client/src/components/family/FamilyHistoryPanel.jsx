@@ -53,7 +53,7 @@ const FamilyHistoryPanel = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-8"><div className="spinner-border"></div></div>
+          <div className="flex justify-center py-8"><div className="ui-spinner"></div></div>
         ) : activeTab === "visits" ? (
           <MedicalVisitList visits={visits} role={ROLE.GIA_DINH} />
         ) : (

@@ -120,7 +120,7 @@ const AdminDashboard = () => {
           </div>
           <div className="flex flex-wrap gap-2">
             <span className="status-chip is-info"><i className="fas fa-clock"></i>{new Date().toLocaleString("vi-VN")}</span>
-            <button className="btn btn-primary btn-sm" onClick={fetchDashboardData}>
+            <button className="ui-btn ui-btn-primary ui-btn-sm" onClick={fetchDashboardData}>
               <i className="fas fa-sync-alt"></i>
               Làm mới
             </button>
@@ -168,7 +168,7 @@ const AdminDashboard = () => {
               <p className="panel-eyebrow">New accounts</p>
               <h2 className="section-title">Người dùng mới</h2>
             </div>
-            <Link to="/admin/users" className="btn btn-outline-primary btn-sm">Xem tất cả</Link>
+            <Link to="/admin/users" className="ui-btn ui-btn-outline-primary ui-btn-sm">Xem tất cả</Link>
           </div>
           <div className="clinical-panel-body">
             {recentUsers.length > 0 ? (
@@ -176,14 +176,14 @@ const AdminDashboard = () => {
                 {recentUsers.map((user) => (
                   <div key={user.user_id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-surface-line bg-white p-4 shadow-soft">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="avatar-circle bg-primary text-white">{user.name.charAt(0).toUpperCase()}</div>
+                      <div className="ui-avatar bg-brand-600 text-white">{user.name.charAt(0).toUpperCase()}</div>
                       <div className="min-w-0">
                         <p className="truncate font-bold text-ink-900">{user.name}</p>
                         <p className="truncate text-sm text-ink-500">{user.email}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className={`badge bg-${user.role === ROLE.ADMIN ? "danger" : "primary"}`}>{user.role}</span>
+                      <span className={`ui-badge text-white ${user.role === ROLE.ADMIN ? "bg-rose-600" : "bg-brand-600"}`}>{user.role}</span>
                       <p className="mt-1 text-xs text-ink-500">{formatDate(user.created_at)}</p>
                     </div>
                   </div>

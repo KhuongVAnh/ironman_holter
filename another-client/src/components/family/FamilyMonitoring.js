@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import { toast } from "react-toastify"
@@ -113,7 +113,7 @@ const FamilyMonitoring = () => {
           <h1 className="page-hero-title">Theo dõi người thân</h1>
           <p className="page-hero-subtitle">Xem nhanh trạng thái, cảnh báo và bản ghi ECG mới nhất của bệnh nhân đã cấp quyền.</p>
         </div>
-        <button type="button" className="btn btn-outline-primary" onClick={fetchFamilyMembers}>
+        <button type="button" className="ui-btn ui-btn-outline-primary" onClick={fetchFamilyMembers}>
           <i className="fas fa-rotate-right me-2"></i>Làm mới
         </button>
       </section>
@@ -155,10 +155,10 @@ const FamilyMonitoring = () => {
                   {familyMembers.map((member) => (
                     <button
                       key={member.user_id}
-                      className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${selectedMember?.user_id === member.user_id ? "border-brand-200 bg-brand-50 text-brand-900 shadow-soft" : "border-surface-line bg-white hover:bg-surface-soft"}`}
+                      className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left transition ${selectedMember?.user_id === member.user_id ? "border-brand-200 bg-brand-50 text-brand-900 shadow-soft" : "border-surface-line bg-white hover:bg-surface-soft"}`}
                       onClick={() => setSelectedMember(member)}
                     >
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-100 font-bold text-sky-700">{member.name.charAt(0).toUpperCase()}</div>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 font-semibold text-sky-700">{member.name.charAt(0).toUpperCase()}</div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-bold">{member.name}</p>
                         <p className="truncate text-xs text-ink-500">{member.email}</p>
@@ -207,7 +207,7 @@ const FamilyMonitoring = () => {
                 <div className="clinical-panel-body">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex min-w-0 items-center gap-4">
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-100 text-2xl font-bold text-brand-700">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-lg font-semibold text-brand-700">
                         {selectedMember.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
@@ -219,9 +219,9 @@ const FamilyMonitoring = () => {
                       </div>
                     </div>
                     {latestReading ? (
-                      <div className={`rounded-2xl border p-5 text-right ${latestReading.abnormal_detected ? "border-red-100 bg-red-50" : "border-emerald-100 bg-emerald-50"}`}>
+                      <div className={`rounded-xl border p-4 text-right ${latestReading.abnormal_detected ? "border-red-100 bg-red-50" : "border-emerald-100 bg-emerald-50"}`}>
                         <p className="text-xs font-bold uppercase tracking-[0.1em] text-ink-500">Nhịp tim gần nhất</p>
-                        <p className="mt-2 text-4xl font-bold text-ink-900">{latestReading.heart_rate} <span className="text-lg">BPM</span></p>
+                        <p className="mt-1.5 text-3xl font-semibold text-ink-900">{latestReading.heart_rate} <span className="text-base">BPM</span></p>
                         <span className={`mt-3 status-chip ${latestReading.abnormal_detected ? "is-danger" : "is-success"}`}>
                           {latestReading.abnormal_detected ? "Bất thường" : "Bình thường"}
                         </span>
@@ -264,7 +264,7 @@ const FamilyMonitoring = () => {
                   {visibleReadings.length > 0 ? (
                     <div className="space-y-3">
                       {visibleReadings.map((reading) => (
-                        <button key={reading.reading_id} type="button" className="grid w-full gap-3 rounded-2xl border border-surface-line bg-white p-4 text-left shadow-soft transition hover:border-brand-200 hover:shadow-medium md:grid-cols-[minmax(0,1fr)_140px_130px]" onClick={() => setSelectedReadingId(reading.reading_id)}>
+                        <button key={reading.reading_id} type="button" className="grid w-full gap-3 rounded-xl border border-surface-line bg-white p-4 text-left shadow-soft transition hover:border-brand-200 md:grid-cols-[minmax(0,1fr)_140px_130px]" onClick={() => setSelectedReadingId(reading.reading_id)}>
                           <div>
                             <p className="font-semibold text-ink-900">{formatDate(reading.timestamp)}</p>
                             <p className="text-xs text-ink-500">Mã bản ghi: {reading.reading_id}</p>

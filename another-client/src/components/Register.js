@@ -36,10 +36,10 @@ const Register = () => {
   return (
     <div className="min-h-screen bg-holter-surface px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[430px_minmax(0,1fr)]">
-        <section className="relative overflow-hidden rounded-[24px] border border-white/60 bg-white/[0.82] p-6 shadow-holterAmbient backdrop-blur-xl sm:p-8 lg:p-10">
+        <section className="relative overflow-hidden rounded-xl border border-surface-line bg-white p-5 shadow-soft sm:p-7 lg:p-8">
           <div className="absolute inset-x-0 top-0 h-1 bg-brand-600"></div>
           <p className="panel-eyebrow">Tài khoản mới</p>
-          <h1 className="mt-3 text-4xl font-bold leading-tight text-brand-700">Tạo workspace theo đúng vai trò chăm sóc.</h1>
+          <h1 className="mt-3 text-3xl font-semibold leading-tight text-brand-700">Tạo workspace theo đúng vai trò chăm sóc.</h1>
           <p className="mt-4 text-sm leading-6 text-ink-600">Mỗi vai trò có dashboard, quyền truy cập và hành động riêng để dữ liệu ECG được theo dõi đúng người, đúng thời điểm.</p>
 
           <div className="mt-8 space-y-4">
@@ -66,14 +66,14 @@ const Register = () => {
                 <h2 className="section-title">Thông tin tài khoản</h2>
                 <p className="section-subtitle">Hoàn thiện thông tin cơ bản để bắt đầu sử dụng hệ thống.</p>
               </div>
-              <Link to="/login" className="btn btn-outline-primary btn-sm">Đăng nhập</Link>
+              <Link to="/login" className="ui-btn ui-btn-outline-primary ui-btn-sm">Đăng nhập</Link>
             </div>
             <div className="clinical-panel-body">
               <form className="grid gap-4" onSubmit={handleSubmit}>
                 <div>
-                  <label className="form-label">Họ và tên</label>
+                  <label className="ui-label">Họ và tên</label>
                   <input
-                    className="form-control"
+                    className="ui-field"
                     type="text"
                     value={formData.name}
                     onChange={(event) => updateField("name", event.target.value)}
@@ -83,9 +83,9 @@ const Register = () => {
                 </div>
 
                 <div>
-                  <label className="form-label">Email</label>
+                  <label className="ui-label">Email</label>
                   <input
-                    className="form-control"
+                    className="ui-field"
                     type="email"
                     value={formData.email}
                     onChange={(event) => updateField("email", event.target.value)}
@@ -95,7 +95,7 @@ const Register = () => {
                 </div>
 
                 <div>
-                  <label className="form-label">Vai trò</label>
+                  <label className="ui-label">Vai trò</label>
                   <div className="grid gap-3 md:grid-cols-3">
                     {[
                       { value: ROLE.BENH_NHAN, icon: "fas fa-heart-pulse", tone: "info" },
@@ -105,7 +105,7 @@ const Register = () => {
                       <button
                         key={item.value}
                         type="button"
-                        className={`rounded-2xl border p-4 text-left transition ${formData.role === item.value ? "border-brand-300 bg-brand-50 shadow-soft" : "border-surface-line bg-white/85 hover:bg-brand-50/60"}`}
+                        className={`rounded-xl border p-4 text-left transition ${formData.role === item.value ? "border-brand-300 bg-brand-50 shadow-soft" : "border-surface-line bg-white hover:bg-brand-50/60"}`}
                         onClick={() => updateField("role", item.value)}
                       >
                         <div className={`empty-state-rich-icon ${item.tone} mb-3 h-10 w-10 text-base`}><i className={item.icon}></i></div>
@@ -117,9 +117,9 @@ const Register = () => {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="form-label">Mật khẩu</label>
+                    <label className="ui-label">Mật khẩu</label>
                     <input
-                      className="form-control"
+                      className="ui-field"
                       type="password"
                       value={formData.password}
                       onChange={(event) => updateField("password", event.target.value)}
@@ -128,9 +128,9 @@ const Register = () => {
                     />
                   </div>
                   <div>
-                    <label className="form-label">Xác nhận mật khẩu</label>
+                    <label className="ui-label">Xác nhận mật khẩu</label>
                     <input
-                      className="form-control"
+                      className="ui-field"
                       type="password"
                       value={formData.confirmPassword}
                       onChange={(event) => updateField("confirmPassword", event.target.value)}
@@ -140,8 +140,8 @@ const Register = () => {
                   </div>
                 </div>
 
-                <button type="submit" className="btn btn-primary mt-2 w-full" disabled={loading}>
-                  {loading ? <><span className="spinner-border spinner-border-sm"></span>Đang đăng ký...</> : <><i className="fas fa-user-plus me-2"></i>Tạo tài khoản</>}
+                <button type="submit" className="ui-btn ui-btn-primary mt-2 w-full" disabled={loading}>
+                  {loading ? <><span className="ui-spinner ui-spinner-sm"></span>Đang đăng ký...</> : <><i className="fas fa-user-plus me-2"></i>Tạo tài khoản</>}
                 </button>
               </form>
 

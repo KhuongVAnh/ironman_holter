@@ -117,7 +117,7 @@ const AdminUsers = () => {
     const config = ROLE_BADGE[role] || ROLE_BADGE[ROLE.BENH_NHAN]
 
     return (
-      <span className={`badge ${config.class}`}>
+      <span className={`ui-badge ${config.class}`}>
         <i className={`${config.icon} me-1`}></i>
         {role}
       </span>
@@ -145,7 +145,7 @@ const AdminUsers = () => {
           <h1 className="page-hero-title">Quản lý người dùng</h1>
           <p className="page-hero-subtitle">Theo dõi vai trò, trạng thái tài khoản và thao tác nhanh với từng người dùng.</p>
         </div>
-        <button className="btn btn-outline-primary" onClick={fetchUsers}>
+        <button className="ui-btn ui-btn-outline-primary" onClick={fetchUsers}>
           <i className="fas fa-sync-alt me-1"></i>
           Làm mới
         </button>
@@ -165,20 +165,20 @@ const AdminUsers = () => {
             <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"></i>
             <input
               type="text"
-              className="form-control pl-11"
+              className="ui-field pl-11"
               placeholder="Tìm kiếm theo tên hoặc email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <select className="form-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+          <select className="ui-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
             <option value="all">Tất cả vai trò</option>
             <option value={ROLE.BENH_NHAN}>Bệnh nhân</option>
             <option value={ROLE.BAC_SI}>Bác sĩ</option>
             <option value={ROLE.GIA_DINH}>Gia đình</option>
             <option value={ROLE.ADMIN}>Admin</option>
           </select>
-          <select className="form-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <select className="ui-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="all">Tất cả trạng thái</option>
             <option value="active">Đang hoạt động</option>
             <option value="inactive">Ngưng hoạt động</option>
@@ -192,9 +192,9 @@ const AdminUsers = () => {
         <div className="clinical-panel-body">
           {paginatedUsers.length > 0 ? (
             <div className="table-mobile-cards">
-              <div className="table-responsive">
-                <table className="table table-hover">
-                  <thead className="table-light">
+              <div className="ui-table-wrap">
+                <table className="ui-table ui-table-hover">
+                  <thead className="ui-table-light">
                     <tr>
                       <th>Người dùng</th>
                       <th>Email</th>
@@ -208,13 +208,13 @@ const AdminUsers = () => {
                     {paginatedUsers.map((user) => (
                       <tr key={user.user_id}>
                         <td>
-                          <div className="d-flex align-items-center">
-                            <div className="avatar-circle bg-primary text-white me-3">
+                          <div className="flex items-center">
+                            <div className="ui-avatar bg-brand-600 text-white me-3">
                               {user.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
                               <h6 className="mb-0">{user.name}</h6>
-                              <small className="text-muted">ID: {user.user_id}</small>
+                              <small className="text-ink-500">ID: {user.user_id}</small>
                             </div>
                           </div>
                         </td>
@@ -222,12 +222,12 @@ const AdminUsers = () => {
                         <td>{getRoleBadge(user.role)}</td>
                         <td>
                           {user.is_active ? (
-                            <span className="badge bg-success">
+                            <span className="ui-badge bg-emerald-600">
                               <i className="fas fa-check-circle me-1"></i>
                               Hoạt động
                             </span>
                           ) : (
-                            <span className="badge bg-secondary">
+                            <span className="ui-badge bg-slate-500">
                               <i className="fas fa-pause-circle me-1"></i>
                               Ngưng
                             </span>
@@ -235,16 +235,16 @@ const AdminUsers = () => {
                         </td>
                         <td>{formatDate(user.created_at)}</td>
                         <td>
-                          <div className="btn-group" role="group">
+                          <div className="ui-btn-group" role="group">
                             <button
-                              className="btn btn-outline-primary btn-sm"
+                              className="ui-btn ui-btn-outline-primary ui-btn-sm"
                               onClick={() => handleEdit(user)}
                               title="Chỉnh sửa"
                             >
                               <i className="fas fa-edit"></i>
                             </button>
                             <button
-                              className="btn btn-outline-danger btn-sm"
+                              className="ui-btn ui-btn-outline-danger ui-btn-sm"
                               onClick={() => handleDelete(user.user_id, user.name)}
                               title="Xóa"
                             >
@@ -262,7 +262,7 @@ const AdminUsers = () => {
                 {paginatedUsers.map((user) => (
                   <article key={user.user_id} className="mobile-data-card">
                     <div className="mb-3 flex items-center gap-3">
-                      <div className="avatar-circle bg-primary text-white">
+                      <div className="ui-avatar bg-brand-600 text-white">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
@@ -282,12 +282,12 @@ const AdminUsers = () => {
                       <span className="mobile-data-card-label">Trạng thái</span>
                       <span className="mobile-data-card-value">
                         {user.is_active ? (
-                          <span className="badge bg-success">
+                          <span className="ui-badge bg-emerald-600">
                             <i className="fas fa-check-circle me-1"></i>
                             Hoạt động
                           </span>
                         ) : (
-                          <span className="badge bg-secondary">
+                          <span className="ui-badge bg-slate-500">
                             <i className="fas fa-pause-circle me-1"></i>
                             Ngưng
                           </span>
@@ -299,11 +299,11 @@ const AdminUsers = () => {
                       <span className="mobile-data-card-value">{formatDate(user.created_at)}</span>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button className="btn btn-outline-primary btn-sm" onClick={() => handleEdit(user)}>
+                      <button className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => handleEdit(user)}>
                         <i className="fas fa-edit"></i>
                         Sửa
                       </button>
-                      <button className="btn btn-outline-danger btn-sm" onClick={() => handleDelete(user.user_id, user.name)}>
+                      <button className="ui-btn ui-btn-outline-danger ui-btn-sm" onClick={() => handleDelete(user.user_id, user.name)}>
                         <i className="fas fa-trash"></i>
                         Xóa
                       </button>
@@ -335,25 +335,24 @@ const AdminUsers = () => {
 
       {/* Edit User Modal */}
       {editingUser && (
-        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">
+        <div className="ui-dialog-overlay" tabIndex="-1">
+          <div className="ui-dialog-panel ui-dialog-size-md">
+              <div className="ui-dialog-header">
+                <h5 className="ui-dialog-title">
                   <i className="fas fa-edit me-2"></i>
                   Chỉnh sửa người dùng
                 </h5>
-                <button type="button" className="btn-close" onClick={() => setEditingUser(null)}></button>
+                <button type="button" className="ui-close-btn" onClick={() => setEditingUser(null)}></button>
               </div>
-              <form onSubmit={handleUpdate}>
-                <div className="modal-body">
+              <form onSubmit={handleUpdate} className="flex min-h-0 flex-1 flex-col">
+                <div className="ui-dialog-body">
                   <div className="mb-3">
-                    <label htmlFor="editName" className="form-label">
+                    <label htmlFor="editName" className="ui-label">
                       Họ và tên
                     </label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="ui-field"
                       id="editName"
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
@@ -361,12 +360,12 @@ const AdminUsers = () => {
                     />
                   </div>
                   <div className="mb-3">
-                    <label htmlFor="editEmail" className="form-label">
+                    <label htmlFor="editEmail" className="ui-label">
                       Email
                     </label>
                     <input
                       type="email"
-                      className="form-control"
+                      className="ui-field"
                       id="editEmail"
                       value={editForm.email}
                       onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
@@ -374,11 +373,11 @@ const AdminUsers = () => {
                     />
                   </div>
                   <div className="mb-3">
-                    <label htmlFor="editRole" className="form-label">
+                    <label htmlFor="editRole" className="ui-label">
                       Vai trò
                     </label>
                     <select
-                      className="form-select"
+                      className="ui-select"
                       id="editRole"
                       value={editForm.role}
                       onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
@@ -390,31 +389,30 @@ const AdminUsers = () => {
                     </select>
                   </div>
                   <div className="mb-3">
-                    <div className="form-check">
+                    <div className="flex items-center gap-2">
                       <input
-                        className="form-check-input"
+                        className="h-4 w-4 rounded border-surface-line text-brand-600 focus:ring-brand-100"
                         type="checkbox"
                         id="editActive"
                         checked={editForm.is_active}
                         onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
                       />
-                      <label className="form-check-label" htmlFor="editActive">
+                      <label className="text-sm font-medium text-ink-700" htmlFor="editActive">
                         Tài khoản hoạt động
                       </label>
                     </div>
                   </div>
                 </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setEditingUser(null)}>
+                <div className="ui-dialog-footer">
+                  <button type="button" className="ui-btn ui-btn-secondary" onClick={() => setEditingUser(null)}>
                     Hủy
                   </button>
-                  <button type="submit" className="btn btn-primary">
+                  <button type="submit" className="ui-btn ui-btn-primary">
                     <i className="fas fa-save me-1"></i>
                     Lưu thay đổi
                   </button>
                 </div>
               </form>
-            </div>
           </div>
         </div>
       )}

@@ -172,10 +172,9 @@ const PatientAlerts = () => {
         <div className="page-hero-icon"><i className="fas fa-triangle-exclamation"></i></div>
         <div className="min-w-0 flex-1">
           <p className="panel-eyebrow">Cảnh báo sức khỏe</p>
-          <h1 className="page-hero-title">Ưu tiên cảnh báo ECG cần xử lý</h1>
-          <p className="page-hero-subtitle">Theo dõi cảnh báo theo mức độ để ưu tiên xử lý và mở nhanh đồ thị ECG liên quan.</p>
+          <p className="page-hero-subtitle">Các phát hiện bất thường từ AI sẽ được hiển thị tại đây và chờ bác sĩ xem xét. Hãy chủ động gửi cho bác sĩ các cảnh báo mà bạn cần xử lý gấp qua khung chat.</p>
         </div>
-        <button className="btn btn-outline-primary" onClick={fetchAlerts}>
+        <button className="ui-btn ui-btn-outline-primary" onClick={fetchAlerts}>
           <i className="fas fa-rotate-right me-2"></i>
           Làm mới
         </button>

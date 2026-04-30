@@ -50,7 +50,7 @@ const DoctorReports = () => {
             <h1 className="mt-1 text-3xl font-bold text-ink-950">Báo cáo chuyên môn</h1>
             <p className="mt-2 text-sm text-ink-600">Tra cứu báo cáo đã tạo, mở hồ sơ bệnh nhân và xem lại nội dung chi tiết.</p>
           </div>
-          <button type="button" className="btn btn-primary" onClick={fetchReports}>
+          <button type="button" className="ui-btn ui-btn-primary" onClick={fetchReports}>
             <i className="fas fa-rotate me-2"></i>Làm mới
           </button>
         </div>
@@ -72,7 +72,7 @@ const DoctorReports = () => {
         <div className="clinical-panel-body space-y-4">
           <div className="relative">
             <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"></i>
-            <input className="form-control pl-11" placeholder="Tìm kiếm báo cáo..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
+            <input className="ui-field pl-11" placeholder="Tìm kiếm báo cáo..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
           </div>
 
           {filteredReports.length ? (
@@ -91,8 +91,8 @@ const DoctorReports = () => {
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-surface-line pt-4">
                     <span className="text-xs font-medium text-ink-500">{formatDateTime(report.created_at)}</span>
                     <div className="flex gap-2">
-                      {report.user_id ? <Link to={`/doctor/patient/${report.user_id}`} className="btn btn-outline-primary btn-sm">Mở hồ sơ</Link> : null}
-                      <button type="button" className="btn btn-primary btn-sm" onClick={() => setSelectedReport(report)}>Chi tiết</button>
+                      {report.user_id ? <Link to={`/doctor/patient/${report.user_id}`} className="ui-btn ui-btn-outline-primary ui-btn-sm">Mở hồ sơ</Link> : null}
+                      <button type="button" className="ui-btn ui-btn-primary ui-btn-sm" onClick={() => setSelectedReport(report)}>Chi tiết</button>
                     </div>
                   </div>
                 </article>
@@ -110,7 +110,7 @@ const DoctorReports = () => {
         eyebrow="Báo cáo bác sĩ"
         title={selectedReport ? `Báo cáo #${selectedReport.report_id}` : "Báo cáo"}
         size="lg"
-        footer={<button type="button" className="btn btn-primary" onClick={() => setSelectedReport(null)}>Đóng</button>}
+        footer={<button type="button" className="ui-btn ui-btn-primary" onClick={() => setSelectedReport(null)}>Đóng</button>}
       >
         {selectedReport ? (
           <div className="space-y-4">

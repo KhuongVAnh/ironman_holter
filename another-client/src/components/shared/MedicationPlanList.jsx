@@ -125,11 +125,11 @@ const MedicationPlanList = ({ plans, onEdit, onDelete, role }) => {
                 ) : null}
                 {canManage ? (
                   <div className="medication-plan-actions">
-                  <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => onEdit?.(plan)}>
+                  <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => onEdit?.(plan)}>
                     <i className="fas fa-pen"></i>
                     
                   </button>
-                  <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => onDelete?.(plan.plan_id)}>
+                  <button type="button" className="ui-btn ui-btn-outline-danger ui-btn-sm" onClick={() => onDelete?.(plan.plan_id)}>
                     <i className="fas fa-trash"></i>
 
                   </button>

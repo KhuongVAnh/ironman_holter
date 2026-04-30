@@ -91,7 +91,7 @@ const PatientDeviceRegistration = () => {
           <h1 className="page-hero-title">Đăng ký và theo dõi thiết bị</h1>
           <p className="page-hero-subtitle">Mỗi thiết bị cần mã serial duy nhất để đồng bộ dữ liệu đo nhịp tim vào hồ sơ của bạn.</p>
         </div>
-        <button className="btn btn-outline-primary" onClick={fetchDevices} disabled={loading}>
+        <button className="ui-btn ui-btn-outline-primary" onClick={fetchDevices} disabled={loading}>
           <i className="fas fa-rotate-right me-2"></i>Làm mới
         </button>
       </section>
@@ -136,12 +136,12 @@ const PatientDeviceRegistration = () => {
             </div>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
-                <label htmlFor="serial_number" className="form-label">Mã serial</label>
+                <label htmlFor="serial_number" className="ui-label">Mã serial</label>
                 <input
                   id="serial_number"
                   name="serial_number"
                   type="text"
-                  className="form-control"
+                  className="ui-field"
                   placeholder="VD: SN-ECG-0002"
                   value={formData.serial_number}
                   onChange={handleInputChange}
@@ -149,10 +149,10 @@ const PatientDeviceRegistration = () => {
                 />
               </div>
 
-              <button type="submit" className="btn btn-primary w-100" disabled={submitting}>
+              <button type="submit" className="ui-btn ui-btn-primary w-full" disabled={submitting}>
                 {submitting ? (
                   <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    <span className="ui-spinner ui-spinner-sm me-2" role="status" aria-hidden="true"></span>
                     Đang xử lý...
                   </>
                 ) : (
@@ -176,7 +176,7 @@ const PatientDeviceRegistration = () => {
           </div>
           <div className="clinical-panel-body">
             {loading ? (
-              <div className="flex justify-center py-10"><div className="spinner-border text-primary" role="status"><span className="visually-hidden">Đang tải...</span></div></div>
+              <div className="flex justify-center py-10"><div className="ui-spinner text-brand-600" role="status"><span className="sr-only">Đang tải...</span></div></div>
             ) : devices.length === 0 ? (
               <div className="empty-state-rich">
                 <div className="empty-state-rich-icon info"><i className="fas fa-microchip"></i></div>
@@ -195,7 +195,7 @@ const PatientDeviceRegistration = () => {
                     </div>
                     <div className="flex flex-wrap items-center gap-2 md:justify-end">
                       {renderStatus(device.status)}
-                      <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedDevice(device)}>
+                      <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => setSelectedDevice(device)}>
                         <i className="fas fa-chart-line me-1"></i>Readings
                       </button>
                     </div>

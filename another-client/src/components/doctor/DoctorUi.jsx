@@ -83,9 +83,9 @@ export const DoctorStatCard = ({ icon, label, value, tone = "brand", hint }) => 
 }
 
 export const PatientAvatar = ({ name, size = "md" }) => {
-  const sizeClass = size === "lg" ? "h-16 w-16 text-lg" : "h-11 w-11 text-sm"
+  const sizeClass = size === "lg" ? "h-12 w-12 text-base" : "h-9 w-9 text-xs"
   return (
-    <span className={`inline-flex ${sizeClass} flex-none items-center justify-center rounded-2xl bg-ink-900 font-bold text-white shadow-soft ring-4 ring-brand-50`}>
+    <span className={`inline-flex ${sizeClass} flex-none items-center justify-center rounded-lg bg-ink-900 font-semibold text-white ring-1 ring-slate-200`}>
       {getInitials(name)}
     </span>
   )
@@ -102,13 +102,13 @@ export const EmptyState = ({ icon = "fas fa-folder-open", title, description }) 
 )
 
 export const ClinicalTabs = ({ tabs, activeTab, onChange }) => (
-  <div className="flex gap-2 overflow-x-auto rounded-2xl border border-surface-line bg-surface-soft p-1.5 shadow-soft">
+  <div className="flex gap-1.5 overflow-x-auto rounded-xl border border-surface-line bg-white p-1 shadow-soft">
     {tabs.map((tab) => (
       <button
         key={tab.value}
         type="button"
-        className={`inline-flex min-h-10 flex-none items-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${
-          activeTab === tab.value ? "bg-ink-900 text-white shadow-medium" : "text-ink-600 hover:bg-white/80 hover:text-ink-900"
+        className={`inline-flex min-h-9 flex-none items-center gap-2 rounded-lg px-3.5 text-sm font-semibold transition ${
+          activeTab === tab.value ? "bg-ink-900 text-white" : "text-ink-600 hover:bg-surface-soft hover:text-ink-900"
         }`}
         onClick={() => onChange(tab.value)}
       >

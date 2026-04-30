@@ -160,17 +160,17 @@ const PatientAccess = () => {
             </div>
             <form className="space-y-4" onSubmit={handleShareAccess}>
               <div>
-                <label className="form-label">Email người được cấp quyền</label>
-                <input className="form-control" type="email" value={viewerEmail} onChange={(event) => setViewerEmail(event.target.value)} placeholder="doctor@example.com" required />
+                <label className="ui-label">Email người được cấp quyền</label>
+                <input className="ui-field" type="email" value={viewerEmail} onChange={(event) => setViewerEmail(event.target.value)} placeholder="doctor@example.com" required />
               </div>
               <div>
-                <label className="form-label">Vai trò</label>
-                <select className="form-select" value={role} onChange={(event) => setRole(event.target.value)}>
+                <label className="ui-label">Vai trò</label>
+                <select className="ui-select" value={role} onChange={(event) => setRole(event.target.value)}>
                   <option value={ACCESS_ROLE.BAC_SI}>Bác sĩ</option>
                   <option value={ACCESS_ROLE.GIA_DINH}>Gia đình</option>
                 </select>
               </div>
-              <button type="submit" className="btn btn-primary w-100"><i className="fas fa-share-nodes me-2"></i>Gửi yêu cầu</button>
+              <button type="submit" className="ui-btn ui-btn-primary w-full"><i className="fas fa-share-nodes me-2"></i>Gửi yêu cầu</button>
             </form>
           </div>
         </section>
@@ -207,7 +207,7 @@ const PatientAccess = () => {
                         </div>
                       </div>
                     </div>
-                    <button type="button" className="btn btn-outline-danger btn-sm sm:self-center" onClick={() => handleRevoke(item.permission_id)}>
+                    <button type="button" className="ui-btn ui-btn-outline-danger ui-btn-sm sm:self-center" onClick={() => handleRevoke(item.permission_id)}>
                       <i className="fas fa-user-slash me-1"></i>Thu hồi
                     </button>
                   </div>

@@ -325,7 +325,7 @@ const PatientDetail = () => {
     }
   }
 
-  if (loading) return <div className="flex min-h-[55vh] items-center justify-center"><div className="spinner-border"></div></div>
+  if (loading) return <div className="flex min-h-[55vh] items-center justify-center"><div className="ui-spinner"></div></div>
 
   if (!patient) {
     return <EmptyState icon="fas fa-user-lock" title="Không tìm thấy bệnh nhân" description="Bệnh nhân không tồn tại hoặc chưa cấp quyền theo dõi cho bác sĩ." />
@@ -349,13 +349,13 @@ const PatientDetail = () => {
                 Nhịp gần nhất: <span className={`text-lg ${getHeartRateTone(latestReading.heart_rate)}`}>{latestReading.heart_rate} BPM</span>
               </span>
             ) : null}
-            <button type="button" className="btn btn-outline-primary" onClick={() => navigate("/doctor/chat", { state: { patientId: patient.user_id } })}>
+            <button type="button" className="ui-btn ui-btn-outline-primary" onClick={() => navigate("/doctor/chat", { state: { patientId: patient.user_id } })}>
               <i className="fas fa-message me-2"></i>Nhắn tin
             </button>
-            <button type="button" className="btn btn-outline-success" onClick={() => setActiveTab("reports")}>
+            <button type="button" className="ui-btn ui-btn-outline-success" onClick={() => setActiveTab("reports")}>
               <i className="fas fa-file-medical me-2"></i>Tạo báo cáo
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => { setActiveTab("records"); setShowVisitForm(true) }}>
+            <button type="button" className="ui-btn ui-btn-primary" onClick={() => { setActiveTab("records"); setShowVisitForm(true) }}>
               <i className="fas fa-plus me-2"></i>Thêm lần khám
             </button>
           </div>
@@ -380,7 +380,7 @@ const PatientDetail = () => {
                   <h2 className="section-title">ECG gần nhất</h2>
                   <p className="section-subtitle">{latestReading ? formatDateTime(latestReading.timestamp) : "Chưa có dữ liệu đo"}</p>
                 </div>
-                {latestReading ? <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReadingId(latestReading.reading_id)}>Mở chi tiết</button> : null}
+                {latestReading ? <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => setSelectedReadingId(latestReading.reading_id)}>Mở chi tiết</button> : null}
               </div>
               <div className="clinical-panel-body">
                 {latestReading ? <ECGChart data={latestReading.ecg_signal || []} /> : <EmptyState icon="fas fa-wave-square" title="Chưa có dữ liệu ECG" />}
@@ -429,7 +429,7 @@ const PatientDetail = () => {
               <>
                 <div className="table-mobile-cards">
                 <div className="overflow-x-auto">
-                  <table className="table align-middle">
+                  <table className="ui-table align-middle">
                     <thead><tr><th>Thời gian</th><th>Nhịp tim</th><th>AI</th><th>Trạng thái</th><th className="text-end">Chi tiết</th></tr></thead>
                     <tbody>
                       {readings.map((reading) => (
@@ -444,7 +444,7 @@ const PatientDetail = () => {
                                 : formatAiResultForDisplay(reading.ai_result)}
                           </td>
                           <td><span className={`rounded-full px-3 py-1 text-xs font-bold ${reading.abnormal_detected ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{reading.abnormal_detected ? "Bất thường" : "Bình thường"}</span></td>
-                          <td className="text-end"><button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button></td>
+                          <td className="text-end"><button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -474,7 +474,7 @@ const PatientDetail = () => {
                               : formatAiResultForDisplay(reading.ai_result)}
                         </span>
                       </div>
-                      <button type="button" className="btn btn-outline-primary btn-sm mt-3 w-full" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button>
+                      <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm mt-3 w-full" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button>
                     </article>
                   ))}
                 </div>
@@ -497,10 +497,10 @@ const PatientDetail = () => {
           <div className="clinical-panel-header">
             <div><h2 className="section-title">Cảnh báo</h2><p className="section-subtitle">Lọc, mở ECG và đánh dấu xử lý.</p></div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn btn-primary btn-sm" onClick={openCreateAlertForm} disabled={!readingTotal}>
+              <button type="button" className="ui-btn ui-btn-primary ui-btn-sm" onClick={openCreateAlertForm} disabled={!readingTotal}>
                 <i className="fas fa-plus me-1"></i>Tạo cảnh báo
               </button>
-              <select className="form-select w-auto" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value)}>
+              <select className="ui-select w-auto" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value)}>
                 <option value="open">Chưa xử lý</option>
                 <option value="resolved">Đã xử lý</option>
                 <option value="all">Tất cả</option>
@@ -517,8 +517,8 @@ const PatientDetail = () => {
                     <p className="mt-2 text-xs text-ink-500">{formatDateTime(alert.timestamp)}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {alert.reading_id ? <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReadingId(alert.reading_id)}>Mở ECG</button> : null}
-                    {!alert.resolved ? <button type="button" className="btn btn-outline-success btn-sm" onClick={() => resolveAlert(alert.alert_id)}>Đánh dấu đã xử lý</button> : null}
+                    {alert.reading_id ? <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => setSelectedReadingId(alert.reading_id)}>Mở ECG</button> : null}
+                    {!alert.resolved ? <button type="button" className="ui-btn ui-btn-outline-success ui-btn-sm" onClick={() => resolveAlert(alert.alert_id)}>Đánh dấu đã xử lý</button> : null}
                   </div>
                 </div>
               </article>
@@ -540,7 +540,7 @@ const PatientDetail = () => {
           <section className="clinical-panel overflow-hidden">
             <div className="clinical-panel-header">
               <div><h2 className="section-title">Đơn thuốc và kế hoạch thuốc</h2><p className="section-subtitle">Quản lý thuốc đang dùng và các đợt điều trị cũ.</p></div>
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowPlanForm(true)}><i className="fas fa-plus me-1"></i>Thêm đơn thuốc</button>
+              <button type="button" className="ui-btn ui-btn-primary ui-btn-sm" onClick={() => setShowPlanForm(true)}><i className="fas fa-plus me-1"></i>Thêm đơn thuốc</button>
             </div>
             <div className="clinical-panel-body"><MedicationPlanList plans={plans} role={ROLE.BAC_SI} onEdit={(record) => { setEditPlan(record); setShowPlanForm(true) }} onDelete={handlePlanDelete} /></div>
           </section>
@@ -569,8 +569,8 @@ const PatientDetail = () => {
             <div className="clinical-panel-header"><div><h2 className="section-title">Tạo báo cáo</h2><p className="section-subtitle">Ghi nhận nhận định và khuyến nghị chuyên môn.</p></div></div>
             <div className="clinical-panel-body">
               <form className="space-y-4" onSubmit={createReport}>
-                <textarea className="form-control min-h-[220px]" value={reportForm.summary} onChange={(event) => setReportForm({ summary: event.target.value })} placeholder="Nhập nội dung báo cáo..." />
-                <button type="submit" className="btn btn-primary w-100"><i className="fas fa-plus me-2"></i>Tạo báo cáo</button>
+                <textarea className="ui-field min-h-[220px]" value={reportForm.summary} onChange={(event) => setReportForm({ summary: event.target.value })} placeholder="Nhập nội dung báo cáo..." />
+                <button type="submit" className="ui-btn ui-btn-primary w-full"><i className="fas fa-plus me-2"></i>Tạo báo cáo</button>
               </form>
             </div>
           </aside>
@@ -588,15 +588,15 @@ const PatientDetail = () => {
         size="lg"
         footer={
           <>
-            <button type="button" className="btn btn-outline-secondary" onClick={() => setShowAlertForm(false)}>Hủy</button>
-            <button type="submit" form="manual-alert-form" className="btn btn-primary">Tạo cảnh báo</button>
+            <button type="button" className="ui-btn ui-btn-outline-secondary" onClick={() => setShowAlertForm(false)}>Hủy</button>
+            <button type="submit" form="manual-alert-form" className="ui-btn ui-btn-primary">Tạo cảnh báo</button>
           </>
         }
       >
         <form id="manual-alert-form" className="space-y-4" onSubmit={createManualAlert}>
           <div>
-            <label className="form-label">Bản ghi ECG</label>
-            <select className="form-select" value={alertForm.reading_id} onChange={(event) => setAlertForm((prev) => ({ ...prev, reading_id: event.target.value }))} required>
+            <label className="ui-label">Bản ghi ECG</label>
+            <select className="ui-select" value={alertForm.reading_id} onChange={(event) => setAlertForm((prev) => ({ ...prev, reading_id: event.target.value }))} required>
               <option value="">Chọn bản ghi</option>
               {readings.map((reading) => (
                 <option key={reading.reading_id} value={reading.reading_id}>
@@ -606,21 +606,21 @@ const PatientDetail = () => {
             </select>
           </div>
           <div>
-            <label className="form-label">Loại cảnh báo</label>
-            <input className="form-control" value={alertForm.alert_type} onChange={(event) => setAlertForm((prev) => ({ ...prev, alert_type: event.target.value }))} placeholder="VD: Rung nhĩ, Nhịp nhanh, Ngoại tâm thu" required />
+            <label className="ui-label">Loại cảnh báo</label>
+            <input className="ui-field" value={alertForm.alert_type} onChange={(event) => setAlertForm((prev) => ({ ...prev, alert_type: event.target.value }))} placeholder="VD: Rung nhĩ, Nhịp nhanh, Ngoại tâm thu" required />
           </div>
           <div>
-            <label className="form-label">Nội dung</label>
-            <textarea className="form-control min-h-[120px]" value={alertForm.message} onChange={(event) => setAlertForm((prev) => ({ ...prev, message: event.target.value }))} placeholder="Mô tả dấu hiệu bất thường hoặc ghi chú xử lý..." required />
+            <label className="ui-label">Nội dung</label>
+            <textarea className="ui-field min-h-[120px]" value={alertForm.message} onChange={(event) => setAlertForm((prev) => ({ ...prev, message: event.target.value }))} placeholder="Mô tả dấu hiệu bất thường hoặc ghi chú xử lý..." required />
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <label className="form-label">Segment bắt đầu</label>
-              <input className="form-control" type="number" min="0" value={alertForm.segment_start_sample} onChange={(event) => setAlertForm((prev) => ({ ...prev, segment_start_sample: event.target.value }))} placeholder="Tùy chọn" />
+              <label className="ui-label">Segment bắt đầu</label>
+              <input className="ui-field" type="number" min="0" value={alertForm.segment_start_sample} onChange={(event) => setAlertForm((prev) => ({ ...prev, segment_start_sample: event.target.value }))} placeholder="Tùy chọn" />
             </div>
             <div>
-              <label className="form-label">Segment kết thúc</label>
-              <input className="form-control" type="number" min="0" value={alertForm.segment_end_sample} onChange={(event) => setAlertForm((prev) => ({ ...prev, segment_end_sample: event.target.value }))} placeholder="Tùy chọn" />
+              <label className="ui-label">Segment kết thúc</label>
+              <input className="ui-field" type="number" min="0" value={alertForm.segment_end_sample} onChange={(event) => setAlertForm((prev) => ({ ...prev, segment_end_sample: event.target.value }))} placeholder="Tùy chọn" />
             </div>
           </div>
         </form>

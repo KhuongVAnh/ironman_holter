@@ -127,11 +127,10 @@ const PatientHistory = () => {
       <section className="page-hero">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="panel-eyebrow">Patient data</p>
-            <h1 className="page-hero-title">Lịch sử theo dõi</h1>
-            <p className="page-hero-subtitle">Tra cứu các phiên đo trước đây, kiểm tra nhịp tim trung bình và mở nhanh bản ghi ECG chi tiết khi cần.</p>
+            <p className="panel-eyebrow">Lịch sử theo dõi</p>
+            <h1 className="page-hero-subtitle">Các bản ghi điện tim của bạn sẽ được hiển thị ở đây.</h1>
           </div>
-          <button className="btn btn-outline-primary" onClick={fetchReadings}>
+          <button className="ui-btn ui-btn-outline-primary" onClick={fetchReadings}>
             <i className="fas fa-rotate"></i>
             Làm mới dữ liệu
           </button>
@@ -153,7 +152,7 @@ const PatientHistory = () => {
         </div>
         <div className="clinical-panel-body">
           {loading ? (
-            <div className="flex justify-center py-14"><div className="spinner-border" role="status" /></div>
+            <div className="flex justify-center py-14"><div className="ui-spinner" role="status" /></div>
           ) : readings.length === 0 ? (
             <div className="py-16 text-center">
               <i className="fas fa-chart-line fa-3x text-slate-300"></i>
@@ -185,7 +184,7 @@ const PatientHistory = () => {
                           </td>
                           <td className="py-4 pr-4 text-ink-600">{reading.device?.serial_number || reading.Device?.serial_number || "Không rõ serial"}</td>
                           <td className="py-4 text-right">
-                            <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}>
+                            <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}>
                               <i className="fas fa-wave-square"></i>
                               Xem ECG
                             </button>
@@ -217,7 +216,7 @@ const PatientHistory = () => {
                         <span className="mobile-data-card-label">Thiết bị</span>
                         <span className="mobile-data-card-value">{reading.device?.serial_number || reading.Device?.serial_number || "Không rõ serial"}</span>
                       </div>
-                      <button type="button" className="btn btn-outline-primary btn-sm mt-3 w-full" onClick={() => setSelectedReadingId(reading.reading_id)}>
+                      <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm mt-3 w-full" onClick={() => setSelectedReadingId(reading.reading_id)}>
                         <i className="fas fa-wave-square"></i>
                         Xem ECG
                       </button>

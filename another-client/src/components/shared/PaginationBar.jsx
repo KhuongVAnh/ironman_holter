@@ -38,7 +38,7 @@ const PaginationBar = ({
                 <div className="flex flex-wrap items-center gap-2">
                     <button
                         type="button"
-                        className="btn btn-outline-secondary btn-sm"
+                        className="ui-btn ui-btn-outline-secondary ui-btn-sm"
                         disabled={!canGoPrev}
                         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                     >
@@ -51,7 +51,7 @@ const PaginationBar = ({
                     ) : null}
                     <button
                         type="button"
-                        className="btn btn-outline-secondary btn-sm"
+                        className="ui-btn ui-btn-outline-secondary ui-btn-sm"
                         disabled={!canGoNext}
                         onClick={() => onPageChange(currentPage + 1)}
                     >
@@ -72,7 +72,7 @@ const PaginationBar = ({
             <div className="flex flex-wrap items-center gap-2">
                 <button
                     type="button"
-                    className="btn btn-outline-secondary btn-sm"
+                    className="ui-btn ui-btn-outline-secondary ui-btn-sm"
                     disabled={currentPage === 1}
                     onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                 >
@@ -102,7 +102,7 @@ const PaginationBar = ({
 
                 <button
                     type="button"
-                    className="btn btn-outline-secondary btn-sm"
+                    className="ui-btn ui-btn-outline-secondary ui-btn-sm"
                     disabled={currentPage === totalPages}
                     onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
                 >

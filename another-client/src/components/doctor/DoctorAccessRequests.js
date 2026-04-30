@@ -77,7 +77,7 @@ const DoctorAccessRequests = () => {
             <h1 className="mt-1 text-3xl font-bold text-ink-950">Yêu cầu truy cập bệnh nhân</h1>
             <p className="mt-2 text-sm text-ink-600">Duyệt quyền theo dõi, sau đó mở workspace lâm sàng của bệnh nhân.</p>
           </div>
-          <button type="button" className="btn btn-primary" onClick={fetchAll}>
+          <button type="button" className="ui-btn ui-btn-primary" onClick={fetchAll}>
             <i className="fas fa-rotate me-2"></i>Làm mới
           </button>
         </div>
@@ -109,10 +109,10 @@ const DoctorAccessRequests = () => {
                         <span className="status-chip is-warning">Đang chờ</span>
                         {item.status === ACCESS_STATUS.PENDING ? (
                           <>
-                            <button type="button" className="btn btn-outline-success btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "accept")}>
+                            <button type="button" className="ui-btn ui-btn-outline-success ui-btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "accept")}>
                               <i className="fas fa-check me-1"></i>Đồng ý
                             </button>
-                            <button type="button" className="btn btn-outline-danger btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "reject")}>
+                            <button type="button" className="ui-btn ui-btn-outline-danger ui-btn-sm" disabled={respondingId === item.permission_id} onClick={() => handleRespond(item.permission_id, "reject")}>
                               <i className="fas fa-xmark me-1"></i>Từ chối
                             </button>
                           </>
@@ -157,7 +157,7 @@ const DoctorAccessRequests = () => {
                       <p className="mt-1 text-xs font-medium text-ink-500">Cấp quyền: {formatDate(item.created_at)}</p>
                     </div>
                   </div>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate(`/doctor/patient/${patient.user_id}`)}>
+                  <button type="button" className="ui-btn ui-btn-primary ui-btn-sm" onClick={() => navigate(`/doctor/patient/${patient.user_id}`)}>
                     <i className="fas fa-folder-open me-1"></i>Mở workspace
                   </button>
                 </div>

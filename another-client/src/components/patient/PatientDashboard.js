@@ -64,6 +64,12 @@ const buildAnalysisStateFromRealtime = (data = {}, currentState = null) => {
   }
 }
 
+const getContactPhone = (viewer = {}) => {
+  const phone = viewer.phone || viewer.phone_number || viewer.phoneNumber || viewer.mobile || viewer.mobile_number
+  const normalized = String(phone || "").trim()
+  return normalized || "Chưa có SĐT"
+}
+
 const buildAlertToastMessage = (alertData = {}) => {
   const firstAlert = Array.isArray(alertData.alerts) ? alertData.alerts[0] : null
 
@@ -187,6 +193,7 @@ const PatientDashboard = () => {
           name: item.viewer?.name || "Không rõ tên",
           email: item.viewer?.email || "-",
           specialty: item.viewer?.specialty || "Tim mạch",
+          phone: getContactPhone(item.viewer),
         }))
       const relatives = acceptedAccessList
         .filter((item) => item.role === ACCESS_ROLE.GIA_DINH)
@@ -194,6 +201,7 @@ const PatientDashboard = () => {
           id: item.viewer_id,
           name: item.viewer?.name || "Không rõ tên",
           email: item.viewer?.email || "-",
+          phone: getContactPhone(item.viewer),
         }))
 
       setSupervisingDoctors(doctors)
@@ -257,8 +265,7 @@ const PatientDashboard = () => {
         <div className="page-hero-icon"><i className="fas fa-heart-pulse"></i></div>
         <div className="min-w-0 flex-1">
           <p className="panel-eyebrow">Dashboard bệnh nhân</p>
-          <h1 className="page-hero-title">Theo dõi ECG trực tiếp</h1>
-          <p className="page-hero-subtitle">Biểu đồ ECG là vùng chính; nhịp tim và kết luận AI được đặt ngay trong cùng khung để đọc nhanh.</p>
+          <h1 className="page-hero-subtitle">Theo dõi ECG trực tiếp</h1>
         </div>
       </section>
 
@@ -266,7 +273,7 @@ const PatientDashboard = () => {
         <div className="clinical-panel overflow-hidden">
           <div className="clinical-panel-header py-3">
             <div>
-              <p className="panel-eyebrow">ECG realtime</p>
+              <p className="panel-eyebrow">ECG live</p>
               <h2 className="text-xl font-bold text-ink-900">Biểu đồ điện tâm đồ</h2>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -320,13 +327,17 @@ const PatientDashboard = () => {
             </div>
             <div className="clinical-panel-body space-y-3">
               {supervisingDoctors.length > 0 ? supervisingDoctors.map((doctor) => (
-                <div key={doctor.id} className="flex items-center gap-3 rounded-2xl border border-surface-line bg-white p-3 shadow-soft">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-100 text-brand-700">
+                <div key={doctor.id} className="flex items-center gap-3 rounded-lg border border-surface-line bg-white p-3 shadow-soft">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
                     <i className="fas fa-user-doctor"></i>
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-ink-900">{doctor.name}</p>
                     <p className="truncate text-xs text-ink-500">{doctor.specialty}</p>
+                    <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-ink-500">
+                      <i className="fas fa-phone text-[10px] text-ink-400"></i>
+                      <span className="truncate">{doctor.phone}</span>
+                    </p>
                   </div>
                 </div>
               )) : (
@@ -347,13 +358,17 @@ const PatientDashboard = () => {
             </div>
             <div className="clinical-panel-body space-y-3">
               {familyMembers.length > 0 ? familyMembers.map((member) => (
-                <div key={member.id} className="flex items-center gap-3 rounded-2xl border border-surface-line bg-white p-3 shadow-soft">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                <div key={member.id} className="flex items-center gap-3 rounded-lg border border-surface-line bg-white p-3 shadow-soft">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 text-sky-700">
                     <i className="fas fa-user-group"></i>
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-ink-900">{member.name}</p>
                     <p className="truncate text-xs text-ink-500">{member.email}</p>
+                    <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-ink-500">
+                      <i className="fas fa-phone text-[10px] text-ink-400"></i>
+                      <span className="truncate">{member.phone}</span>
+                    </p>
                   </div>
                 </div>
               )) : (

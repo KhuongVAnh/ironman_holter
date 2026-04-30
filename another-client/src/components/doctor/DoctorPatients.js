@@ -74,7 +74,7 @@ const DoctorPatients = () => {
             <h1 className="mt-1 text-3xl font-bold text-ink-950">Bệnh nhân đang theo dõi</h1>
             <p className="mt-2 text-sm text-ink-600">Mở workspace, tạo báo cáo hoặc chuyển sang trao đổi trực tiếp với từng bệnh nhân.</p>
           </div>
-          <button type="button" className="btn btn-primary" onClick={fetchPatients}>
+          <button type="button" className="ui-btn ui-btn-primary" onClick={fetchPatients}>
             <i className="fas fa-rotate me-2"></i>Làm mới
           </button>
         </div>
@@ -98,13 +98,13 @@ const DoctorPatients = () => {
             <div className="relative">
               <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"></i>
               <input
-                className="form-control pl-11"
+                className="ui-field pl-11"
                 placeholder="Tìm kiếm bệnh nhân..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
             </div>
-            <select className="form-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <select className="ui-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
               <option value="all">Tất cả trạng thái</option>
               <option value="active">Đang hoạt động</option>
               <option value="inactive">Ngưng hoạt động</option>
@@ -128,13 +128,13 @@ const DoctorPatients = () => {
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${patient.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"}`}>
                         {patient.is_active ? "Hoạt động" : "Ngưng"}
                       </span>
-                      <Link to={`/doctor/patient/${patient.user_id}`} className="btn btn-primary btn-sm">
+                      <Link to={`/doctor/patient/${patient.user_id}`} className="ui-btn ui-btn-primary ui-btn-sm">
                         <i className="fas fa-folder-open me-1"></i>Workspace
                       </Link>
-                      <button type="button" className="btn btn-outline-success btn-sm" onClick={() => navigate(`/doctor/patient/${patient.user_id}#create-report`)}>
+                      <button type="button" className="ui-btn ui-btn-outline-success ui-btn-sm" onClick={() => navigate(`/doctor/patient/${patient.user_id}#create-report`)}>
                         <i className="fas fa-file-medical me-1"></i>Báo cáo
                       </button>
-                      <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => navigate("/doctor/chat", { state: { patientId: patient.user_id } })}>
+                      <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => navigate("/doctor/chat", { state: { patientId: patient.user_id } })}>
                         <i className="fas fa-message me-1"></i>Chat
                       </button>
                     </div>

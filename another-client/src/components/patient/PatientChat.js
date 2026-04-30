@@ -42,6 +42,8 @@ const markContactReadLocally = (contacts = [], contactId) => {
   ))
 }
 
+const normalizeSearchText = (value) => String(value || "").toLowerCase().trim()
+
 // Hàm cập nhật preview contact khi có direct message mới mà không cần refetch toàn bộ danh sách contact.
 const updateContactsFromRealtimeMessage = (contacts = [], messageData, currentUserId, activeContactId) => {
   if (!messageData?.message_id) return contacts
@@ -73,6 +75,7 @@ const PatientChat = () => {
   const [selectedContactId, setSelectedContactId] = useState(null)
   const [messages, setMessages] = useState([])
   const [inputMessage, setInputMessage] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
   const [loadingContacts, setLoadingContacts] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [loadingOlderMessages, setLoadingOlderMessages] = useState(false)
@@ -87,6 +90,15 @@ const PatientChat = () => {
   const selectedContact = useMemo(
     () => contacts.find((item) => item.user_id === selectedContactId) || null,
     [contacts, selectedContactId]
+  )
+  const filteredContacts = useMemo(() => {
+    const keyword = normalizeSearchText(searchTerm)
+    if (!keyword) return contacts
+    return contacts.filter((contact) => normalizeSearchText(`${contact.name} ${contact.email} ${contact.last_message}`).includes(keyword))
+  }, [contacts, searchTerm])
+  const unreadCount = useMemo(
+    () => contacts.reduce((total, item) => total + Number(item.unread_count || 0), 0),
+    [contacts]
   )
 
   useEffect(() => { fetchContacts() }, [])
@@ -327,129 +339,120 @@ const PatientChat = () => {
   if (loadingContacts) return <div className="page-shell"><div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div><h3>Đang tải hội thoại</h3><p>Hệ thống đang lấy danh sách bác sĩ có thể trò chuyện.</p></div></div>
 
   return (
-    <div className="page-shell">
-      <section className="page-hero">
-        <div className="page-hero-icon"><i className="fas fa-comments"></i></div>
-        <div className="min-w-0 flex-1">
+    <div className="chat-page">
+      <header className="chat-page-header">
+        <div className="min-w-0">
           <p className="panel-eyebrow">Trao đổi trực tiếp</p>
-          <h1 className="page-hero-title">Tin nhắn với bác sĩ</h1>
-          <p className="page-hero-subtitle">Ưu tiên các hội thoại có tin chưa đọc và giữ lịch sử trao đổi theo từng bác sĩ.</p>
-        </div>
-        <button type="button" className="btn btn-outline-primary" onClick={() => fetchContacts(false)}>
-          <i className="fas fa-rotate-right me-2"></i>Làm mới
-        </button>
-      </section>
-
-      <section className="metric-grid">
-        <div className="priority-metric metric-info">
-          <div className="metric-icon"><i className="fas fa-user-doctor"></i></div>
-          <p className="metric-label">Bác sĩ</p>
-          <p className="metric-value">{contacts.length}</p>
-          <p className="metric-helper">Được cấp quyền trò chuyện</p>
-        </div>
-        <div className="priority-metric metric-danger">
-          <div className="metric-icon"><i className="fas fa-envelope-open-text"></i></div>
-          <p className="metric-label">Chưa đọc</p>
-          <p className="metric-value">{contacts.reduce((total, item) => total + Number(item.unread_count || 0), 0)}</p>
-          <p className="metric-helper">Tin nhắn cần xem</p>
-        </div>
-        <div className="priority-metric metric-success">
-          <div className="metric-icon"><i className="fas fa-comment-dots"></i></div>
-          <p className="metric-label">Đang mở</p>
-          <p className="metric-value text-2xl">{selectedContact ? selectedContact.name : "Chưa chọn"}</p>
-          <p className="metric-helper">Hội thoại hiện tại</p>
-        </div>
-      </section>
-
-      <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)] xl:gap-6">
-      <section className="clinical-panel overflow-hidden">
-        <div className="clinical-panel-header">
-          <div>
-            <h2 className="section-title">Bác sĩ đã cấp quyền</h2>
-            <p className="section-subtitle">Chọn bác sĩ để xem lịch sử trao đổi trực tiếp.</p>
+          <h1 className="chat-page-title">Tin nhắn với bác sĩ</h1>
+          <div className="chat-summary-row">
+            <span className="chat-summary-chip"><i className="fas fa-user-doctor"></i>{contacts.length} bác sĩ</span>
+            <span className="chat-summary-chip"><i className="fas fa-envelope"></i>{unreadCount} chưa đọc</span>
           </div>
         </div>
-        <div className="max-h-[min(420px,55dvh)] overflow-y-auto xl:max-h-[720px]">
-          {contacts.length === 0 ? (
-            <div className="p-6 text-sm text-ink-600">Chưa có bác sĩ nào được cấp quyền trò chuyện với bạn.</div>
-          ) : contacts.map((contact) => (
-            <button key={contact.user_id} type="button" className={`flex w-full items-start gap-4 border-b border-surface-line px-5 py-4 text-left transition ${selectedContactId === contact.user_id ? "bg-brand-50" : "hover:bg-surface"}`} onClick={() => setSelectedContactId(contact.user_id)}>
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-100 font-bold text-brand-700">{contact.name?.charAt(0)?.toUpperCase() || "B"}</div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-bold text-ink-900">{contact.name}</p>
-                    <p className="truncate text-xs text-ink-500">{contact.email}</p>
-                  </div>
-                  {contact.unread_count > 0 ? <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-clinical-danger px-2 py-1 text-xs font-bold text-white">{contact.unread_count}</span> : null}
-                </div>
-                <p className="mt-2 truncate text-sm text-ink-600">{contact.last_message || "Chưa có tin nhắn"}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
+      </header>
 
-      <section className="clinical-panel overflow-hidden">
-        <div className="clinical-panel-header">
-          <div>
-            <h2 className="section-title">{selectedContact ? selectedContact.name : "Tin nhắn"}</h2>
-            <p className="section-subtitle">{selectedContact?.email || "Chọn một bác sĩ để bắt đầu trao đổi."}</p>
-            {selectedContact && isPeerTyping ? <p className="mt-1 text-xs text-brand-700">Đang nhập...</p> : null}
-          </div>
-        </div>
-
-        {!selectedContact ? (
-          <div className="flex min-h-[320px] items-center justify-center p-5 text-center text-ink-500 sm:min-h-[420px] sm:p-8 lg:min-h-[540px]">
+      <div className="chat-layout">
+        <aside className="chat-sidebar">
+          <div className="chat-sidebar-header">
             <div>
-              <i className="fas fa-comments fa-3x text-brand-200"></i>
-              <p className="mt-5 max-w-md text-sm leading-6">Chọn bác sĩ ở cột bên trái để xem cuộc trò chuyện và gửi tin nhắn trực tiếp.</p>
+              <h2 className="chat-pane-title">Hội thoại</h2>
+              <p className="chat-pane-subtitle">{filteredContacts.length}/{contacts.length} bác sĩ</p>
             </div>
           </div>
-        ) : (
-          <>
-            <div className="h-[min(520px,calc(100dvh-18rem))] min-h-[300px] overflow-y-auto bg-surface-soft px-3 py-4 sm:px-6 sm:py-5">
-              {hasMoreHistory ? (
-                <div className="mb-4 flex justify-center">
-                  <button type="button" className="btn btn-light" onClick={loadOlderMessages} disabled={loadingOlderMessages}>
-                    {loadingOlderMessages ? "Đang tải tin nhắn cũ..." : "Tải tin nhắn cũ hơn"}
-                  </button>
-                </div>
-              ) : null}
-
-              {loadingMessages ? (
-                <div className="flex justify-center py-14"><div className="spinner-border" role="status" /></div>
-              ) : messages.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-center text-ink-500">
-                  <div>
-                    <i className="fas fa-comment-medical fa-3x text-brand-200"></i>
-                    <p className="mt-4 text-sm">Chưa có tin nhắn nào trong cuộc trò chuyện này.</p>
+          <div className="chat-search">
+            <div className="relative">
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-ink-400"></i>
+              <input className="ui-field min-h-10 pl-9" placeholder="Tìm bác sĩ..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
+            </div>
+          </div>
+          <div className="chat-contact-list">
+            {contacts.length === 0 ? (
+              <div className="chat-empty">Chưa có bác sĩ nào được cấp quyền trò chuyện với bạn.</div>
+            ) : filteredContacts.length === 0 ? (
+              <div className="chat-empty">Không tìm thấy hội thoại phù hợp.</div>
+            ) : filteredContacts.map((contact) => (
+              <button key={contact.user_id} type="button" className={`chat-contact-item ${selectedContactId === contact.user_id ? "is-active" : ""}`} onClick={() => setSelectedContactId(contact.user_id)}>
+                <div className="chat-avatar is-brand">{contact.name?.charAt(0)?.toUpperCase() || "B"}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-ink-900">{contact.name}</p>
+                      <p className="truncate text-xs text-ink-500">{contact.email}</p>
+                    </div>
+                    {contact.unread_count > 0 ? <span className="chat-unread-badge">{contact.unread_count}</span> : null}
                   </div>
+                  <p className="mt-1 truncate text-xs text-ink-600">{contact.last_message || "Chưa có tin nhắn"}</p>
                 </div>
-              ) : messages.map((message) => {
-                const isMine = message.sender_id === user?.user_id
-                return (
-                  <div key={message.message_id} className={`mb-4 flex ${isMine ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[88%] rounded-2xl px-3 py-2.5 shadow-soft sm:max-w-[78%] sm:px-4 sm:py-3 ${isMine ? "bg-brand-600 text-white" : "border border-surface-line bg-white text-ink-800"}`}>
-                      <div className="whitespace-pre-wrap text-sm leading-6">{message.message}</div>
-                      <div className={`mt-2 text-[11px] ${isMine ? "text-white/70" : "text-ink-500"}`}>{formatTime(message.created_at)}</div>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <section className="chat-thread">
+          <div className="chat-thread-header">
+            <div className="flex min-w-0 items-center gap-3">
+              {selectedContact ? <div className="chat-avatar is-brand">{selectedContact.name?.charAt(0)?.toUpperCase() || "B"}</div> : null}
+              <div className="min-w-0">
+                <h2 className="chat-pane-title truncate">{selectedContact ? selectedContact.name : "Chọn hội thoại"}</h2>
+                <p className="chat-pane-subtitle truncate">{selectedContact?.email || "Chọn bác sĩ ở danh sách bên trái để bắt đầu."}</p>
+                {selectedContact && isPeerTyping ? <p className="chat-typing"><i className="fas fa-circle text-[6px]"></i>Đang nhập...</p> : null}
+              </div>
+            </div>
+          </div>
+
+          {!selectedContact ? (
+            <div className="chat-empty">
+              <div>
+                <i className="fas fa-comments text-3xl text-brand-200"></i>
+                <p className="mt-3 max-w-md">Chọn một bác sĩ để mở lịch sử trao đổi và gửi tin nhắn trực tiếp.</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="chat-message-list">
+                {hasMoreHistory ? (
+                  <div className="mb-4 flex justify-center">
+                    <button type="button" className="ui-btn ui-btn-outline-secondary ui-btn-sm" onClick={loadOlderMessages} disabled={loadingOlderMessages}>
+                      {loadingOlderMessages ? "Đang tải..." : "Tải tin nhắn cũ hơn"}
+                    </button>
+                  </div>
+                ) : null}
+
+                {loadingMessages ? (
+                  <div className="flex justify-center py-12"><div className="ui-spinner" role="status" /></div>
+                ) : messages.length === 0 ? (
+                  <div className="chat-empty">
+                    <div>
+                      <i className="fas fa-comment-medical text-3xl text-brand-200"></i>
+                      <p className="mt-3">Chưa có tin nhắn nào trong cuộc trò chuyện này.</p>
                     </div>
                   </div>
-                )
-              })}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="border-t border-surface-line bg-white p-3 sm:p-4">
-              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-end sm:gap-3">
-                <textarea className="form-control min-h-[56px] flex-1" placeholder={`Nhập tin nhắn gửi ${selectedContact.name}...`} value={inputMessage} onChange={handleInputChange} onKeyDown={handleKeyDown} disabled={sending} />
-                <button className="btn btn-primary h-[52px] w-full px-5 sm:w-auto" onClick={sendMessage} disabled={!inputMessage.trim() || sending}><i className="fas fa-paper-plane"></i>Gửi</button>
+                ) : messages.map((message) => {
+                  const isMine = message.sender_id === user?.user_id
+                  return (
+                    <div key={message.message_id} className={`chat-message-row ${isMine ? "is-mine" : "is-peer"}`}>
+                      <div className={`chat-bubble ${isMine ? "is-mine" : "is-peer"}`}>
+                        <div className="whitespace-pre-wrap">{message.message}</div>
+                        <div className="chat-message-time">{formatTime(message.created_at)}</div>
+                      </div>
+                    </div>
+                  )
+                })}
+                <div ref={messagesEndRef} />
               </div>
-              <p className="mt-2 text-xs text-ink-500">Nhấn Enter để gửi, Shift+Enter để xuống dòng.</p>
-            </div>
-          </>
-        )}
-      </section>
+
+              <div className="chat-composer">
+                <div className="chat-input-row">
+                  <textarea className="ui-field chat-textarea" placeholder={`Nhập tin nhắn gửi ${selectedContact.name}...`} value={inputMessage} onChange={handleInputChange} onKeyDown={handleKeyDown} disabled={sending} rows="1" />
+                  <button className="chat-send-button" onClick={sendMessage} disabled={!inputMessage.trim() || sending}>
+                    <i className="fas fa-paper-plane"></i>
+                    <span>Gửi</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </section>
       </div>
     </div>
   )
