@@ -1,4 +1,4 @@
-﻿#include <Arduino.h>
+#include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
@@ -18,9 +18,9 @@
  */
 
 // Cấu hình Wi-Fi và MQTT.
-static const char *WIFI_SSID = "Nhan Home";
-static const char *WIFI_PASSWORD = "nhanhome";
-static const char *MQTT_BROKER_HOST = "7fca0eea573545b996b5e3b23e7e5613.s1.eu.hivemq.cloud";
+static const char *WIFI_SSID = "";
+static const char *WIFI_PASSWORD = "";
+static const char *MQTT_BROKER_HOST = "blabla.s1.eu.hivemq.cloud";
 static const int MQTT_BROKER_PORT = 8883;
 static const char *MQTT_USERNAME = "iron-holter";
 static const char *MQTT_PASSWORD = "Vanh080105";
@@ -44,6 +44,15 @@ static const uint8_t MAX_RETRY = 3;
 static const uint8_t RETRY_QUEUE_CAPACITY = 8;
 // Kích thước chunk ghi xuống socket TLS mỗi lần flush.
 static const size_t MQTT_STREAM_CHUNK_SIZE = 500;
+// Độ dài tối đa của topic và message_id được giữ cố định để tránh cấp phát heap bằng String.
+static const size_t MQTT_TOPIC_MAX_LEN = 96;
+static const size_t MESSAGE_ID_MAX_LEN = 56;
+static const size_t ACK_STATUS_MAX_LEN = 16;
+static const size_t ACK_PAYLOAD_MAX_LEN = 192;
+// PubSubClient vẫn cần buffer nội bộ cho packet nhỏ như SUBSCRIBE/ACK; payload telemetry đã stream nên không cần 8KB.
+static const size_t MQTT_CLIENT_BUFFER_SIZE = 1024;
+// Chu kỳ log runtime đủ thưa để không làm nghẽn Serial nhưng vẫn thấy heap thấp nhất khi chạy lâu.
+static const uint32_t RUNTIME_STATS_INTERVAL_MS = 30000;
 
 Adafruit_MPU6050 mpu;
 WiFiClientSecure secureClient;
@@ -52,7 +61,7 @@ PubSubClient mqttClient(secureClient);
 // Mỗi phần tử trong queue đại diện một batch cần gửi lại.
 struct RetryItem
 {
-  String messageId;
+  char messageId[MESSAGE_ID_MAX_LEN];
   bool useBufferA;
   bool inUse;
 };
@@ -75,15 +84,54 @@ uint32_t messageCounter = 0;
 
 // Trạng thái ACK ứng dụng mới nhất nhận từ topic devices/{serial}/ack.
 volatile bool ackReceived = false;
-String ackMessageId = "";
-String ackStatus = "";
+char ackMessageId[MESSAGE_ID_MAX_LEN] = "";
+char ackStatus[ACK_STATUS_MAX_LEN] = "";
 bool ackDuplicate = false;
+
+// Topic MQTT được build một lần trong setup để tránh tạo String lặp lại mỗi lần publish/subscribe.
+char uplinkTopic[MQTT_TOPIC_MAX_LEN] = "";
+char ackTopic[MQTT_TOPIC_MAX_LEN] = "";
 
 // Ring-buffer queue cho các batch gửi lỗi cần thử lại sau.
 RetryItem retryQueue[RETRY_QUEUE_CAPACITY];
 uint8_t retryHead = 0;
 uint8_t retryTail = 0;
 uint8_t retryCount = 0;
+
+// Copy chuỗi C có giới hạn kích thước để luôn kết thúc bằng '\0'.
+// Dùng helper này thay cho String để giảm cấp phát heap động và giảm rủi ro fragmentation khi chạy lâu.
+void copyCString(char *dst, size_t dstSize, const char *src)
+{
+  if (dstSize == 0)
+    return;
+  if (src == nullptr)
+  {
+    dst[0] = '\0';
+    return;
+  }
+  strncpy(dst, src, dstSize - 1);
+  dst[dstSize - 1] = '\0';
+}
+
+// Build topic MQTT một lần lúc khởi động.
+// Topic là dữ liệu cấu hình cố định theo serial nên không nên ghép bằng String trong hot path.
+void buildMqttTopics()
+{
+  snprintf(uplinkTopic, sizeof(uplinkTopic), "devices/%s/telemetry", SERIAL_NUMBER);
+  snprintf(ackTopic, sizeof(ackTopic), "devices/%s/ack", SERIAL_NUMBER);
+}
+
+// Log RAM runtime thật trên thiết bị.
+// Build log chỉ biết RAM tĩnh từ file ELF; các giá trị này mới phản ánh heap còn lại sau WiFi/TLS/MQTT.
+void logRuntimeStats(const char *tag)
+{
+  Serial.printf("RAM runtime [%s] heap_free=%u min_free=%u max_alloc=%u stack_hwm=%u\n",
+                tag,
+                static_cast<unsigned int>(ESP.getFreeHeap()),
+                static_cast<unsigned int>(ESP.getMinFreeHeap()),
+                static_cast<unsigned int>(ESP.getMaxAllocHeap()),
+                static_cast<unsigned int>(uxTaskGetStackHighWaterMark(NULL)));
+}
 
 // ---------------------------------------------------------------------------
 // HỖ TRỢ STREAM JSON TRỰC TIẾP RA MQTT (KHÔNG DÙNG STRING LỚN TRÊN HEAP)
@@ -219,17 +267,39 @@ void jsonWriteUnsigned(Writer &w, uint64_t value)
 template <typename Writer>
 void jsonWriteFloat(Writer &w, float value)
 {
-  char numberBuf[20];
-  // Giữ 4 chữ số thập phân để cân bằng giữa độ chính xác và kích thước payload.
-  dtostrf(value, 0, 4, numberBuf); // dtostrf(value, width, precision, buffer), width = số ký tự tối thiểu mà chuỗi phải có, nếu ko đủ chèn dấu cách vào đầu cho đủ
-
-  char *start = numberBuf;
-  while (*start == ' ')
+  // dtostrf() tiện nhưng khá nặng vì xử lý format tổng quát.
+  // Ở đây payload chỉ cần số thập phân 4 chữ số, nên scale float thành số nguyên rồi tự ghi:
+  //   1.23456 -> 12346 -> "1.2346"
+  // Cách này giữ nguyên contract JSON number, không tạo String và giảm CPU khi phải ghi hàng nghìn mẫu.
+  if (isnan(value) || isinf(value))
   {
-    start++;
+    value = 0.0f;
   }
-  size_t len = strlen(start);
-  w.write(start, len);
+
+  bool negative = value < 0.0f;
+  float absValue = negative ? -value : value;
+  uint32_t scaled = static_cast<uint32_t>(absValue * 10000.0f + 0.5f);
+
+  // Chỉ ghi dấu âm khi phần số sau khi làm tròn vẫn khác 0.
+  // Ví dụ value = -0.00001 sẽ được scale/làm tròn thành 0, nếu vẫn ghi '-' thì JSON sẽ ra "-0.0000".
+  // "-0.0000" không sai cú pháp, nhưng gây nhiễu khi backend/biểu đồ đọc dữ liệu; vì vậy chuẩn hóa về "0.0000".
+  if (negative && scaled > 0)
+  {
+    w.writeChar('-');
+  }
+
+  // Ghi phần nguyên trước dấu thập phân và dấu thập phân.
+  jsonWriteUnsigned(w, static_cast<uint64_t>(scaled / 10000UL));
+  w.writeChar('.');
+
+  // Ghi phần thập phân 4 chữ số, luôn đủ 4 chữ số bằng cách pad '0' nếu cần.
+  uint16_t frac = static_cast<uint16_t>(scaled % 10000UL);
+  char fracBuf[4];
+  fracBuf[0] = static_cast<char>('0' + (frac / 1000U) % 10U); // vd '0' + 2 = '2'
+  fracBuf[1] = static_cast<char>('0' + (frac / 100U) % 10U);
+  fracBuf[2] = static_cast<char>('0' + (frac / 10U) % 10U);
+  fracBuf[3] = static_cast<char>('0' + frac % 10U);
+  w.write(fracBuf, sizeof(fracBuf));
 }
 
 // Xây JSON telemetry chuẩn contract backend, nhưng thông qua Writer (đếm độ dài hoặc stream MQTT).
@@ -238,7 +308,7 @@ void jsonWriteFloat(Writer &w, float value)
 template <typename Writer>
 void buildTelemetryJsonStream(
     Writer &w,
-    const String &messageId,
+    const char *messageId,
     uint64_t sentAt,
     float *ecg,
     float *ax, float *ay, float *az,
@@ -247,7 +317,7 @@ void buildTelemetryJsonStream(
   // Header metadata: định danh message + thiết bị + thời điểm gửi.
   w.write("{", 1);
   w.write("\"message_id\":\"", sizeof("\"message_id\":\"") - 1);
-  w.write(messageId.c_str(), static_cast<size_t>(messageId.length()));
+  w.write(messageId, strlen(messageId));
   w.write("\",\"serial_number\":\"", sizeof("\",\"serial_number\":\"") - 1);
   w.write(SERIAL_NUMBER, strlen(SERIAL_NUMBER));
   w.write("\",\"sent_at\":", sizeof("\",\"sent_at\":") - 1);
@@ -337,7 +407,7 @@ void buildTelemetryJsonStream(
 
 // Tính chính xác độ dài JSON để truyền cho beginPublish().
 size_t calcPayloadLength(
-    const String &messageId,
+    const char *messageId,
     uint64_t sentAt,
     float *ecg,
     float *ax, float *ay, float *az,
@@ -349,22 +419,9 @@ size_t calcPayloadLength(
   return counter.total;
 }
 
-// Hàm tạo topic uplink theo serial thiết bị.
-String topicUplink()
-{
-  // Chuẩn topic đã khóa trong backend migration plan.
-  return String("devices/") + SERIAL_NUMBER + "/telemetry";
-}
-
-// Hàm tạo topic ACK ứng dụng để nhận phản hồi ingest từ backend.
-String topicAck()
-{
-  return String("devices/") + SERIAL_NUMBER + "/ack";
-}
-
 // Stream JSON trực tiếp ra MQTT (không tạo String payload lớn trên heap).
 bool streamTelemetryJson(
-    const String &messageId,
+    const char *messageId,
     uint64_t sentAt,
     float *ecg,
     float *ax, float *ay, float *az,
@@ -374,9 +431,9 @@ bool streamTelemetryJson(
   const size_t payloadLen = calcPayloadLength(messageId, sentAt, ecg, ax, ay, az, gx, gy, gz);
 
   // B2: Mở gói MQTT kiểu streaming.
-  if (!mqttClient.beginPublish(topicUplink().c_str(), static_cast<unsigned int>(payloadLen), false))
+  if (!mqttClient.beginPublish(uplinkTopic, static_cast<unsigned int>(payloadLen), false))
   {
-    Serial.printf("⚠️ beginPublish thất bại cho message_id=%s\n", messageId.c_str());
+    Serial.printf("beginPublish thất bại cho message_id=%s\n", messageId);
     return false;
   }
 
@@ -388,7 +445,7 @@ bool streamTelemetryJson(
   if (!okFlush || !writer.ok)
   {
     Serial.printf("⚠️ MQTT short write cho message_id=%s | expected_len=%u | written_len=%u | last_chunk_requested=%u | last_chunk_written=%u\n",
-                  messageId.c_str(),
+                  messageId,
                   static_cast<unsigned int>(payloadLen),
                   static_cast<unsigned int>(writer.totalWritten),
                   static_cast<unsigned int>(writer.lastChunkRequested),
@@ -401,14 +458,14 @@ bool streamTelemetryJson(
   if (!okEnd)
   {
     Serial.printf("⚠️ endPublish thất bại cho message_id=%s | expected_len=%u | written_len=%u\n",
-                  messageId.c_str(),
+                  messageId,
                   static_cast<unsigned int>(payloadLen),
                   static_cast<unsigned int>(writer.totalWritten));
   }
   else
   {
     Serial.printf("✅ Đã gửi payload MQTT tới broker (message_id=%s, length=%u, written=%u)\n",
-                  messageId.c_str(),
+                  messageId,
                   static_cast<unsigned int>(payloadLen),
                   static_cast<unsigned int>(writer.totalWritten));
   }
@@ -416,42 +473,57 @@ bool streamTelemetryJson(
 }
 
 // Hàm tạo message_id duy nhất theo serial + millis + counter.
-String makeMessageId()
+// Ghi trực tiếp vào buffer cố định để không tạo nhiều String ngắn trên heap.
+void makeMessageId(char *out, size_t outSize)
 {
   // message_id duy nhất theo thiết bị để truy vết từng batch.
   messageCounter += 1;
-  return String(SERIAL_NUMBER) + "-" + String(millis()) + "-" + String(messageCounter);
+  snprintf(out, outSize, "%s-%lu-%lu",
+           SERIAL_NUMBER,
+           static_cast<unsigned long>(millis()),
+           static_cast<unsigned long>(messageCounter));
 }
 
 // Hàm tách chuỗi JSON field dạng "key":"value" cho payload ACK đơn giản.
-bool extractJsonStringField(const String &jsonText, const char *key, String &outValue)
+bool extractJsonStringField(const char *jsonText, const char *key, char *outValue, size_t outSize)
 {
-  const String pattern = String("\"") + key + "\":\"";
-  const int start = jsonText.indexOf(pattern);
-  if (start < 0)
+  char pattern[32];
+  snprintf(pattern, sizeof(pattern), "\"%s\":\"", key);
+
+  const char *start = strstr(jsonText, pattern);
+  if (start == nullptr)
     return false;
-  const int valueStart = start + pattern.length();
-  const int valueEnd = jsonText.indexOf('"', valueStart);
-  if (valueEnd < 0)
+
+  const char *valueStart = start + strlen(pattern);
+  const char *valueEnd = strchr(valueStart, '"');
+  if (valueEnd == nullptr)
     return false;
-  outValue = jsonText.substring(valueStart, valueEnd);
+
+  size_t len = static_cast<size_t>(valueEnd - valueStart);
+  if (len >= outSize)
+    len = outSize - 1;
+  memcpy(outValue, valueStart, len);
+  outValue[len] = '\0';
   return true;
 }
 
 // Hàm tách chuỗi JSON field dạng "key":true/false cho payload ACK đơn giản.
-bool extractJsonBoolField(const String &jsonText, const char *key, bool &outValue)
+bool extractJsonBoolField(const char *jsonText, const char *key, bool &outValue)
 {
-  const String pattern = String("\"") + key + "\":";
-  const int start = jsonText.indexOf(pattern);
-  if (start < 0)
+  char pattern[32];
+  snprintf(pattern, sizeof(pattern), "\"%s\":", key);
+
+  const char *start = strstr(jsonText, pattern);
+  if (start == nullptr)
     return false;
-  const int valueStart = start + pattern.length();
-  if (jsonText.startsWith("true", valueStart))
+
+  const char *valueStart = start + strlen(pattern);
+  if (strncmp(valueStart, "true", 4) == 0)
   {
     outValue = true;
     return true;
   }
-  if (jsonText.startsWith("false", valueStart))
+  if (strncmp(valueStart, "false", 5) == 0)
   {
     outValue = false;
     return true;
@@ -460,19 +532,19 @@ bool extractJsonBoolField(const String &jsonText, const char *key, bool &outValu
 }
 
 // Hàm cập nhật trạng thái ACK khi nhận được message trên topic ACK của thiết bị.
-void updateAckState(const String &jsonText)
+void updateAckState(const char *jsonText)
 {
-  String messageId;
-  String status;
+  char messageId[MESSAGE_ID_MAX_LEN] = "";
+  char status[ACK_STATUS_MAX_LEN] = "";
   bool duplicate = false;
-  if (!extractJsonStringField(jsonText, "message_id", messageId))
+  if (!extractJsonStringField(jsonText, "message_id", messageId, sizeof(messageId)))
     return;
-  if (!extractJsonStringField(jsonText, "status", status))
+  if (!extractJsonStringField(jsonText, "status", status, sizeof(status)))
     return;
   extractJsonBoolField(jsonText, "duplicate", duplicate);
 
-  ackMessageId = messageId;
-  ackStatus = status;
+  copyCString(ackMessageId, sizeof(ackMessageId), messageId);
+  copyCString(ackStatus, sizeof(ackStatus), status);
   ackDuplicate = duplicate;
   ackReceived = true;
 }
@@ -480,25 +552,28 @@ void updateAckState(const String &jsonText)
 // Hàm callback MQTT để nhận ACK ứng dụng từ server.
 void mqttCallback(char *topic, byte *payload, unsigned int length)
 {
-  if (String(topic) != topicAck())
+  if (strcmp(topic, ackTopic) != 0)
     return;
 
-  String payloadText;
-  payloadText.reserve(length);
-  for (unsigned int i = 0; i < length; i++)
-  {
-    payloadText += static_cast<char>(payload[i]);
-  }
-  Serial.printf("📥 Nhận ACK raw: %s\n", payloadText.c_str());
+  // ACK payload nhỏ nên dùng buffer cố định trên stack.
+  // Nếu server gửi payload bất thường quá dài thì cắt bớt để bảo vệ RAM và vẫn kết thúc chuỗi hợp lệ.
+  char payloadText[ACK_PAYLOAD_MAX_LEN];
+  size_t copyLen = length;
+  if (copyLen >= sizeof(payloadText))
+    copyLen = sizeof(payloadText) - 1;
+  memcpy(payloadText, payload, copyLen);
+  payloadText[copyLen] = '\0';
+
+  Serial.printf("📥 Nhận ACK raw: %s\n", payloadText);
   updateAckState(payloadText);
 }
 
 // Hàm chờ ACK ứng dụng đúng message_id trong tối đa timeoutMs.
-bool waitAppAck(const String &messageId, uint32_t timeoutMs)
+bool waitAppAck(const char *messageId, uint32_t timeoutMs)
 {
   ackReceived = false;
-  ackMessageId = "";
-  ackStatus = "";
+  ackMessageId[0] = '\0';
+  ackStatus[0] = '\0';
   ackDuplicate = false;
 
   const uint32_t waitStart = millis();
@@ -508,29 +583,29 @@ bool waitAppAck(const String &messageId, uint32_t timeoutMs)
     if (ackReceived)
     {
       ackReceived = false;
-      if (ackMessageId != messageId)
+      if (strcmp(ackMessageId, messageId) != 0)
       {
         // Bỏ ACK không khớp message hiện tại.
         continue;
       }
-      if (ackStatus == "ok")
+      if (strcmp(ackStatus, "ok") == 0)
       {
         Serial.printf("✅ ACK OK cho message_id=%s (duplicate=%s)\n",
-                      messageId.c_str(), ackDuplicate ? "true" : "false");
+                      messageId, ackDuplicate ? "true" : "false");
         return true;
       }
       Serial.printf("⚠️ ACK ERROR cho message_id=%s (status=%s)\n",
-                    messageId.c_str(), ackStatus.c_str());
+                    messageId, ackStatus);
       return false;
     }
     delay(10);
   }
-  Serial.printf("⌛ ACK timeout cho message_id=%s\n", messageId.c_str());
+  Serial.printf("⌛ ACK timeout cho message_id=%s\n", messageId);
   return false;
 }
 
 // Hàm thêm batch vào hàng đợi retry theo cơ chế FIFO.
-void enqueueRetry(const String &messageId, bool useBufferAForBatch)
+void enqueueRetry(const char *messageId, bool useBufferAForBatch)
 {
   if (retryCount >= RETRY_QUEUE_CAPACITY)
   {
@@ -539,7 +614,9 @@ void enqueueRetry(const String &messageId, bool useBufferAForBatch)
     retryHead = (retryHead + 1) % RETRY_QUEUE_CAPACITY;
     retryCount -= 1;
   }
-  retryQueue[retryTail] = {messageId, useBufferAForBatch, true};
+  copyCString(retryQueue[retryTail].messageId, sizeof(retryQueue[retryTail].messageId), messageId);
+  retryQueue[retryTail].useBufferA = useBufferAForBatch;
+  retryQueue[retryTail].inUse = true;
   retryTail = (retryTail + 1) % RETRY_QUEUE_CAPACITY;
   retryCount += 1;
 }
@@ -561,8 +638,8 @@ typedef struct
 {
   float b0, b1, b2;
   float a1, a2;
-  double x1, x2; // Biến trạng thái đầu vào
-  double y1, y2; // Biến trạng thái đầu ra
+  float x1, x2; // Biến trạng thái đầu vào, dùng float để tận dụng FPU single-precision của ESP32.
+  float y1, y2; // Biến trạng thái đầu ra, tránh double vì double làm tốn CPU hơn trên firmware edge.
 } BiquadFilter;
 
 // Hệ số được tính toán cho fs = 250Hz
@@ -573,7 +650,10 @@ BiquadFilter nt50 = {0.979483f, -0.605354f, 0.979483f, -0.605354f, 0.958966f, 0,
 // Hàm xử lý Biquad chung
 float processBiquad(BiquadFilter *f, float x)
 {
-  double y = (double)f->b0 * x + (double)f->b1 * f->x1 + (double)f->b2 * f->x2 - (double)f->a1 * f->y1 - (double)f->a2 * f->y2;
+  // Công thức Direct Form I:
+  // y[n] = b0*x[n] + b1*x[n-1] + b2*x[n-2] - a1*y[n-1] - a2*y[n-2]
+  // Toàn bộ phép tính dùng float để giảm chi phí CPU; độ chính xác này đủ cho tín hiệu ECG đã scale về Volt.
+  float y = f->b0 * x + f->b1 * f->x1 + f->b2 * f->x2 - f->a1 * f->y1 - f->a2 * f->y2;
 
   // Chống lỗi số (NaN/Inf) khi nhiễu quá lớn
   if (isnan(y) || isinf(y))
@@ -583,7 +663,7 @@ float processBiquad(BiquadFilter *f, float x)
   f->x1 = x;
   f->y2 = f->y1;
   f->y1 = y;
-  return (float)y;
+  return y;
 }
 
 // Hàm lọc tổng hợp (thay thế notchFilter cũ)
@@ -627,7 +707,7 @@ bool ensureMqttConnected()
     bool ok = mqttClient.connect(MQTT_CLIENT_ID, MQTT_USERNAME, MQTT_PASSWORD);
     if (ok)
     {
-      mqttClient.subscribe(topicAck().c_str(), 1);
+      mqttClient.subscribe(ackTopic, 1);
       Serial.println("MQTT connected");
       return true;
     }
@@ -641,7 +721,7 @@ bool ensureMqttConnected()
 }
 
 // Hàm publish telemetry một lần rồi chờ ACK theo timeout cấu hình.
-bool publishSingleAttemptWithAck(const String &messageId, bool useBufferAForBatch, uint8_t attemptNo)
+bool publishSingleAttemptWithAck(const char *messageId, bool useBufferAForBatch, uint8_t attemptNo)
 {
   // Chọn buffer dữ liệu tương ứng với batch cần gửi (A hoặc B).
   float *ecg = useBufferAForBatch ? ecgBufA : ecgBufB;
@@ -659,7 +739,7 @@ bool publishSingleAttemptWithAck(const String &messageId, bool useBufferAForBatc
   if (!connected)
   {
     Serial.printf("⚠️ Không thể kết nối MQTT để gửi message_id=%s | connect_ms=%lu\n",
-                  messageId.c_str(), connectDurationMs);
+                  messageId, connectDurationMs);
     return false;
   }
 
@@ -669,14 +749,14 @@ bool publishSingleAttemptWithAck(const String &messageId, bool useBufferAForBatc
   bool published = streamTelemetryJson(messageId, sentAt, ecg, ax, ay, az, gx, gy, gz);
   unsigned long publishDurationMs = millis() - publishStartMs;
   Serial.printf("📊 MQTT timing message_id=%s | attempt=%u | connect_ms=%lu | publish_ms=%lu\n",
-                messageId.c_str(), static_cast<unsigned int>(attemptNo), connectDurationMs, publishDurationMs);
+                messageId, static_cast<unsigned int>(attemptNo), connectDurationMs, publishDurationMs);
   if (!published)
     return false;
   return waitAppAck(messageId, ACK_TIMEOUT_MS);
 }
 
 // Hàm retry gửi telemetry tối đa MAX_RETRY lần theo logic ACK ban đầu.
-bool publishWithRetry(const String &messageId, bool useBufferAForBatch)
+bool publishWithRetry(const char *messageId, bool useBufferAForBatch)
 {
   for (uint8_t attempt = 1; attempt <= MAX_RETRY; attempt++)
   {
@@ -705,11 +785,11 @@ void drainRetryQueue()
   {
     enqueueRetry(item.messageId, item.useBufferA);
     Serial.printf("↩️ Retry queue requeue: %s | queue=%u\n",
-                  item.messageId.c_str(), static_cast<unsigned int>(retryCount));
+                  item.messageId, static_cast<unsigned int>(retryCount));
   }
   else
   {
-    Serial.printf("✅ Retry queue delivered: %s\n", item.messageId.c_str());
+    Serial.printf("✅ Retry queue delivered: %s\n", item.messageId);
   }
 }
 
@@ -718,12 +798,16 @@ void sensorTask(void *param)
 {
   unsigned long lastECG = micros();
   unsigned long lastMPU = micros();
+  TickType_t lastWakeTick = xTaskGetTickCount();
   int ecgIdx = 0;
   int mpuIdx = 0;
 
   // Chu kỳ lấy mẫu theo micro-second để giữ nhịp thời gian chính xác.
   const unsigned long ecgInterval = 1000000UL / SAMPLE_RATE_ECG;
   const unsigned long mpuInterval = 1000000UL / MPU_SAMPLE_RATE;
+  // Wake mỗi 1ms để kiểm tra lịch lấy mẫu nhưng không busy-loop 100% CPU.
+  // ECG 250Hz có chu kỳ 4ms, nên tick 1ms cho jitter nhỏ hơn so với ngủ thẳng 4ms.
+  const TickType_t sensorWakeTicks = pdMS_TO_TICKS(1) > 0 ? pdMS_TO_TICKS(1) : 1;
 
   while (true)
   {
@@ -782,6 +866,10 @@ void sensorTask(void *param)
       mpuIdx = 0;
       xSemaphoreGive(readySemaphore);
     }
+
+    // Nhường CPU cho WiFi/TLS/MQTT và các task hệ thống.
+    // vTaskDelayUntil giữ chu kỳ thức dậy đều hơn delay(1), giúp giảm CPU/power mà vẫn bám lịch micros ở trên.
+    vTaskDelayUntil(&lastWakeTick, sensorWakeTicks);
   }
 }
 
@@ -796,6 +884,7 @@ void senderTask(void *param)
   uint32_t lastMqttLoopMs = 0;
   uint32_t lastReconnectMs = 0;
   uint32_t lastRetryDrainMs = 0;
+  uint32_t lastRuntimeStatsMs = 0;
 
   while (true)
   {
@@ -826,6 +915,12 @@ void senderTask(void *param)
         drainRetryQueue();
         lastRetryDrainMs = nowMs;
       }
+
+      if (nowMs - lastRuntimeStatsMs >= RUNTIME_STATS_INTERVAL_MS)
+      {
+        logRuntimeStats("sender idle");
+        lastRuntimeStatsMs = nowMs;
+      }
       continue;
     }
 
@@ -833,7 +928,8 @@ void senderTask(void *param)
     bool sendA = !useBufferA;
 
     // Tạo message_id duy nhất cho batch này.
-    String messageId = makeMessageId();
+    char messageId[MESSAGE_ID_MAX_LEN];
+    makeMessageId(messageId, sizeof(messageId));
     // duration_ms là thời gian tổng của một lần gửi batch (gồm connect nếu có).
     unsigned long sendStartMs = millis();
 
@@ -846,24 +942,31 @@ void senderTask(void *param)
     {
       enqueueRetry(messageId, sendA);
       Serial.printf("⚠️ Publish/ACK fail, đã đưa vào queue: %s | duration_ms=%lu | queue=%u\n",
-                    messageId.c_str(), sendDurationMs, static_cast<unsigned int>(retryCount));
+                    messageId, sendDurationMs, static_cast<unsigned int>(retryCount));
     }
     else
     {
-      Serial.printf("Publish ok: %s | duration_ms=%lu\n", messageId.c_str(), sendDurationMs);
+      Serial.printf("Publish ok: %s | duration_ms=%lu\n", messageId, sendDurationMs);
     }
 
     // Mỗi vòng gửi xong sẽ thử đẩy thêm 1 phần tử từ retry queue.
     drainRetryQueue();
     lastMqttLoopMs = millis();
     lastRetryDrainMs = lastMqttLoopMs;
+    if (lastMqttLoopMs - lastRuntimeStatsMs >= RUNTIME_STATS_INTERVAL_MS)
+    {
+      logRuntimeStats("sender after publish");
+      lastRuntimeStatsMs = lastMqttLoopMs;
+    }
   }
 }
 
 // Hàm khởi tạo toàn bộ phần cứng và tạo task thu/gửi dữ liệu.
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
+  buildMqttTopics();
+  logRuntimeStats("setup start");
   analogReadResolution(12);
 
   pinMode(SDN_PIN, OUTPUT);
@@ -876,11 +979,15 @@ void setup()
       delay(100);
   }
   Serial.println("MPU6050 Ready");
+  // Tăng I2C lên 400kHz sau khi MPU đã init để giảm thời gian đọc 6 trục trong sensorTask.
+  // Nếu dây dài/nhiễu làm đọc sai thì hạ lại 100kHz để đổi lấy độ ổn định bus.
+  Wire.setClock(400000);
   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
 
   connectWifi();
+  logRuntimeStats("after wifi");
 
   // Demo/dev mode: bỏ verify cert để dễ chạy nhanh.
   // Khi production nên dùng CA cert thay vì setInsecure().
@@ -889,9 +996,11 @@ void setup()
   // secureClient.setNoDelay(true);
   mqttClient.setServer(MQTT_BROKER_HOST, MQTT_BROKER_PORT);
   // Buffer MQTT chỉ cần vừa phải vì payload đã stream dần, không cần chứa toàn bộ JSON.
-  mqttClient.setBufferSize(8192);
+  // Giữ 1024 byte để đủ cho topic/header/ACK nhưng trả lại khoảng 7KB heap so với 8192.
+  mqttClient.setBufferSize(MQTT_CLIENT_BUFFER_SIZE);
   mqttClient.setCallback(mqttCallback);
   ensureMqttConnected();
+  logRuntimeStats("after mqtt");
 
   readySemaphore = xSemaphoreCreateBinary();
 
