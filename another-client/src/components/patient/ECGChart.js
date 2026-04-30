@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import uPlot from "uplot"
 import "uplot/dist/uPlot.min.css"
 import {
@@ -216,16 +216,27 @@ const ECGChart = ({
 }) => {
   const containerRef = useRef(null)
   const chartRef = useRef(null)
+  const [isCompactViewport, setIsCompactViewport] = useState(false)
 
   const resolveContainerWidth = (element) => {
-    if (!element) return 320
+    if (!element) return 280
     const ownWidth = Math.floor(element.getBoundingClientRect().width)
     const parentWidth = Math.floor(element.parentElement?.getBoundingClientRect().width || 0)
-    return Math.max(320, ownWidth, parentWidth)
+    return Math.max(280, ownWidth, parentWidth)
   }
 
   const normalizedData = useMemo(() => normalizeEcgData(data), [data])
   const normalizedHighlights = useMemo(() => normalizeHighlights(highlights), [highlights])
+  const chartHeight = isCompactViewport ? Math.min(height, 220) : height
+  const chartPadding = isCompactViewport ? [24, 18, 4, 0] : [76, 32, 0, 0]
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639.98px)")
+    const updateViewport = () => setIsCompactViewport(media.matches)
+    updateViewport()
+    media.addEventListener?.("change", updateViewport)
+    return () => media.removeEventListener?.("change", updateViewport)
+  }, [])
 
   const prepared = useMemo(() => {
     const safeSampleRate = Number.isFinite(Number(sampleRate)) && Number(sampleRate) > 0 ? Number(sampleRate) : DEFAULT_SAMPLE_RATE
@@ -287,8 +298,8 @@ const ECGChart = ({
     const chart = new uPlot(
       {
         width,
-        height,
-        padding: [76, 32, 0, 0],
+        height: chartHeight,
+        padding: chartPadding,
         plugins: [buildEcgGridPlugin(), buildHighlightPlugin(prepared.visibleRanges), buildHoverValuePlugin()],
         cursor: {
           drag: { x: false, y: false },
@@ -342,8 +353,8 @@ const ECGChart = ({
     const resizeObserver = new ResizeObserver(([entry]) => {
       const observedWidth = Math.floor(entry.contentRect.width)
       const fallbackWidth = Math.floor(container.parentElement?.getBoundingClientRect().width || 0)
-      const nextWidth = Math.max(320, observedWidth, fallbackWidth)
-      chart.setSize({ width: nextWidth, height })
+      const nextWidth = Math.max(280, observedWidth, fallbackWidth)
+      chart.setSize({ width: nextWidth, height: chartHeight })
     })
     resizeObserver.observe(container)
 
@@ -352,11 +363,11 @@ const ECGChart = ({
       chart.destroy()
       chartRef.current = null
     }
-  }, [height, prepared])
+  }, [chartHeight, prepared])
 
   if (prepared.visibleData.length === 0) {
     return (
-      <div className="ecg-paper-surface relative flex items-center justify-center overflow-hidden rounded-2xl border border-brand-100" style={{ minHeight: `${height}px` }}>
+      <div className="ecg-paper-surface relative flex items-center justify-center overflow-hidden rounded-2xl border border-brand-100" style={{ minHeight: `${chartHeight}px` }}>
         <svg className="pointer-events-none absolute mx-10 inset-x-8 top-1/2 h-24 -translate-y-1/2 text-brand-500/30" viewBox="0 0 900 120" preserveAspectRatio="none" aria-hidden="true">
           <polyline
             fill="none"

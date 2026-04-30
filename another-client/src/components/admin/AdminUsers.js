@@ -191,35 +191,96 @@ const AdminUsers = () => {
         <div className="clinical-panel-header"><div><h2 className="section-title">Danh sách người dùng</h2><p className="section-subtitle">Chip màu thể hiện vai trò và trạng thái tài khoản.</p></div></div>
         <div className="clinical-panel-body">
           {paginatedUsers.length > 0 ? (
-            <div className="table-responsive">
-              <table className="table table-hover">
-                <thead className="table-light">
-                  <tr>
-                    <th>Người dùng</th>
-                    <th>Email</th>
-                    <th>Vai trò</th>
-                    <th>Trạng thái</th>
-                    <th>Ngày tạo</th>
-                    <th>Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedUsers.map((user) => (
-                    <tr key={user.user_id}>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div className="avatar-circle bg-primary text-white me-3">
-                            {user.name.charAt(0).toUpperCase()}
+            <div className="table-mobile-cards">
+              <div className="table-responsive">
+                <table className="table table-hover">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Người dùng</th>
+                      <th>Email</th>
+                      <th>Vai trò</th>
+                      <th>Trạng thái</th>
+                      <th>Ngày tạo</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedUsers.map((user) => (
+                      <tr key={user.user_id}>
+                        <td>
+                          <div className="d-flex align-items-center">
+                            <div className="avatar-circle bg-primary text-white me-3">
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <h6 className="mb-0">{user.name}</h6>
+                              <small className="text-muted">ID: {user.user_id}</small>
+                            </div>
                           </div>
-                          <div>
-                            <h6 className="mb-0">{user.name}</h6>
-                            <small className="text-muted">ID: {user.user_id}</small>
+                        </td>
+                        <td>{user.email}</td>
+                        <td>{getRoleBadge(user.role)}</td>
+                        <td>
+                          {user.is_active ? (
+                            <span className="badge bg-success">
+                              <i className="fas fa-check-circle me-1"></i>
+                              Hoạt động
+                            </span>
+                          ) : (
+                            <span className="badge bg-secondary">
+                              <i className="fas fa-pause-circle me-1"></i>
+                              Ngưng
+                            </span>
+                          )}
+                        </td>
+                        <td>{formatDate(user.created_at)}</td>
+                        <td>
+                          <div className="btn-group" role="group">
+                            <button
+                              className="btn btn-outline-primary btn-sm"
+                              onClick={() => handleEdit(user)}
+                              title="Chỉnh sửa"
+                            >
+                              <i className="fas fa-edit"></i>
+                            </button>
+                            <button
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={() => handleDelete(user.user_id, user.name)}
+                              title="Xóa"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </button>
                           </div>
-                        </div>
-                      </td>
-                      <td>{user.email}</td>
-                      <td>{getRoleBadge(user.role)}</td>
-                      <td>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mobile-card-list">
+                {paginatedUsers.map((user) => (
+                  <article key={user.user_id} className="mobile-data-card">
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="avatar-circle bg-primary text-white">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-bold text-ink-900">{user.name}</h3>
+                        <p className="truncate text-xs text-ink-500">ID: {user.user_id}</p>
+                      </div>
+                    </div>
+                    <div className="mobile-data-card-row">
+                      <span className="mobile-data-card-label">Email</span>
+                      <span className="mobile-data-card-value">{user.email}</span>
+                    </div>
+                    <div className="mobile-data-card-row">
+                      <span className="mobile-data-card-label">Vai trò</span>
+                      <span className="mobile-data-card-value">{getRoleBadge(user.role)}</span>
+                    </div>
+                    <div className="mobile-data-card-row">
+                      <span className="mobile-data-card-label">Trạng thái</span>
+                      <span className="mobile-data-card-value">
                         {user.is_active ? (
                           <span className="badge bg-success">
                             <i className="fas fa-check-circle me-1"></i>
@@ -231,30 +292,25 @@ const AdminUsers = () => {
                             Ngưng
                           </span>
                         )}
-                      </td>
-                      <td>{formatDate(user.created_at)}</td>
-                      <td>
-                        <div className="btn-group" role="group">
-                          <button
-                            className="btn btn-outline-primary btn-sm"
-                            onClick={() => handleEdit(user)}
-                            title="Chỉnh sửa"
-                          >
-                            <i className="fas fa-edit"></i>
-                          </button>
-                          <button
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => handleDelete(user.user_id, user.name)}
-                            title="Xóa"
-                          >
-                            <i className="fas fa-trash"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </span>
+                    </div>
+                    <div className="mobile-data-card-row">
+                      <span className="mobile-data-card-label">Ngày tạo</span>
+                      <span className="mobile-data-card-value">{formatDate(user.created_at)}</span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button className="btn btn-outline-primary btn-sm" onClick={() => handleEdit(user)}>
+                        <i className="fas fa-edit"></i>
+                        Sửa
+                      </button>
+                      <button className="btn btn-outline-danger btn-sm" onClick={() => handleDelete(user.user_id, user.name)}>
+                        <i className="fas fa-trash"></i>
+                        Xóa
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="empty-state-rich">

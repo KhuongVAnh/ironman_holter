@@ -89,7 +89,7 @@ const AdminDevices = () => {
           <h1 className="page-hero-title">Quản lý thiết bị</h1>
           <p className="page-hero-subtitle">Theo dõi serial, bệnh nhân sở hữu và trạng thái hoạt động của thiết bị ECG.</p>
         </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="mobile-stack-actions">
               <button className="btn btn-success" onClick={() => setShowAddModal(true)}>
                 <i className="fas fa-plus me-1"></i>
                 Thêm thiết bị
@@ -114,39 +114,106 @@ const AdminDevices = () => {
         <div className="clinical-panel-header"><div><h2 className="section-title">Danh sách thiết bị</h2><p className="section-subtitle">Trạng thái vận hành được nhấn bằng chip màu.</p></div></div>
         <div className="clinical-panel-body">
               {devices.length > 0 ? (
-                <div className="table-responsive">
-                  <table className="table table-hover">
-                    <thead className="table-light">
-                      <tr>
-                        <th>ID Thiết bị</th>
-                        <th>Số serial</th>
-                        <th>Bệnh nhân</th>
-                        <th>Trạng thái</th>
-                        <th>Ngày đăng ký</th>
-                        <th>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {devices.map((device) => (
-                        <tr key={device.device_id}>
-                          <td>
-                            <code className="text-primary">{device.device_id}</code>
-                          </td>
-                          <td>
-                            <strong>{device.serial_number}</strong>
-                          </td>
-                          <td>
-                            <div className="d-flex align-items-center">
-                              <div className="avatar-circle bg-primary text-white me-2">
-                                {device.user?.name?.charAt(0).toUpperCase() || "?"}
+                <div className="table-mobile-cards">
+                  <div className="table-responsive">
+                    <table className="table table-hover">
+                      <thead className="table-light">
+                        <tr>
+                          <th>ID Thiết bị</th>
+                          <th>Số serial</th>
+                          <th>Bệnh nhân</th>
+                          <th>Trạng thái</th>
+                          <th>Ngày đăng ký</th>
+                          <th>Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {devices.map((device) => (
+                          <tr key={device.device_id}>
+                            <td>
+                              <code className="text-primary">{device.device_id}</code>
+                            </td>
+                            <td>
+                              <strong>{device.serial_number}</strong>
+                            </td>
+                            <td>
+                              <div className="d-flex align-items-center">
+                                <div className="avatar-circle bg-primary text-white me-2">
+                                  {device.user?.name?.charAt(0).toUpperCase() || "?"}
+                                </div>
+                                <div>
+                                  <h6 className="mb-0">{device.user?.name || "Không xác định"}</h6>
+                                  <small className="text-muted">{device.user?.email}</small>
+                                </div>
                               </div>
-                              <div>
-                                <h6 className="mb-0">{device.user?.name || "Không xác định"}</h6>
-                                <small className="text-muted">{device.user?.email}</small>
+                            </td>
+                            <td>
+                              {device.status === DEVICE_STATUS.DANG_HOAT_DONG ? (
+                                <span className="status-chip is-success">
+                                  <i className="fas fa-check-circle me-1"></i>
+                                  Đang hoạt động
+                                </span>
+                              ) : (
+                                <span className="status-chip is-neutral">
+                                  <i className="fas fa-pause-circle me-1"></i>
+                                  Ngưng hoạt động
+                                </span>
+                              )}
+                            </td>
+                            <td>{formatDate(device.created_at)}</td>
+                            <td>
+                              <div className="btn-group" role="group">
+                                {device.status === DEVICE_STATUS.DANG_HOAT_DONG ? (
+                                  <button
+                                    className="btn btn-outline-warning btn-sm"
+                                    onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.NGUNG_HOAT_DONG)}
+                                    title="Tạm dừng"
+                                  >
+                                    <i className="fas fa-pause"></i>
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="btn btn-outline-success btn-sm"
+                                    onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.DANG_HOAT_DONG)}
+                                    title="Kích hoạt"
+                                  >
+                                    <i className="fas fa-play"></i>
+                                  </button>
+                                )}
+                                <button className="btn btn-outline-info btn-sm" title="Chi tiết readings" onClick={() => setSelectedDevice(device)}>
+                                  <i className="fas fa-info-circle"></i>
+                                </button>
                               </div>
-                            </div>
-                          </td>
-                          <td>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mobile-card-list">
+                    {devices.map((device) => (
+                      <article key={device.device_id} className="mobile-data-card">
+                        <div className="mb-3 flex items-center gap-3">
+                          <div className="avatar-circle bg-primary text-white">
+                            {device.user?.name?.charAt(0).toUpperCase() || "?"}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="truncate text-base font-bold text-ink-900">{device.serial_number}</h3>
+                            <p className="truncate text-xs text-ink-500">{device.user?.name || "Không xác định"}</p>
+                          </div>
+                        </div>
+                        <div className="mobile-data-card-row">
+                          <span className="mobile-data-card-label">ID thiết bị</span>
+                          <code className="mobile-data-card-value text-primary">{device.device_id}</code>
+                        </div>
+                        <div className="mobile-data-card-row">
+                          <span className="mobile-data-card-label">Email</span>
+                          <span className="mobile-data-card-value">{device.user?.email || "-"}</span>
+                        </div>
+                        <div className="mobile-data-card-row">
+                          <span className="mobile-data-card-label">Trạng thái</span>
+                          <span className="mobile-data-card-value">
                             {device.status === DEVICE_STATUS.DANG_HOAT_DONG ? (
                               <span className="status-chip is-success">
                                 <i className="fas fa-check-circle me-1"></i>
@@ -158,36 +225,32 @@ const AdminDevices = () => {
                                 Ngưng hoạt động
                               </span>
                             )}
-                          </td>
-                          <td>{formatDate(device.created_at)}</td>
-                          <td>
-                            <div className="btn-group" role="group">
-                              {device.status === DEVICE_STATUS.DANG_HOAT_DONG ? (
-                                <button
-                                  className="btn btn-outline-warning btn-sm"
-                                  onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.NGUNG_HOAT_DONG)}
-                                  title="Tạm dừng"
-                                >
-                                  <i className="fas fa-pause"></i>
-                                </button>
-                              ) : (
-                                <button
-                                  className="btn btn-outline-success btn-sm"
-                                  onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.DANG_HOAT_DONG)}
-                                  title="Kích hoạt"
-                                >
-                                  <i className="fas fa-play"></i>
-                                </button>
-                              )}
-                              <button className="btn btn-outline-info btn-sm" title="Chi tiết readings" onClick={() => setSelectedDevice(device)}>
-                                <i className="fas fa-info-circle"></i>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </span>
+                        </div>
+                        <div className="mobile-data-card-row">
+                          <span className="mobile-data-card-label">Ngày đăng ký</span>
+                          <span className="mobile-data-card-value">{formatDate(device.created_at)}</span>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          {device.status === DEVICE_STATUS.DANG_HOAT_DONG ? (
+                            <button className="btn btn-outline-warning btn-sm" onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.NGUNG_HOAT_DONG)}>
+                              <i className="fas fa-pause"></i>
+                              Tạm dừng
+                            </button>
+                          ) : (
+                            <button className="btn btn-outline-success btn-sm" onClick={() => updateDeviceStatus(device.device_id, DEVICE_STATUS.DANG_HOAT_DONG)}>
+                              <i className="fas fa-play"></i>
+                              Kích hoạt
+                            </button>
+                          )}
+                          <button className="btn btn-outline-info btn-sm" onClick={() => setSelectedDevice(device)}>
+                            <i className="fas fa-info-circle"></i>
+                            Chi tiết
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="empty-state-rich">

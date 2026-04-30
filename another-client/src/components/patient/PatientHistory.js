@@ -161,7 +161,7 @@ const PatientHistory = () => {
               <p className="mt-2 text-sm text-ink-500">Dữ liệu sẽ xuất hiện khi thiết bị Holter bắt đầu ghi nhận và đồng bộ thành công.</p>
             </div>
           ) : (
-            <>
+            <div className="table-mobile-cards">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-surface-line text-sm">
                   <thead>
@@ -197,6 +197,35 @@ const PatientHistory = () => {
                 </table>
               </div>
 
+              <div className="mobile-card-list">
+                {readings.map((reading) => {
+                  const aiBadge = getAiStatusBadge(reading)
+                  return (
+                    <article key={reading.reading_id} className="mobile-data-card">
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-ink-900">Bản ghi #{reading.reading_id}</p>
+                          <p className="mt-1 text-xs text-ink-500">{formatDate(reading.timestamp)}</p>
+                        </div>
+                        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${aiBadge.className}`}>{aiBadge.label}</span>
+                      </div>
+                      <div className="mobile-data-card-row">
+                        <span className="mobile-data-card-label">Nhịp tim</span>
+                        <span className={`mobile-data-card-value ${heartRateTone(reading.heart_rate)}`}>{reading.heart_rate} BPM</span>
+                      </div>
+                      <div className="mobile-data-card-row">
+                        <span className="mobile-data-card-label">Thiết bị</span>
+                        <span className="mobile-data-card-value">{reading.device?.serial_number || reading.Device?.serial_number || "Không rõ serial"}</span>
+                      </div>
+                      <button type="button" className="btn btn-outline-primary btn-sm mt-3 w-full" onClick={() => setSelectedReadingId(reading.reading_id)}>
+                        <i className="fas fa-wave-square"></i>
+                        Xem ECG
+                      </button>
+                    </article>
+                  )
+                })}
+              </div>
+
               <PaginationBar
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -208,7 +237,7 @@ const PatientHistory = () => {
                 }
                 className="mt-6"
               />
-            </>
+            </div>
           )}
         </div>
       </section>

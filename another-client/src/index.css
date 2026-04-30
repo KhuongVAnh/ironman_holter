@@ -43,6 +43,7 @@
 
   html {
     scroll-behavior: smooth;
+    overflow-x: clip;
   }
 
   body {
@@ -55,6 +56,7 @@
     font-family: "Be Vietnam Pro", Arial, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
   }
 
   a {
@@ -454,7 +456,8 @@
   }
 
   .table-responsive {
-    @apply w-full overflow-x-auto;
+    @apply w-full overflow-x-auto overscroll-x-contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .table {
@@ -706,6 +709,30 @@
     max-width: min(64rem, calc(100vw - 2rem));
     height: min(760px, calc(100vh - 4rem));
     height: min(760px, calc(100dvh - 4rem));
+  }
+
+  .mobile-card-list {
+    @apply hidden;
+  }
+
+  .mobile-data-card {
+    @apply rounded-2xl border border-surface-line bg-white p-4 shadow-soft;
+  }
+
+  .mobile-data-card-row {
+    @apply flex items-start justify-between gap-3 border-b border-surface-line py-2.5 last:border-b-0;
+  }
+
+  .mobile-data-card-label {
+    @apply text-xs font-bold uppercase tracking-[0.06em] text-ink-500;
+  }
+
+  .mobile-data-card-value {
+    @apply min-w-0 max-w-[62%] break-words text-right text-sm font-semibold text-ink-900;
+  }
+
+  .mobile-stack-actions {
+    @apply flex flex-wrap items-center gap-2;
   }
 
   .modal-eyebrow {
@@ -2085,4 +2112,186 @@ h6 {
 
 .Toastify__close-button:hover {
   opacity: 1;
+}
+
+@media (max-width: 639.98px) {
+  .page-shell {
+    @apply space-y-4;
+  }
+
+  .page-hero {
+    @apply gap-3 rounded-2xl px-4 py-4;
+  }
+
+  .page-hero-icon {
+    @apply h-12 w-12 rounded-xl text-xl;
+  }
+
+  .page-hero-title {
+    @apply text-xl;
+  }
+
+  .page-hero-subtitle {
+    @apply mt-1 text-[13px] leading-5;
+  }
+
+  .clinical-panel {
+    @apply rounded-2xl;
+  }
+
+  .clinical-panel-header,
+  .card-header,
+  .app-card-header {
+    @apply flex-col items-stretch gap-3 px-4 py-3.5;
+  }
+
+  .clinical-panel-body,
+  .card-body,
+  .app-card-body {
+    @apply px-4 py-4;
+  }
+
+  .section-title {
+    @apply text-lg;
+  }
+
+  .priority-metric {
+    @apply rounded-xl p-4;
+  }
+
+  .metric-value {
+    @apply text-2xl;
+  }
+
+  .btn {
+    @apply min-h-10 rounded-lg px-4 py-2.5 text-sm;
+  }
+
+  .btn-sm {
+    @apply min-h-9 px-3 py-2 text-xs;
+  }
+
+  .btn-group,
+  .mobile-stack-actions {
+    @apply grid w-full grid-cols-1 gap-2;
+  }
+
+  .btn-group .btn,
+  .mobile-stack-actions .btn,
+  .modal-footer .btn {
+    @apply w-full;
+  }
+
+  .input-group {
+    @apply flex-col;
+  }
+
+  .input-group>.form-control,
+  .input-group>.form-select,
+  .input-group>.btn {
+    @apply w-full;
+  }
+
+  .info-list-row,
+  .info-row,
+  .mobile-data-card-row {
+    @apply flex-col gap-1.5;
+  }
+
+  .info-list-value,
+  .info-row-value,
+  .mobile-data-card-value {
+    @apply max-w-full text-left;
+  }
+
+  .modal-overlay {
+    @apply items-end p-2;
+  }
+
+  .modal-panel {
+    @apply rounded-2xl;
+    max-height: calc(100dvh - 1rem);
+    height: auto;
+  }
+
+  .modal-size-md,
+  .modal-size-lg,
+  .modal-size-xl {
+    max-width: calc(100vw - 1rem);
+    width: calc(100vw - 1rem);
+    height: min(860px, calc(100dvh - 1rem));
+  }
+
+  .modal-header {
+    @apply px-4 py-3;
+  }
+
+  .modal-body {
+    @apply px-3 py-3;
+  }
+
+  .modal-footer {
+    @apply grid grid-cols-1 px-3 py-3;
+  }
+
+  .medical-visit-modal-overlay {
+    @apply items-end p-2;
+  }
+
+  .medical-visit-modal-panel {
+    width: calc(100vw - 1rem);
+    height: calc(100dvh - 1rem);
+    max-height: calc(100dvh - 1rem);
+  }
+
+  .medical-visit-modal-header,
+  .medical-visit-modal-body {
+    @apply px-4;
+  }
+
+  .medical-visit-modal-title {
+    @apply text-xl;
+  }
+
+  .medical-visit-section {
+    @apply rounded-xl p-4;
+  }
+
+  .table-responsive {
+    @apply rounded-xl border border-surface-line;
+  }
+
+  .table-responsive::after {
+    content: "Vuốt ngang để xem thêm";
+    @apply block border-t border-surface-line bg-surface-soft px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-500;
+  }
+
+  .table th,
+  .table td {
+    @apply whitespace-nowrap px-3 py-2.5 text-xs;
+  }
+
+  .table-mobile-cards .table-responsive,
+  .table-mobile-cards>.overflow-x-auto,
+  .table-mobile-cards table {
+    @apply hidden;
+  }
+
+  .table-mobile-cards .mobile-card-list {
+    @apply grid gap-3;
+  }
+
+  .alert-filter-group {
+    @apply grid w-full grid-cols-1 rounded-2xl;
+  }
+
+  .alert-filter-pill {
+    @apply w-full rounded-xl text-center;
+  }
+
+  .Toastify__toast-container--top-right {
+    left: max(0.5rem, env(safe-area-inset-left, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    width: auto;
+  }
 }

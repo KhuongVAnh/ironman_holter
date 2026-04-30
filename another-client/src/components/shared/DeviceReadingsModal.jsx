@@ -148,7 +148,7 @@ const DeviceReadingsModal = ({ show, onClose, device }) => {
             {loading ? (
               <div className="flex justify-center py-12"><div className="spinner-border" role="status" /></div>
             ) : readings.length ? (
-              <div className="overflow-hidden rounded-xl">
+              <div className="table-mobile-cards overflow-hidden rounded-xl">
                 <div className="overflow-x-auto">
                   <table className="table align-middle mb-0">
                     <thead>
@@ -180,6 +180,32 @@ const DeviceReadingsModal = ({ show, onClose, device }) => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+                <div className="mobile-card-list p-3">
+                  {readings.map((reading) => (
+                    <article key={reading.reading_id} className="mobile-data-card">
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-ink-900">Bản ghi #{reading.reading_id}</p>
+                          <p className="mt-1 text-xs text-ink-500">{formatDateTime(reading.timestamp)}</p>
+                        </div>
+                        <span className={`shrink-0 status-chip ${reading.abnormal_detected ? "is-danger" : "is-success"}`}>
+                          {reading.abnormal_detected ? "Bất thường" : "Bình thường"}
+                        </span>
+                      </div>
+                      <div className="mobile-data-card-row">
+                        <span className="mobile-data-card-label">Nhịp tim</span>
+                        <span className="mobile-data-card-value">{reading.heart_rate} BPM</span>
+                      </div>
+                      <div className="mobile-data-card-row">
+                        <span className="mobile-data-card-label">AI</span>
+                        <span className="mobile-data-card-value">{getAiStatusLabel(reading)}</span>
+                      </div>
+                      <button type="button" className="btn btn-outline-primary btn-sm mt-3 w-full" onClick={() => setSelectedReadingId(reading.reading_id)}>
+                        <i className="fas fa-eye me-1"></i>Xem ECG
+                      </button>
+                    </article>
+                  ))}
                 </div>
                 <div className="px-4 pb-4">
                   <PaginationBar

@@ -280,7 +280,7 @@ const PatientDashboard = () => {
           </div>
           <div className="p-2">
             <div className="relative w-full">
-              <div className="pointer-events-none absolute left-2 right-2 top-2 z-10 flex flex-wrap items-start justify-between gap-2">
+              <div className="pointer-events-none relative z-10 mb-2 flex flex-wrap items-start justify-between gap-2 sm:absolute sm:left-2 sm:right-2 sm:top-2 sm:mb-0">
                 <div className="flex max-w-full flex-wrap gap-2">
                   <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-red-100 bg-white/95 px-3 py-2 text-sm shadow-medium backdrop-blur">
                     <i className="fas fa-heartbeat text-red-600"></i>
@@ -288,14 +288,14 @@ const PatientDashboard = () => {
                     <span className="text-base font-bold text-ink-900">{currentHeartRate ?? "--"}</span>
                     <span className="text-xs font-bold text-red-700">BPM</span>
                   </div>
-                  <div className={`pointer-events-auto flex max-w-[min(560px,calc(100vw-3rem))] items-start gap-2 rounded-2xl border bg-white/95 px-3 py-2 text-sm shadow-medium backdrop-blur ${analysisState?.status === "FAILED" ? "border-red-100" : analysisState?.abnormal ? "border-amber-100" : "border-emerald-100"}`}>
+                  <div className={`pointer-events-auto flex max-w-full items-start gap-2 rounded-2xl border bg-white/95 px-3 py-2 text-sm shadow-medium backdrop-blur sm:max-w-[min(560px,calc(100vw-3rem))] ${analysisState?.status === "FAILED" ? "border-red-100" : analysisState?.abnormal ? "border-amber-100" : "border-emerald-100"}`}>
                     <i className={`fas fa-brain ${analysisState?.status === "FAILED" ? "text-red-600" : analysisState?.abnormal ? "text-amber-600" : "text-emerald-600"}`}></i>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold uppercase tracking-[0.08em] text-ink-500">AI</span>
                         <span className="font-bold text-ink-900">{aiCard.title}</span>
                       </div>
-                      <p className="mt-0.5 max-w-[min(480px,calc(100vw-8rem))] break-words text-xs leading-5 text-ink-700">{aiCard.detail}</p>
+                      <p className="mt-0.5 max-w-full break-words text-xs leading-5 text-ink-700 sm:max-w-[min(480px,calc(100vw-8rem))]">{aiCard.detail}</p>
                     </div>
                   </div>
                 </div>

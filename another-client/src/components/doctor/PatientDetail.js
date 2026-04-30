@@ -333,13 +333,13 @@ const PatientDetail = () => {
 
   return (
     <div className="space-y-6">
-      <section className="sticky top-20 z-20 rounded-xl border border-surface-line bg-white/95 p-5 shadow-soft backdrop-blur">
+      <section className="rounded-xl border border-surface-line bg-white/95 p-4 shadow-soft backdrop-blur sm:sticky sm:top-20 sm:z-20 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
             <PatientAvatar name={patient.name} size="lg" />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-brand-700">Clinical chart</p>
-              <h1 className="truncate text-3xl font-bold text-ink-950">{patient.name}</h1>
+              <h1 className="truncate text-2xl font-bold text-ink-950 sm:text-3xl">{patient.name}</h1>
               <p className="truncate text-sm text-ink-500">{patient.email}</p>
             </div>
           </div>
@@ -427,6 +427,7 @@ const PatientDetail = () => {
           <div className="clinical-panel-body">
             {readings.length ? (
               <>
+                <div className="table-mobile-cards">
                 <div className="overflow-x-auto">
                   <table className="table align-middle">
                     <thead><tr><th>Thời gian</th><th>Nhịp tim</th><th>AI</th><th>Trạng thái</th><th className="text-end">Chi tiết</th></tr></thead>
@@ -448,6 +449,35 @@ const PatientDetail = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+                <div className="mobile-card-list">
+                  {readings.map((reading) => (
+                    <article key={reading.reading_id} className="mobile-data-card">
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-ink-900">ECG #{reading.reading_id}</p>
+                          <p className="mt-1 text-xs text-ink-500">{formatDateTime(reading.timestamp)}</p>
+                        </div>
+                        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${reading.abnormal_detected ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{reading.abnormal_detected ? "Bất thường" : "Bình thường"}</span>
+                      </div>
+                      <div className="mobile-data-card-row">
+                        <span className="mobile-data-card-label">Nhịp tim</span>
+                        <span className={`mobile-data-card-value ${getHeartRateTone(reading.heart_rate)}`}>{reading.heart_rate} BPM</span>
+                      </div>
+                      <div className="mobile-data-card-row">
+                        <span className="mobile-data-card-label">AI</span>
+                        <span className="mobile-data-card-value">
+                          {String(reading.ai_status || "").toUpperCase() === "PENDING"
+                            ? "Đang phân tích"
+                            : String(reading.ai_status || "").toUpperCase() === "FAILED"
+                              ? (reading.ai_error || "Phân tích thất bại")
+                              : formatAiResultForDisplay(reading.ai_result)}
+                        </span>
+                      </div>
+                      <button type="button" className="btn btn-outline-primary btn-sm mt-3 w-full" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button>
+                    </article>
+                  ))}
+                </div>
                 </div>
                 <PaginationBar
                   currentPage={readingPage}

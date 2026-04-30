@@ -125,7 +125,7 @@ const AppShell = ({ children }) => {
   const userInitial = user?.name?.charAt(0)?.toUpperCase() || "U"
 
   const sidebar = (
-    <div className="flex h-full flex-col overflow-y-auto bg-white/80 text-holter-primary shadow-holterAmbient backdrop-blur-[20px]">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto bg-white/80 text-holter-primary shadow-holterAmbient backdrop-blur-[20px]">
       <button
         type="button"
         className={`flex min-h-[88px] items-center px-5 text-left transition hover:bg-white/35 ${sidebarCollapsed ? "justify-center" : "gap-4"}`}
@@ -205,16 +205,16 @@ const AppShell = ({ children }) => {
           onClick={() => setDrawerOpen(false)}
         ></div>
 
-        <aside className={`fixed inset-y-0 left-0 z-50 w-[276px] max-w-[88vw] overflow-hidden border-r border-holter-outline/50 bg-white/90 shadow-panel transition-all duration-300 lg:bottom-6 lg:left-6 lg:top-6 lg:h-auto lg:translate-x-0 lg:rounded-[24px] lg:border lg:border-white/45 lg:bg-white/30 lg:shadow-holterAmbient lg:backdrop-blur-[20px] ${asideWidthClass} ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <aside className={`fixed inset-y-0 left-0 z-50 w-[min(276px,calc(100vw-1rem))] max-w-[88vw] overflow-hidden border-r border-holter-outline/50 bg-white/90 shadow-panel transition-all duration-300 lg:bottom-6 lg:left-6 lg:top-6 lg:h-auto lg:translate-x-0 lg:rounded-[24px] lg:border lg:border-white/45 lg:bg-white/30 lg:shadow-holterAmbient lg:backdrop-blur-[20px] ${asideWidthClass} ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}>
           {sidebar}
         </aside>
 
         <div className={`hidden transition-all duration-300 lg:block lg:flex-none ${contentOffsetClass}`}></div>
 
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 px-3 pt-3 sm:px-4 lg:px-6 lg:pt-6">
-            <div className="flex min-h-[68px] items-center justify-between gap-3 rounded-[24px] border border-white/45 bg-white/55 px-4 shadow-holterAmbient backdrop-blur-[20px] sm:px-5">
-              <div className="flex min-w-0 items-center gap-2">
+          <header className="sticky top-0 z-30 px-2 pt-2 sm:px-4 sm:pt-3 lg:px-6 lg:pt-6">
+            <div className="flex min-h-[60px] items-center justify-between gap-2 rounded-2xl border border-white/45 bg-white/55 px-3 shadow-holterAmbient backdrop-blur-[20px] sm:min-h-[68px] sm:gap-3 sm:rounded-[24px] sm:px-5">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                 <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/45 bg-white/65 text-holter-primaryContainer shadow-soft hover:bg-holter-mintSoft lg:hidden" onClick={() => setDrawerOpen(true)} title="Mở menu">
                   <i className="fas fa-bars"></i>
                 </button>
@@ -227,16 +227,16 @@ const AppShell = ({ children }) => {
                   <i className={`fas ${sidebarCollapsed ? "fa-arrow-right" : "fa-arrow-left"} text-sm`}></i>
                 </button>
                 <div className="min-w-0">
-                  <h2 className="truncate font-display text-xl font-bold leading-7 text-holter-primaryContainer">{pageTitle}</h2>
+                  <h2 className="truncate font-display text-base font-bold leading-6 text-holter-primaryContainer sm:text-xl sm:leading-7">{pageTitle}</h2>
                   <p className="hidden truncate text-xs font-semibold uppercase tracking-[0.12em] text-holter-muted sm:block">{ROLE_LABELS[user?.role] || "Người dùng"}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-none items-center gap-1.5 sm:gap-2">
                 <NotificationBell />
                 <button
                   type="button"
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/45 bg-white/65 px-1.5 text-holter-primaryContainer shadow-soft hover:bg-holter-mintSoft sm:pr-3"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-white/45 bg-white/65 px-1.5 text-holter-primaryContainer shadow-soft hover:bg-holter-mintSoft sm:gap-2 sm:pr-3"
                   onClick={() => setMenuOpen((prev) => !prev)}
                   aria-expanded={menuOpen}
                 >
@@ -252,7 +252,7 @@ const AppShell = ({ children }) => {
             </div>
 
             {menuOpen ? (
-              <div className="absolute right-3 top-[84px] w-64 rounded-2xl border border-white/60 bg-white/95 p-2 shadow-panel backdrop-blur-xl sm:right-4 lg:right-6 lg:top-[96px]">
+              <div className="absolute right-2 top-[72px] w-64 max-w-[calc(100vw-1rem)] rounded-2xl border border-white/60 bg-white/95 p-2 shadow-panel backdrop-blur-xl sm:right-4 sm:top-[84px] lg:right-6 lg:top-[96px]">
                 <div className="mb-1 flex items-center gap-3 rounded-xl bg-holter-mintSoft/60 p-2.5">
                   <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-holter-primaryContainer text-xs font-bold text-white">{userInitial}</span>
                   <span className="min-w-0">
@@ -278,7 +278,7 @@ const AppShell = ({ children }) => {
             ) : null}
           </header>
 
-          <main className="flex-1 px-3 py-4 sm:px-4 lg:px-6 lg:py-5">{children}</main>
+          <main className="min-w-0 flex-1 px-2 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-5">{children}</main>
         </div>
       </div>
     </div>
