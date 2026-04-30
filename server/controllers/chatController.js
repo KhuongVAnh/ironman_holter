@@ -625,7 +625,7 @@ const markDirectMessagesRead = async (req, res) => {
 
     return res.json({ updated: Number(updated.count || 0) })
   } catch (error) {
-    console.error("Loi cap nhat da doc tin nhan:", error)
+    console.error("Lỗi đánh dấu tin nhắn đã đọc:", error)
     return mapDirectError(error, res)
   }
 }

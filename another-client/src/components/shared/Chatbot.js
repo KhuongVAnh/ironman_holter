@@ -75,14 +75,14 @@ const Chatbot = ({ userId, userRole }) => {
 
   return (
     <>
-      <div className="fixed bottom-5 right-5 z-40">
+      <div className="fixed bottom-4 right-4 z-40 sm:bottom-5 sm:right-5">
         <button type="button" className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-lg text-white shadow-float transition hover:bg-brand-700" onClick={() => setIsOpen((prev) => !prev)}>
           <i className={`fas ${isOpen ? "fa-xmark" : "fa-robot"}`}></i>
         </button>
       </div>
 
       {isOpen ? (
-        <div className="fixed bottom-24 right-5 z-40 flex h-[520px] w-[400px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-surface-line bg-white shadow-panel">
+        <div className="fixed inset-x-2 bottom-20 z-40 flex h-[min(620px,calc(100dvh-6rem))] flex-col overflow-hidden rounded-2xl border border-surface-line bg-white shadow-panel sm:inset-x-auto sm:bottom-24 sm:right-5 sm:h-[520px] sm:w-[400px] sm:max-w-[calc(100vw-2rem)]">
           <div className="flex items-center justify-between bg-brand-600 px-5 py-4 text-white">
             <div>
               <p className="text-sm font-bold">Tro ly AI Ironman</p>
@@ -128,7 +128,7 @@ const Chatbot = ({ userId, userRole }) => {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t border-surface-line bg-white p-4">
+          <div className="border-t border-surface-line bg-white p-3 sm:p-4">
             <div className="input-group">
               <textarea className="form-control min-h-[52px]" placeholder="Nhap cau hoi ve tim mach..." value={inputMessage} onChange={(event) => setInputMessage(event.target.value)} onKeyDown={handleKeyPress} disabled={isLoading} />
               <button type="button" className="btn btn-primary" onClick={sendMessage} disabled={!inputMessage.trim() || isLoading}><i className="fas fa-paper-plane"></i></button>

@@ -93,6 +93,17 @@ const useSocket = (userId, userRole) => {
     }
     socket.on("direct-message:new", handleDirectMessageNew)
 
+    const handleDirectMessageTyping = (payload) => {
+      window.dispatchEvent(new CustomEvent("directChatTyping", { detail: payload }))
+    }
+    socket.on("direct-message:typing", handleDirectMessageTyping)
+
+    const handleDirectTypingEmit = (event) => {
+      const payload = event?.detail || {}
+      socket.emit("direct-message:typing", payload)
+    }
+    window.addEventListener("appDirectTypingEmit", handleDirectTypingEmit)
+
     const handleNotificationNew = (notification) => {
       const notificationKey = buildNotificationKey(notification)
       if (!shouldProcessRealtimeEvent(notificationKey, 60000)) return
@@ -205,6 +216,7 @@ const useSocket = (userId, userRole) => {
     return () => {
       if (socketRef.current) {
         socketRef.current.off("direct-message:new", handleDirectMessageNew)
+        socketRef.current.off("direct-message:typing", handleDirectMessageTyping)
         socketRef.current.off("notification:new", handleNotificationNew)
         socketRef.current.off("reading-ai-updated", handleReadingAiUpdated)
         socketRef.current.off("alert", handleAlert)
@@ -219,6 +231,7 @@ const useSocket = (userId, userRole) => {
         socketRef.current.disconnect()
         socketRef.current = null
       }
+      window.removeEventListener("appDirectTypingEmit", handleDirectTypingEmit)
     }
   }, [userId, userRole])
 

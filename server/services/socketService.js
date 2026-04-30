@@ -31,6 +31,23 @@ const socketService = {
         console.log(`User joined role room: role-${role}`)
       })
 
+      // Relay trạng thái typing theo cặp user để client có thể hiển thị "đang nhập...".
+      socket.on("direct-message:typing", (payload = {}) => {
+        const senderId = Number.parseInt(payload?.sender_id, 10)
+        const receiverId = Number.parseInt(payload?.receiver_id, 10)
+
+        if (!Number.isInteger(senderId) || !Number.isInteger(receiverId)) return
+        if (senderId === receiverId) return
+
+        this.io.to(`user-${receiverId}`).emit("direct-message:typing", {
+          sender_id: senderId,
+          receiver_id: receiverId,
+          is_typing: Boolean(payload?.is_typing),
+          conversation_key: payload?.conversation_key || null,
+          timestamp: new Date().toISOString(),
+        })
+      })
+
       socket.on("disconnect", () => {
         console.log("Người dùng đã ngắt kết nối:", socket.id)
 

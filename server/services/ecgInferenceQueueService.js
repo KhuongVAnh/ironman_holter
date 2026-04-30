@@ -63,19 +63,6 @@ const enqueueEcgInference = async (payload) => {
     const job = await ecgInferenceQueue.add("ecg-infer", payload, {
         jobId: `reading-${readingId}`, // 1 reading chỉ nên có 1 job inference tương ứng trong hàng đợi, dùng readingId làm jobId để tránh trùng lặp
     })
-    const counts = await ecgInferenceQueue.getJobCounts("waiting", "active", "delayed", "failed", "completed", "paused")
-
-    console.log(JSON.stringify({
-        event: "AI_QUEUE_ENQUEUE_OK",
-        source: "ecgInferenceQueueService",
-        timestamp: new Date().toISOString(),
-        queue_name: queueName,
-        job_id: job.id,
-        job_name: job.name,
-        reading_id: readingId,
-        counts,
-    }))
-
     return job
 }
 

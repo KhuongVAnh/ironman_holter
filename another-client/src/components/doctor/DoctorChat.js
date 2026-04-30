@@ -59,7 +59,10 @@ const DoctorChat = () => {
   const [sending, setSending] = useState(false)
   const [historyCursor, setHistoryCursor] = useState(null)
   const [hasMoreHistory, setHasMoreHistory] = useState(false)
+  const [isPeerTyping, setIsPeerTyping] = useState(false)
   const messagesEndRef = useRef(null)
+  const typingIndicatorTimeoutRef = useRef(null)
+  const typingEmitRef = useRef({ lastEmittedAt: 0, isTyping: false })
 
   const selectedContact = useMemo(() => contacts.find((item) => item.user_id === selectedContactId) || null, [contacts, selectedContactId])
   const filteredContacts = useMemo(() => {
@@ -84,6 +87,44 @@ const DoctorChat = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  useEffect(() => {
+    setIsPeerTyping(false)
+  }, [selectedContactId])
+
+  useEffect(() => {
+    const onDirectTyping = (event) => {
+      const payload = event.detail || {}
+      if (!selectedContactId || !user?.user_id) return
+      if (Number(payload.sender_id) !== Number(selectedContactId)) return
+      if (Number(payload.receiver_id) !== Number(user.user_id)) return
+
+      if (!payload.is_typing) {
+        setIsPeerTyping(false)
+        if (typingIndicatorTimeoutRef.current) {
+          clearTimeout(typingIndicatorTimeoutRef.current)
+          typingIndicatorTimeoutRef.current = null
+        }
+        return
+      }
+
+      setIsPeerTyping(true)
+      if (typingIndicatorTimeoutRef.current) clearTimeout(typingIndicatorTimeoutRef.current)
+      typingIndicatorTimeoutRef.current = setTimeout(() => {
+        setIsPeerTyping(false)
+        typingIndicatorTimeoutRef.current = null
+      }, 2500)
+    }
+
+    window.addEventListener("directChatTyping", onDirectTyping)
+    return () => {
+      window.removeEventListener("directChatTyping", onDirectTyping)
+      if (typingIndicatorTimeoutRef.current) {
+        clearTimeout(typingIndicatorTimeoutRef.current)
+        typingIndicatorTimeoutRef.current = null
+      }
+    }
+  }, [selectedContactId, user?.user_id])
 
   useEffect(() => {
     const onDirectMessage = (event) => {
@@ -175,6 +216,16 @@ const DoctorChat = () => {
         setContacts((prev) => markContactReadLocally(updateContactsFromRealtimeMessage(prev, sentMessage, user?.user_id, selectedContact.user_id), selectedContact.user_id))
       }
       setInputMessage("")
+      if (typingEmitRef.current.isTyping) {
+        window.dispatchEvent(new CustomEvent("appDirectTypingEmit", {
+          detail: {
+            sender_id: user?.user_id,
+            receiver_id: selectedContact.user_id,
+            is_typing: false,
+          },
+        }))
+        typingEmitRef.current = { lastEmittedAt: Date.now(), isTyping: false }
+      }
     } catch (error) {
       console.error("Lỗi gửi tin nhắn:", error)
       toast.error(error.response?.data?.message || "Không thể gửi tin nhắn")
@@ -190,6 +241,30 @@ const DoctorChat = () => {
     }
   }
 
+  const handleInputChange = (event) => {
+    const nextValue = event.target.value
+    setInputMessage(nextValue)
+
+    if (!selectedContact || !user?.user_id) return
+
+    const isTypingNow = nextValue.trim().length > 0
+    const now = Date.now()
+    const typingState = typingEmitRef.current
+    const shouldEmit = typingState.isTyping !== isTypingNow || now - typingState.lastEmittedAt >= 1200
+
+    if (!shouldEmit) return
+
+    window.dispatchEvent(new CustomEvent("appDirectTypingEmit", {
+      detail: {
+        sender_id: user.user_id,
+        receiver_id: selectedContact.user_id,
+        is_typing: isTypingNow,
+      },
+    }))
+
+    typingEmitRef.current = { lastEmittedAt: now, isTyping: isTypingNow }
+  }
+
   if (loadingContacts) return <div className="page-shell"><div className="empty-state-rich"><div className="empty-state-rich-icon info"><i className="fas fa-spinner fa-spin"></i></div><h3>Đang tải hội thoại</h3><p>Danh sách bệnh nhân đang được đồng bộ.</p></div></div>
 
   return (
@@ -203,7 +278,7 @@ const DoctorChat = () => {
         </div>
       </section>
 
-      <div className="grid min-h-[680px] gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="grid gap-4 xl:min-h-[680px] xl:grid-cols-[360px_minmax(0,1fr)] xl:gap-6">
         <aside className="clinical-panel flex min-h-0 flex-col overflow-hidden">
           <div className="clinical-panel-header"><div><h2 className="section-title">Bệnh nhân</h2><p className="section-subtitle">{contacts.length} hội thoại</p></div></div>
           <div className="border-b border-surface-line p-4">
@@ -212,7 +287,7 @@ const DoctorChat = () => {
               <input className="form-control pl-11" placeholder="Tìm bệnh nhân..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
             </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <div className="max-h-[min(420px,55dvh)] min-h-0 overflow-y-auto p-3 xl:max-h-none xl:flex-1">
             {filteredContacts.length ? filteredContacts.map((contact) => (
               <button
                 key={contact.user_id}
@@ -239,12 +314,13 @@ const DoctorChat = () => {
               <div className="min-w-0">
                 <h2 className="section-title truncate">{selectedContact ? selectedContact.name : "Chọn bệnh nhân"}</h2>
                 <p className="section-subtitle truncate">{selectedContact?.email || "Mở một hội thoại để bắt đầu trao đổi."}</p>
+                {selectedContact && isPeerTyping ? <p className="mt-1 text-xs text-brand-700">Đang nhập...</p> : null}
               </div>
             </div>
             {selectedContact ? <Link to={`/doctor/patient/${selectedContact.user_id}`} className="btn btn-outline-primary btn-sm">Mở hồ sơ</Link> : null}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto bg-surface-soft px-4 py-5">
+          <div className="h-[min(560px,calc(100dvh-17rem))] min-h-[300px] overflow-y-auto bg-surface-soft px-3 py-4 sm:px-4 sm:py-5 xl:h-auto xl:min-h-0 xl:flex-1">
             {selectedContact && hasMoreHistory ? (
               <div className="mb-4 flex justify-center">
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={loadOlderMessages} disabled={loadingOlderMessages}>
@@ -261,7 +337,7 @@ const DoctorChat = () => {
               const isMine = message.sender_id === user?.user_id
               return (
                 <div key={message.message_id} className={`mb-3 flex ${isMine ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[78%] rounded-2xl px-4 py-3 shadow-soft ${isMine ? "bg-brand-600 text-white" : "border border-surface-line bg-white text-ink-800"}`}>
+                  <div className={`max-w-[88%] rounded-2xl px-3 py-2.5 shadow-soft sm:max-w-[78%] sm:px-4 sm:py-3 ${isMine ? "bg-brand-600 text-white" : "border border-surface-line bg-white text-ink-800"}`}>
                     <p className="mb-0 whitespace-pre-wrap text-sm leading-6">{message.message}</p>
                     <p className={`mt-2 text-[11px] ${isMine ? "text-white/70" : "text-ink-500"}`}>{formatDateTime(message.created_at)}</p>
                   </div>
@@ -271,18 +347,18 @@ const DoctorChat = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t border-surface-line bg-white p-4">
-            <div className="flex items-end gap-3">
+          <div className="border-t border-surface-line bg-white p-3 sm:p-4">
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-end sm:gap-3">
               <textarea
                 className="form-control min-h-[54px]"
                 placeholder={selectedContact ? `Nhập tin nhắn gửi ${selectedContact.name}...` : "Chọn bệnh nhân để nhắn tin"}
                 value={inputMessage}
-                onChange={(event) => setInputMessage(event.target.value)}
+                onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 rows="2"
                 disabled={!selectedContact || sending}
               />
-              <button type="button" className="btn btn-primary h-[54px] px-4" onClick={sendMessage} disabled={!selectedContact || !inputMessage.trim() || sending}>
+              <button type="button" className="btn btn-primary h-[54px] w-full px-4 sm:w-auto" onClick={sendMessage} disabled={!selectedContact || !inputMessage.trim() || sending}>
                 <i className="fas fa-paper-plane"></i>
               </button>
             </div>
