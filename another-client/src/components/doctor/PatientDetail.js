@@ -14,6 +14,7 @@ import MedicationPlanList from "../shared/MedicationPlanList"
 import ModalFrame from "../shared/ModalFrame"
 import PaginationBar from "../shared/PaginationBar"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
+import ShareEcgModal from "../shared/ShareEcgModal"
 import { formatAiResultForDisplay } from "../../strings/ecgAiStrings"
 import {
   ClinicalTabs,
@@ -63,6 +64,8 @@ const PatientDetail = () => {
     segment_start_sample: "",
     segment_end_sample: "",
   })
+  const [shareReading, setShareReading] = useState(null)
+  const [shareAlert, setShareAlert] = useState(null)
 
   useEffect(() => {
     if (user?.user_id) {
@@ -395,7 +398,22 @@ const PatientDetail = () => {
                     <button key={alert.alert_id} type="button" className="w-full rounded-xl border border-surface-line bg-white p-4 text-left shadow-soft" onClick={() => alert.reading_id && setSelectedReadingId(alert.reading_id)}>
                       <div className="flex items-center justify-between gap-3">
                         <span className={`rounded-full border px-3 py-1 text-xs font-bold ${getAlertTone(alert.alert_type, alert.resolved)}`}>{alert.alert_type}</span>
-                        <span className="text-xs text-ink-500">{formatDateTime(alert.timestamp)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-ink-500">{formatDateTime(alert.timestamp)}</span>
+                          {alert.reading_id ? (
+                            <button
+                              type="button"
+                              className="text-brand-600 hover:text-brand-800"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setShareAlert(alert)
+                              }}
+                              title="Gửi cảnh báo cho bệnh nhân"
+                            >
+                              <i className="fas fa-paper-plane text-xs"></i>
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
                       <p className="mt-2 line-clamp-2 text-sm text-ink-700">{alert.message}</p>
                     </button>
@@ -444,7 +462,12 @@ const PatientDetail = () => {
                                 : formatAiResultForDisplay(reading.ai_result)}
                           </td>
                           <td><span className={`rounded-full px-3 py-1 text-xs font-bold ${reading.abnormal_detected ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{reading.abnormal_detected ? "Bất thường" : "Bình thường"}</span></td>
-                          <td className="text-end"><button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button></td>
+                          <td className="text-end">
+                            <div className="flex items-center justify-end gap-2">
+                              <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button>
+                              <button type="button" className="ui-btn ui-btn-outline-secondary ui-btn-sm" onClick={() => setShareReading(reading)}><i className="fas fa-paper-plane"></i></button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -474,7 +497,10 @@ const PatientDetail = () => {
                               : formatAiResultForDisplay(reading.ai_result)}
                         </span>
                       </div>
-                      <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm mt-3 w-full" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button>
+                      <div className="mt-3 flex gap-2">
+                        <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm flex-1" onClick={() => setSelectedReadingId(reading.reading_id)}><i className="fas fa-eye me-1"></i>Xem</button>
+                        <button type="button" className="ui-btn ui-btn-outline-secondary ui-btn-sm flex-none px-3" onClick={() => setShareReading(reading)} title="Gửi bản ghi"><i className="fas fa-paper-plane"></i></button>
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -514,7 +540,19 @@ const PatientDetail = () => {
                   <div>
                     <span className={`rounded-full border px-3 py-1 text-xs font-bold ${getAlertTone(alert.alert_type, alert.resolved)}`}>{alert.alert_type}</span>
                     <p className="mt-3 text-sm text-ink-700">{alert.message}</p>
-                    <p className="mt-2 text-xs text-ink-500">{formatDateTime(alert.timestamp)}</p>
+                    <p className="mt-2 flex items-center gap-2 text-xs text-ink-500">
+                      {formatDateTime(alert.timestamp)}
+                      {alert.reading_id ? (
+                        <button
+                          type="button"
+                          className="text-brand-600 hover:text-brand-800"
+                          onClick={() => setShareAlert(alert)}
+                          title="Gửi cảnh báo"
+                        >
+                          <i className="fas fa-paper-plane text-xs"></i>
+                        </button>
+                      ) : null}
+                    </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {alert.reading_id ? <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => setSelectedReadingId(alert.reading_id)}>Mở ECG</button> : null}
@@ -580,6 +618,10 @@ const PatientDetail = () => {
       <MedicalVisitForm show={showVisitForm} handleClose={() => { setShowVisitForm(false); setEditVisit(null) }} onSubmit={handleVisitSubmit} initialData={editVisit} />
       <MedicationPlanForm show={showPlanForm} handleClose={() => { setShowPlanForm(false); setEditPlan(null) }} onSubmit={handlePlanSubmit} initialData={editPlan} />
       <ReadingDetailModal show={Boolean(selectedReadingId)} readingId={selectedReadingId} onHide={() => setSelectedReadingId(null)} />
+      
+      <ShareEcgModal show={Boolean(shareReading)} onHide={() => setShareReading(null)} data={shareReading} isAlert={false} />
+      <ShareEcgModal show={Boolean(shareAlert)} onHide={() => setShareAlert(null)} data={shareAlert} isAlert={true} />
+
       <ModalFrame
         show={showAlertForm}
         onClose={() => setShowAlertForm(false)}

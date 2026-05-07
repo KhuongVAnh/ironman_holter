@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { chatApi } from "../../services/api"
+import EcgShareMessageBubble from "../shared/EcgShareMessageBubble"
+import ReadingDetailModal from "../shared/ReadingDetailModal"
 
 // Hàm sắp xếp danh sách contact theo thời điểm có tin nhắn cuối mới nhất.
 const sortContactsByLastActivity = (contacts = []) => {
@@ -76,6 +78,7 @@ const PatientChat = () => {
   const [messages, setMessages] = useState([])
   const [inputMessage, setInputMessage] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedReadingId, setSelectedReadingId] = useState(null)
   const [loadingContacts, setLoadingContacts] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [loadingOlderMessages, setLoadingOlderMessages] = useState(false)
@@ -83,7 +86,6 @@ const PatientChat = () => {
   const [historyCursor, setHistoryCursor] = useState(null)
   const [hasMoreHistory, setHasMoreHistory] = useState(false)
   const [isPeerTyping, setIsPeerTyping] = useState(false)
-  const messagesEndRef = useRef(null)
   const typingIndicatorTimeoutRef = useRef(null)
   const typingEmitRef = useRef({ lastEmittedAt: 0, isTyping: false })
 
@@ -113,9 +115,7 @@ const PatientChat = () => {
     }
   }, [selectedContactId])
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+
 
   useEffect(() => {
     setIsPeerTyping(false)
@@ -410,35 +410,40 @@ const PatientChat = () => {
           ) : (
             <>
               <div className="chat-message-list">
-                {hasMoreHistory ? (
-                  <div className="mb-4 flex justify-center">
-                    <button type="button" className="ui-btn ui-btn-outline-secondary ui-btn-sm" onClick={loadOlderMessages} disabled={loadingOlderMessages}>
-                      {loadingOlderMessages ? "Đang tải..." : "Tải tin nhắn cũ hơn"}
-                    </button>
-                  </div>
-                ) : null}
-
                 {loadingMessages ? (
-                  <div className="flex justify-center py-12"><div className="ui-spinner" role="status" /></div>
+                  <div className="flex w-full justify-center py-12"><div className="ui-spinner" role="status" /></div>
                 ) : messages.length === 0 ? (
-                  <div className="chat-empty">
+                  <div className="chat-empty w-full">
                     <div>
                       <i className="fas fa-comment-medical text-3xl text-brand-200"></i>
                       <p className="mt-3">Chưa có tin nhắn nào trong cuộc trò chuyện này.</p>
                     </div>
                   </div>
-                ) : messages.map((message) => {
-                  const isMine = message.sender_id === user?.user_id
-                  return (
-                    <div key={message.message_id} className={`chat-message-row ${isMine ? "is-mine" : "is-peer"}`}>
-                      <div className={`chat-bubble ${isMine ? "is-mine" : "is-peer"}`}>
-                        <div className="whitespace-pre-wrap">{message.message}</div>
-                        <div className="chat-message-time">{formatTime(message.created_at)}</div>
+                ) : (
+                  <>
+                    {[...messages].reverse().map((message) => {
+                      const isMine = message.sender_id === user?.user_id
+                      return (
+                        <div key={message.message_id} className={`chat-message-row ${isMine ? "is-mine" : "is-peer"}`}>
+                          <EcgShareMessageBubble
+                            messageText={message.message}
+                            isMine={isMine}
+                            createdAt={message.created_at}
+                            onViewDetail={(readingId) => setSelectedReadingId(readingId)}
+                          />
+                        </div>
+                      )
+                    })}
+
+                    {hasMoreHistory ? (
+                      <div className="mt-4 flex w-full justify-center pb-4">
+                        <button type="button" className="ui-btn ui-btn-outline-secondary ui-btn-sm" onClick={loadOlderMessages} disabled={loadingOlderMessages}>
+                          {loadingOlderMessages ? "Đang tải..." : "Tải tin nhắn cũ hơn"}
+                        </button>
                       </div>
-                    </div>
-                  )
-                })}
-                <div ref={messagesEndRef} />
+                    ) : null}
+                  </>
+                )}
               </div>
 
               <div className="chat-composer">
@@ -454,6 +459,12 @@ const PatientChat = () => {
           )}
         </section>
       </div>
+
+      <ReadingDetailModal
+        show={Boolean(selectedReadingId)}
+        readingId={selectedReadingId}
+        onHide={() => setSelectedReadingId(null)}
+      />
     </div>
   )
 }

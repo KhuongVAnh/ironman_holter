@@ -5,6 +5,8 @@ import { Link, useLocation } from "react-router-dom"
 import { toast } from "react-toastify"
 import { useAuth } from "../../contexts/AuthContext"
 import { chatApi } from "../../services/api"
+import EcgShareMessageBubble from "../shared/EcgShareMessageBubble"
+import ReadingDetailModal from "../shared/ReadingDetailModal"
 import { EmptyState, formatDateTime, normalizeText } from "./DoctorUi"
 
 const sortContactsByLastActivity = (contacts = []) => {
@@ -53,6 +55,7 @@ const DoctorChat = () => {
   const [messages, setMessages] = useState([])
   const [inputMessage, setInputMessage] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedReadingId, setSelectedReadingId] = useState(null)
   const [loadingContacts, setLoadingContacts] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [loadingOlderMessages, setLoadingOlderMessages] = useState(false)
@@ -60,7 +63,6 @@ const DoctorChat = () => {
   const [historyCursor, setHistoryCursor] = useState(null)
   const [hasMoreHistory, setHasMoreHistory] = useState(false)
   const [isPeerTyping, setIsPeerTyping] = useState(false)
-  const messagesEndRef = useRef(null)
   const typingIndicatorTimeoutRef = useRef(null)
   const typingEmitRef = useRef({ lastEmittedAt: 0, isTyping: false })
 
@@ -88,9 +90,7 @@ const DoctorChat = () => {
     }
   }, [selectedContactId])
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+
 
   useEffect(() => {
     setIsPeerTyping(false)
@@ -174,7 +174,9 @@ const DoctorChat = () => {
       append ? setLoadingOlderMessages(true) : setLoadingMessages(true)
       const response = await chatApi.getDirectHistory(patientId, { limit: 50, ...(cursor ? { cursor } : {}) })
       const nextMessages = Array.isArray(response.data?.messages) ? response.data.messages : []
+      
       setMessages((prev) => append ? prependOlderMessages(prev, nextMessages) : nextMessages)
+      
       setHistoryCursor(response.data?.next_cursor || null)
       setHasMoreHistory(Boolean(response.data?.has_more))
       setContacts((prev) => markContactReadLocally(prev, patientId))
@@ -333,30 +335,35 @@ const DoctorChat = () => {
           </div>
 
           <div className="chat-message-list">
-            {selectedContact && hasMoreHistory ? (
-              <div className="mb-4 flex justify-center">
-                <button type="button" className="ui-btn ui-btn-outline-secondary ui-btn-sm" onClick={loadOlderMessages} disabled={loadingOlderMessages}>
-                  {loadingOlderMessages ? "Đang tải..." : "Tải tin nhắn cũ hơn"}
-                </button>
-              </div>
-            ) : null}
-
             {!selectedContact ? <EmptyState icon="fas fa-user-check" title="Chọn bệnh nhân" description="Danh sách bên trái chứa các bệnh nhân đã cấp quyền chat." /> : null}
-            {selectedContact && loadingMessages ? <div className="flex justify-center py-8"><div className="ui-spinner"></div></div> : null}
+            {selectedContact && loadingMessages ? <div className="flex w-full justify-center py-8"><div className="ui-spinner"></div></div> : null}
             {selectedContact && !loadingMessages && messages.length === 0 ? <EmptyState icon="fas fa-message" title="Chưa có tin nhắn" /> : null}
 
-            {selectedContact && !loadingMessages ? messages.map((message) => {
-              const isMine = message.sender_id === user?.user_id
-              return (
-                <div key={message.message_id} className={`chat-message-row ${isMine ? "is-mine" : "is-peer"}`}>
-                  <div className={`chat-bubble ${isMine ? "is-mine" : "is-peer"}`}>
-                    <p className="mb-0 whitespace-pre-wrap text-sm leading-6">{message.message}</p>
-                    <p className="chat-message-time">{formatDateTime(message.created_at)}</p>
+            {selectedContact && !loadingMessages ? (
+              <>
+                {[...messages].reverse().map((message) => {
+                  const isMine = message.sender_id === user?.user_id
+                  return (
+                    <div key={message.message_id} className={`chat-message-row ${isMine ? "is-mine" : "is-peer"}`}>
+                      <EcgShareMessageBubble
+                        messageText={message.message}
+                        isMine={isMine}
+                        createdAt={message.created_at}
+                        onViewDetail={(readingId) => setSelectedReadingId(readingId)}
+                      />
+                    </div>
+                  )
+                })}
+                
+                {hasMoreHistory ? (
+                  <div className="mt-4 flex w-full justify-center pb-4">
+                    <button type="button" className="ui-btn ui-btn-outline-secondary ui-btn-sm" onClick={loadOlderMessages} disabled={loadingOlderMessages}>
+                      {loadingOlderMessages ? "Đang tải..." : "Tải tin nhắn cũ hơn"}
+                    </button>
                   </div>
-                </div>
-              )
-            }) : null}
-            <div ref={messagesEndRef} />
+                ) : null}
+              </>
+            ) : null}
           </div>
 
           <div className="chat-composer">
@@ -378,6 +385,12 @@ const DoctorChat = () => {
           </div>
         </section>
       </div>
+
+      <ReadingDetailModal
+        show={Boolean(selectedReadingId)}
+        readingId={selectedReadingId}
+        onHide={() => setSelectedReadingId(null)}
+      />
     </div>
   )
 }

@@ -83,6 +83,7 @@ const RecentAlertsPanel = ({
     return ""
   },
   formatDate = defaultFormatDate,
+  onShareClick = null,
 }) => {
   const shouldRenderHeader = Boolean(title || subtitle || viewAllLink)
 
@@ -148,7 +149,22 @@ const RecentAlertsPanel = ({
                         <i className="far fa-clock me-1"></i>
                         {date}
                       </span>
-                      {hint ? <span className="alert-action-hint">{hint}</span> : null}
+                      <div className="flex items-center gap-3">
+                        {hint ? <span className="alert-action-hint">{hint}</span> : null}
+                        {onShareClick && alert.reading_id ? (
+                          <span
+                            role="button"
+                            className="text-brand-600 hover:text-brand-800 focus:outline-none"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onShareClick(alert)
+                            }}
+                            title="Gửi cảnh báo qua tin nhắn"
+                          >
+                            <i className="fas fa-paper-plane"></i>
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </button>
                 )
@@ -172,7 +188,22 @@ const RecentAlertsPanel = ({
                       <i className="far fa-clock me-1"></i>
                       {date}
                     </span>
-                    {hint ? <span className="alert-action-hint">{hint}</span> : null}
+                    <div className="flex items-center gap-3">
+                      {hint ? <span className="alert-action-hint">{hint}</span> : null}
+                      {onShareClick && alert.reading_id ? (
+                        <button
+                          type="button"
+                          className="text-brand-600 hover:text-brand-800 focus:outline-none"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onShareClick(alert)
+                          }}
+                          title="Gửi cảnh báo qua tin nhắn"
+                        >
+                          <i className="fas fa-paper-plane"></i>
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               )

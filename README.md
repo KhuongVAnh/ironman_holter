@@ -1,7 +1,7 @@
 ﻿# Ironman Holter
 
 **AI Model (Kaggle):** https://www.kaggle.com/code/vitanhkhng/project-i-cnn  
-**Website:** https://iron-holter.up.railway.app/  
+**Website:** https://ironholter.vercel.app/  
 **Video demo:** updating
 
 ## Mô tả dự án

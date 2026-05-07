@@ -5,6 +5,7 @@ import { readingsApi } from "../../services/api"
 import { formatAiResultForDisplay, isAbnormalAiResultText } from "../../strings/ecgAiStrings"
 import PaginationBar from "../shared/PaginationBar"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
+import ShareEcgModal from "../shared/ShareEcgModal"
 
 const ITEMS_PER_PAGE = 20
 
@@ -52,6 +53,7 @@ const PatientHistory = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [totalReadings, setTotalReadings] = useState(0)
   const [selectedReadingId, setSelectedReadingId] = useState(null)
+  const [shareReading, setShareReading] = useState(null)
 
   useEffect(() => {
     fetchReadings()
@@ -184,10 +186,16 @@ const PatientHistory = () => {
                           </td>
                           <td className="py-4 pr-4 text-ink-600">{reading.device?.serial_number || reading.Device?.serial_number || "Không rõ serial"}</td>
                           <td className="py-4 text-right">
-                            <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}>
-                              <i className="fas fa-wave-square"></i>
-                              Xem ECG
-                            </button>
+                            <div className="flex items-center justify-end gap-2">
+                              <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm" onClick={() => setSelectedReadingId(reading.reading_id)}>
+                                <i className="fas fa-wave-square"></i>
+                                Xem ECG
+                              </button>
+                              <button type="button" className="ui-btn ui-btn-outline-secondary ui-btn-sm" onClick={() => setShareReading(reading)}>
+                                <i className="fas fa-paper-plane"></i>
+                                Gửi
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       )
@@ -216,10 +224,16 @@ const PatientHistory = () => {
                         <span className="mobile-data-card-label">Thiết bị</span>
                         <span className="mobile-data-card-value">{reading.device?.serial_number || reading.Device?.serial_number || "Không rõ serial"}</span>
                       </div>
-                      <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm mt-3 w-full" onClick={() => setSelectedReadingId(reading.reading_id)}>
-                        <i className="fas fa-wave-square"></i>
-                        Xem ECG
-                      </button>
+                      <div className="mt-3 flex gap-2">
+                        <button type="button" className="ui-btn ui-btn-outline-primary ui-btn-sm flex-1" onClick={() => setSelectedReadingId(reading.reading_id)}>
+                          <i className="fas fa-wave-square"></i>
+                          Xem ECG
+                        </button>
+                        <button type="button" className="ui-btn ui-btn-outline-secondary ui-btn-sm flex-1" onClick={() => setShareReading(reading)}>
+                          <i className="fas fa-paper-plane"></i>
+                          Gửi
+                        </button>
+                      </div>
                     </article>
                   )
                 })}
@@ -242,6 +256,7 @@ const PatientHistory = () => {
       </section>
 
       <ReadingDetailModal show={Boolean(selectedReadingId)} readingId={selectedReadingId} onHide={() => setSelectedReadingId(null)} />
+      <ShareEcgModal show={Boolean(shareReading)} onHide={() => setShareReading(null)} data={shareReading} isAlert={false} />
     </div>
   )
 }

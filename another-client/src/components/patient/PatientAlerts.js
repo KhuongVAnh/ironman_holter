@@ -6,6 +6,7 @@ import { useAuth } from "../../contexts/AuthContext"
 import { alertsApi } from "../../services/api"
 import PaginationBar from "../shared/PaginationBar"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
+import ShareEcgModal from "../shared/ShareEcgModal"
 
 const ITEMS_PER_PAGE = 6
 
@@ -89,6 +90,7 @@ const PatientAlerts = () => {
   const [filter, setFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedReadingId, setSelectedReadingId] = useState(null)
+  const [shareAlert, setShareAlert] = useState(null)
 
   useEffect(() => {
     if (!user?.user_id) {
@@ -280,9 +282,24 @@ const PatientAlerts = () => {
                                 <i className="far fa-clock me-1"></i>
                                 {formatDate(alert.timestamp)}
                               </span>
-                              <span className="alert-action-hint">
-                                {hasReading ? "Nhấn để xem đồ thị ECG" : "Không có bản ghi"}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <span className="alert-action-hint">
+                                  {hasReading ? "Nhấn để xem đồ thị ECG" : "Không có bản ghi"}
+                                </span>
+                                {hasReading ? (
+                                  <span
+                                    role="button"
+                                    className="text-brand-600 hover:text-brand-800 focus:outline-none"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setShareAlert(alert)
+                                    }}
+                                    title="Gửi cảnh báo qua tin nhắn"
+                                  >
+                                    <i className="fas fa-paper-plane"></i>
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
                           </button>
                         </div>
@@ -312,6 +329,13 @@ const PatientAlerts = () => {
         show={Boolean(selectedReadingId)}
         readingId={selectedReadingId}
         onHide={() => setSelectedReadingId(null)}
+      />
+      
+      <ShareEcgModal
+        show={Boolean(shareAlert)}
+        onHide={() => setShareAlert(null)}
+        data={shareAlert}
+        isAlert={true}
       />
     </div>
   )

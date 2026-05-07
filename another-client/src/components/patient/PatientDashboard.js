@@ -8,6 +8,7 @@ import ECGChart from "./ECGChart"
 import useECGStream from "./useECGStream"
 import ReadingDetailModal from "../shared/ReadingDetailModal"
 import RecentAlertsPanel, { getAlertTypeLabel } from "../shared/RecentAlertsPanel"
+import ShareEcgModal from "../shared/ShareEcgModal"
 import { buildAlertKey, showToastOnce } from "../../utils/realtimeDedupe"
 
 const DEFAULT_SAMPLE_RATE_HZ = 250
@@ -94,6 +95,7 @@ const PatientDashboard = () => {
   const [supervisingDoctors, setSupervisingDoctors] = useState([])
   const [familyMembers, setFamilyMembers] = useState([])
   const [selectedReadingId, setSelectedReadingId] = useState(null)
+  const [shareAlert, setShareAlert] = useState(null)
 
   useEffect(() => {
     const handleEcgData = (event) => {
@@ -388,6 +390,7 @@ const PatientDashboard = () => {
         alerts={recentAlerts}
         viewAllLink={{ to: "/alerts", label: "Xem tất cả" }}
         onAlertClick={(alert) => setSelectedReadingId(alert?.reading_id || null)}
+        onShareClick={(alert) => setShareAlert(alert)}
         getAlertTitle={(alert) => getAlertTypeLabel(alert.alert_type)}
         getAlertStatus={(alert) => alert?.resolved ? { label: "Đã xử lý", variant: "is-resolved" } : { label: "Mới", variant: "is-pending" }}
         getAlertHint={(_alert, disabled) => (disabled ? "Không có bản ghi" : "Nhấn để xem đồ thị ECG")}
@@ -395,6 +398,7 @@ const PatientDashboard = () => {
       />
 
       <ReadingDetailModal show={Boolean(selectedReadingId)} readingId={selectedReadingId} onHide={() => setSelectedReadingId(null)} />
+      <ShareEcgModal show={Boolean(shareAlert)} onHide={() => setShareAlert(null)} data={shareAlert} isAlert={true} />
     </div>
   )
 }
