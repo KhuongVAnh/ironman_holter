@@ -1,0 +1,101 @@
+.landing-hero {
+  position: relative;
+  background: linear-gradient(135deg, #fff1f2 0%, #ffffff 40%, #fdf2f8 100%);
+  overflow: hidden;
+}
+
+.landing-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(225, 29, 72, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(244, 63, 94, 0.05) 0%, transparent 40%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.ecg-line-container {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 200px;
+  transform: translateY(-50%);
+  opacity: 0.2;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.ecg-path {
+  stroke-dasharray: 2000;
+  stroke-dashoffset: 2000;
+  animation: drawECG 4s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(225, 29, 72, 0.4));
+}
+
+@keyframes drawECG {
+  0% {
+    stroke-dashoffset: 2000;
+  }
+  50% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -2000;
+  }
+}
+
+.landing-feature-card {
+  position: relative;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(225, 29, 72, 0.1);
+  backdrop-filter: blur(16px);
+  padding: 2rem;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.landing-feature-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.landing-feature-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+.landing-feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px -10px rgba(225, 29, 72, 0.15);
+  border-color: rgba(225, 29, 72, 0.3);
+}
+
+.landing-glow-text {
+  text-shadow: 0 4px 14px rgba(225, 29, 72, 0.1);
+}
+
+.animated-gradient-text {
+  background: linear-gradient(to right, #f43f5e, #be123c, #f43f5e);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: gradientText 3s linear infinite;
+}
+
+@keyframes gradientText {
+  to {
+    background-position: 200% center;
+  }
+}

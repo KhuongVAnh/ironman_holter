@@ -4,7 +4,7 @@ import { createPortal } from "react-dom"
 const ModalFrame = ({
   show,
   title,
-  eyebrow = "Ironman Holter",
+  eyebrow = "Iron Holter",
   onClose,
   size = "md",
   children,

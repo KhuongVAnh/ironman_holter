@@ -1,8 +1,17 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
+import { motion } from "framer-motion"
+import { HeartPulse, ArrowRight, ShieldCheck, Activity, Users, Stethoscope } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import { ROLE, ROLE_LABELS } from "../services/string"
+import "../styles/landing.css"
+
+const roleIcons = {
+  [ROLE.BENH_NHAN]: <Activity size={24} />,
+  [ROLE.GIA_DINH]: <Users size={24} />,
+  [ROLE.BAC_SI]: <Stethoscope size={24} />
+}
 
 const Register = () => {
   const [formData, setFormData] = useState({ name: "", email: "", password: "", confirmPassword: "", role: ROLE.BENH_NHAN })
@@ -34,127 +43,181 @@ const Register = () => {
   }
 
   return (
-    <div className="min-h-screen bg-holter-surface px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[430px_minmax(0,1fr)]">
-        <section className="relative overflow-hidden rounded-xl border border-surface-line bg-white p-5 shadow-soft sm:p-7 lg:p-8">
-          <div className="absolute inset-x-0 top-0 h-1 bg-brand-600"></div>
-          <p className="panel-eyebrow">Tài khoản mới</p>
-          <h1 className="mt-3 text-3xl font-semibold leading-tight text-brand-700">Tạo workspace theo đúng vai trò chăm sóc.</h1>
-          <p className="mt-4 text-sm leading-6 text-ink-600">Mỗi vai trò có dashboard, quyền truy cập và hành động riêng để dữ liệu ECG được theo dõi đúng người, đúng thời điểm.</p>
+    <div className="landing-hero relative min-h-screen flex items-center justify-center font-sans text-ink-900 px-4 py-12 sm:px-6 lg:px-8">
+      {/* Navigation Bar */}
+      <nav className="absolute left-0 right-0 top-0 z-50">
+        <div className="mx-auto flex h-20 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+          <Link to="/" className="flex items-center gap-2 transition-transform hover:scale-105">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white shadow-soft">
+              <HeartPulse size={20} />
+            </div>
+            <span className="font-display text-xl font-bold tracking-tight text-brand-700">
+              Iron <span className="font-light">Holter</span>
+            </span>
+          </Link>
+        </div>
+      </nav>
 
-          <div className="mt-8 space-y-4">
-            <div className="highlight-band info">
-              <div className="highlight-band-icon"><i className="fas fa-user"></i></div>
-              <div><h3>Bệnh nhân</h3><p>Xem ECG, cảnh báo, thiết bị và quyền chia sẻ.</p></div>
-            </div>
-            <div className="highlight-band danger">
-              <div className="highlight-band-icon"><i className="fas fa-user-doctor"></i></div>
-              <div><h3>Bác sĩ</h3><p>Ưu tiên hàng đợi cảnh báo và workspace bệnh nhân.</p></div>
-            </div>
-            <div className="highlight-band success">
-              <div className="highlight-band-icon"><i className="fas fa-people-roof"></i></div>
-              <div><h3>Gia đình</h3><p>Theo dõi người thân, nhận cảnh báo và xem hồ sơ.</p></div>
-            </div>
-          </div>
-        </section>
+      {/* Animated ECG SVG Background */}
+      <div className="ecg-line-container opacity-30 fixed">
+        <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 1000 200">
+          <path
+            className="ecg-path"
+            d="M0,100 L200,100 L220,100 L240,60 L260,140 L280,20 L300,180 L320,100 L340,100 L1000,100"
+            fill="none"
+            stroke="#e11d48"
+            strokeWidth="4"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
 
-        <section className="flex items-center">
-          <div className="clinical-panel w-full overflow-hidden">
-            <div className="clinical-panel-header">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-4xl"
+      >
+        <div className="overflow-hidden rounded-3xl border border-surface-line bg-white/80 shadow-2xl backdrop-blur-2xl">
+          <div className="grid lg:grid-cols-2">
+
+            {/* Left Side: Messaging */}
+            <div className="flex flex-col justify-between bg-white/60 p-8 sm:p-12 border-b border-surface-line lg:border-b-0 lg:border-r">
               <div>
-                <p className="panel-eyebrow">Đăng ký</p>
-                <h2 className="section-title">Thông tin tài khoản</h2>
-                <p className="section-subtitle">Hoàn thiện thông tin cơ bản để bắt đầu sử dụng hệ thống.</p>
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-600">
+                  Tạo tài khoản mới
+                </div>
+                <h1 className="font-display text-3xl font-bold tracking-tight text-brand-700 sm:text-4xl">
+                  Hành trình bảo vệ trái tim bắt đầu từ đây.
+                </h1>
+                <p className="mt-4 text-ink-600 leading-relaxed">
+                  Dù bạn là bệnh nhân, người nhà hay bác sĩ, chúng tôi đều có một không gian được thiết kế riêng để mang lại sự an tâm tuyệt đối.
+                </p>
               </div>
-              <Link to="/login" className="ui-btn ui-btn-outline-primary ui-btn-sm">Đăng nhập</Link>
+
+              <div className="mt-12 hidden lg:block">
+                <div className="flex items-center gap-4 text-sm text-ink-600 mb-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600">
+                    <Activity size={20} />
+                  </div>
+                  <p>Theo dõi nhịp tim 24/7 với độ chính xác y khoa.</p>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-ink-600">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-600">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <p>Hệ thống cảnh báo tự động khi có dấu hiệu bất thường.</p>
+                </div>
+              </div>
             </div>
-            <div className="clinical-panel-body">
-              <form className="grid gap-4" onSubmit={handleSubmit}>
-                <div>
-                  <label className="ui-label">Họ và tên</label>
-                  <input
-                    className="ui-field"
-                    type="text"
-                    value={formData.name}
-                    onChange={(event) => updateField("name", event.target.value)}
-                    placeholder="Nguyễn Văn A"
-                    required
-                  />
-                </div>
 
-                <div>
-                  <label className="ui-label">Email</label>
-                  <input
-                    className="ui-field"
-                    type="email"
-                    value={formData.email}
-                    onChange={(event) => updateField("email", event.target.value)}
-                    placeholder="you@example.com"
-                    required
-                  />
-                </div>
+            {/* Right Side: Form */}
+            <div className="p-8 sm:p-12">
+              <form onSubmit={handleSubmit} className="space-y-6">
 
+                {/* Role Selection */}
                 <div>
-                  <label className="ui-label">Vai trò</label>
-                  <div className="grid gap-3 md:grid-cols-3">
+                  <label className="mb-3 block text-sm font-bold text-ink-900">Chọn vai trò của bạn</label>
+                  <div className="grid grid-cols-3 gap-3">
                     {[
-                      { value: ROLE.BENH_NHAN, icon: "fas fa-heart-pulse", tone: "info" },
-                      { value: ROLE.GIA_DINH, icon: "fas fa-people-roof", tone: "success" },
-                      { value: ROLE.BAC_SI, icon: "fas fa-user-doctor", tone: "danger" },
+                      { value: ROLE.BENH_NHAN },
+                      { value: ROLE.GIA_DINH },
+                      { value: ROLE.BAC_SI },
                     ].map((item) => (
                       <button
                         key={item.value}
                         type="button"
-                        className={`rounded-xl border p-4 text-left transition ${formData.role === item.value ? "border-brand-300 bg-brand-50 shadow-soft" : "border-surface-line bg-white hover:bg-brand-50/60"}`}
                         onClick={() => updateField("role", item.value)}
+                        className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all ${formData.role === item.value
+                            ? "border-brand-500 bg-brand-50 text-brand-700"
+                            : "border-surface-line bg-white text-ink-500 hover:border-brand-200 hover:bg-brand-50/50 hover:text-brand-600"
+                          }`}
                       >
-                        <div className={`empty-state-rich-icon ${item.tone} mb-3 h-10 w-10 text-base`}><i className={item.icon}></i></div>
-                        <p className="font-bold text-ink-900">{ROLE_LABELS[item.value]}</p>
+                        {roleIcons[item.value]}
+                        <span className="text-xs font-semibold">{ROLE_LABELS[item.value]}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-4">
                   <div>
-                    <label className="ui-label">Mật khẩu</label>
+                    <label className="mb-1.5 block text-sm font-medium text-ink-700">Họ và tên</label>
                     <input
-                      className="ui-field"
-                      type="password"
-                      value={formData.password}
-                      onChange={(event) => updateField("password", event.target.value)}
-                      placeholder="Tối thiểu 6 ký tự"
+                      type="text"
+                      value={formData.name}
+                      onChange={(event) => updateField("name", event.target.value)}
+                      className="w-full rounded-xl border border-surface-line bg-white px-4 py-3 text-sm text-ink-900 placeholder-ink-400 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500"
+                      placeholder="Nguyễn Văn A"
                       required
                     />
                   </div>
+
                   <div>
-                    <label className="ui-label">Xác nhận mật khẩu</label>
+                    <label className="mb-1.5 block text-sm font-medium text-ink-700">Email</label>
                     <input
-                      className="ui-field"
-                      type="password"
-                      value={formData.confirmPassword}
-                      onChange={(event) => updateField("confirmPassword", event.target.value)}
-                      placeholder="Nhập lại mật khẩu"
+                      type="email"
+                      value={formData.email}
+                      onChange={(event) => updateField("email", event.target.value)}
+                      className="w-full rounded-xl border border-surface-line bg-white px-4 py-3 text-sm text-ink-900 placeholder-ink-400 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500"
+                      placeholder="you@example.com"
                       required
                     />
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-ink-700">Mật khẩu</label>
+                      <input
+                        type="password"
+                        value={formData.password}
+                        onChange={(event) => updateField("password", event.target.value)}
+                        className="w-full rounded-xl border border-surface-line bg-white px-4 py-3 text-sm text-ink-900 placeholder-ink-400 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500"
+                        placeholder="••••••••"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-ink-700">Xác nhận mật khẩu</label>
+                      <input
+                        type="password"
+                        value={formData.confirmPassword}
+                        onChange={(event) => updateField("confirmPassword", event.target.value)}
+                        className="w-full rounded-xl border border-surface-line bg-white px-4 py-3 text-sm text-ink-900 placeholder-ink-400 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500"
+                        placeholder="••••••••"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <button type="submit" className="ui-btn ui-btn-primary mt-2 w-full" disabled={loading}>
-                  {loading ? <><span className="ui-spinner ui-spinner-sm"></span>Đang đăng ký...</> : <><i className="fas fa-user-plus me-2"></i>Tạo tài khoản</>}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="group relative mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-600/20 transition-all hover:bg-brand-500 hover:shadow-brand-600/40 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {loading ? (
+                    <span className="ui-spinner ui-spinner-sm !border-white/30 !border-t-white"></span>
+                  ) : (
+                    <>
+                      Tạo tài khoản
+                      <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
                 </button>
               </form>
 
-              <p className="mt-6 text-sm text-ink-600">
+              <p className="mt-8 text-center text-sm text-ink-600">
                 Đã có tài khoản?{" "}
-                <Link to="/login" className="font-semibold text-brand-700 hover:text-brand-800">
+                <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
                   Đăng nhập ngay
                 </Link>
               </p>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </motion.div>
     </div>
   )
 }

@@ -63,7 +63,7 @@ const PAGE_TITLES = [
   { match: "/profile", title: "Hồ sơ cá nhân" },
 ]
 
-const getPageMeta = (pathname) => PAGE_TITLES.find((item) => pathname.startsWith(item.match))?.title || "Ironman Holter"
+const getPageMeta = (pathname) => PAGE_TITLES.find((item) => pathname.startsWith(item.match))?.title || "Iron Holter"
 
 const AppShell = ({ children }) => {
   const { user, logout } = useAuth()
@@ -137,7 +137,7 @@ const AppShell = ({ children }) => {
         </span>
         {!sidebarCollapsed ? (
           <span className="min-w-0">
-            <span className="block truncate font-display text-lg font-bold leading-6 text-holter-primaryContainer">Ironman Holter</span>
+            <span className="block truncate font-display text-lg font-bold leading-6 text-holter-primaryContainer">Iron Holter</span>
             <span className="block truncate text-[10px] font-semibold uppercase leading-4 tracking-[0.18em] text-holter-primaryContainer/60">{ROLE_LABELS[user?.role] || "Người dùng"}</span>
           </span>
         ) : null}
@@ -155,17 +155,15 @@ const AppShell = ({ children }) => {
               key={item.to}
               to={item.to}
               title={item.label}
-              className={`group relative flex min-h-12 items-center overflow-hidden rounded-xl text-[11px] font-bold uppercase tracking-[0.12em] transition duration-300 ${
-                active
+              className={`group relative flex min-h-12 items-center overflow-hidden rounded-xl text-[11px] font-bold uppercase tracking-[0.12em] transition duration-300 ${active
                   ? "bg-holter-mintSoft text-holter-primaryContainer shadow-soft"
                   : "text-holter-primaryContainer/70 hover:translate-x-1 hover:bg-white/45 hover:text-holter-primaryContainer"
-              } ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-3"}`}
+                } ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-3"}`}
             >
               <span className={`flex min-w-0 items-center ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
                 <span
-                  className={`inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl transition ${
-                    active ? "bg-white/70 text-holter-primaryContainer" : "bg-white/25 text-holter-primaryContainer/70 group-hover:bg-white/55 group-hover:text-holter-primaryContainer"
-                  }`}
+                  className={`inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl transition ${active ? "bg-white/70 text-holter-primaryContainer" : "bg-white/25 text-holter-primaryContainer/70 group-hover:bg-white/55 group-hover:text-holter-primaryContainer"
+                    }`}
                 >
                   <i className={`${item.icon} text-sm`}></i>
                 </span>

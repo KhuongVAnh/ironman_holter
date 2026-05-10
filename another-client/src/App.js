@@ -12,6 +12,7 @@ import Chatbot from "./components/shared/Chatbot"
 import useSocket from "./hooks/useSocket"
 import { ROLE, getDashboardPath } from "./services/string"
 
+const LandingPage = lazy(() => import("./components/LandingPage"))
 const Login = lazy(() => import("./components/Login"))
 const Register = lazy(() => import("./components/Register"))
 const PatientDashboard = lazy(() => import("./components/patient/PatientDashboard"))
@@ -117,11 +118,11 @@ const AppContent = () => {
           </AppShell>
         ) : (
           <Routes>
-            <Route path="/" element={<Navigate to="/login" />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
-            <Route path="*" element={<Navigate to="/login" />} />
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         )}
       </Suspense>

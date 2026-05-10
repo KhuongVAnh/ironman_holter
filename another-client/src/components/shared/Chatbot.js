@@ -67,7 +67,7 @@ const Chatbot = ({ userId, userRole }) => {
       case ROLE.ADMIN:
         return "Xin chào admin. Tôi có thể hỗ trợ giải thích số liệu và sự kiện vận hành hệ thống."
       default:
-        return "Xin chao. Toi la tro ly AI Ironman Holter."
+        return "Xin chao, tôi là trợ lý AI Iron Holter."
     }
   }
 
@@ -85,7 +85,7 @@ const Chatbot = ({ userId, userRole }) => {
         <div className="fixed inset-x-2 bottom-20 z-40 flex h-[min(620px,calc(100dvh-6rem))] flex-col overflow-hidden rounded-xl border border-surface-line bg-white shadow-panel sm:inset-x-auto sm:bottom-24 sm:right-5 sm:h-[520px] sm:w-[400px] sm:max-w-[calc(100vw-2rem)]">
           <div className="flex items-center justify-between bg-brand-600 px-4 py-3.5 text-white">
             <div>
-              <p className="text-sm font-bold">Tro ly AI Ironman</p>
+              <p className="text-sm font-bold">Tro ly AI Iron</p>
               <p className="text-xs text-white/75">Ho tro tim mach 24/7</p>
             </div>
             <div className="relative">

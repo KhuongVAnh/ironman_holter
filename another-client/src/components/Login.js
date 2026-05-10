@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
+import { motion } from "framer-motion"
+import { HeartPulse, ArrowRight, ShieldCheck, User } from "lucide-react"
 import { API_BASE_URL } from "../config/env"
 import { useAuth } from "../contexts/AuthContext"
+import "../styles/landing.css"
 
 const demoAccounts = [
   { role: "Bệnh nhân", email: "patient@example.com", password: "123456" },
@@ -28,7 +31,7 @@ const Login = () => {
       signal: controller.signal,
       headers: { Accept: "application/json" },
     }).catch(() => {
-      // Ignore wake-up errors here. The goal is only to warm app + DB before login.
+      // Ignore wake-up errors
     })
 
     return () => controller.abort()
@@ -48,116 +51,129 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-holter-surface px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[minmax(0,1fr)_460px]">
-        <section className="auth-panel-primary relative overflow-hidden rounded-xl border border-white/15 p-5 text-white shadow-soft sm:p-7 lg:p-8">
-          <div className="auth-grid-overlay"></div>
-          <div className="flex h-full flex-col justify-between gap-8">
-            <div>
-              <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white/85 backdrop-blur">
-                <i className="fas fa-heart-pulse text-brand-100"></i>
-                Ironman Holter
-              </div>
-              <h1 className="mt-6 max-w-3xl text-3xl font-semibold leading-tight sm:text-4xl">Đăng nhập để theo dõi ECG theo thời gian thực.</h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-white/75">Dashboard lâm sàng tập trung vào nhịp tim, cảnh báo bất thường, kết luận AI và quyền chia sẻ dữ liệu với bác sĩ hoặc gia đình.</p>
+    <div className="landing-hero relative min-h-screen flex items-center justify-center font-sans text-ink-900 px-4 sm:px-6 lg:px-8">
+      {/* Navigation Bar */}
+      <nav className="absolute left-0 right-0 top-0 z-50">
+        <div className="mx-auto flex h-20 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+          <Link to="/" className="flex items-center gap-2 transition-transform hover:scale-105">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white shadow-soft">
+              <HeartPulse size={20} />
             </div>
+            <span className="font-display text-xl font-bold tracking-tight text-brand-700">
+              Iron <span className="font-light">Holter</span>
+            </span>
+          </Link>
+        </div>
+      </nav>
 
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-xl border border-white/15 bg-white/10 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/15 text-sky-100"><i className="fas fa-wave-square"></i></div>
-                <p className="mt-4 text-2xl font-bold">Realtime</p>
-                <p className="mt-1 text-sm text-white/70">Dữ liệu ECG trực tiếp</p>
-              </div>
-              <div className="rounded-xl border border-red-400/25 bg-red-400/10 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-400/15 text-red-100"><i className="fas fa-triangle-exclamation"></i></div>
-                <p className="mt-4 text-2xl font-bold">Alert</p>
-                <p className="mt-1 text-sm text-white/70">Nhấn mạnh cảnh báo cần xử lý</p>
-              </div>
-              <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-100"><i className="fas fa-shield-halved"></i></div>
-                <p className="mt-4 text-2xl font-bold">Secure</p>
-                <p className="mt-1 text-sm text-white/70">Phân quyền theo vai trò</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="flex items-center">
-          <div className="clinical-panel w-full overflow-hidden">
-            <div className="clinical-panel-header">
-              <div>
-                <p className="panel-eyebrow">Đăng nhập</p>
-                <h2 className="section-title">Vào workspace</h2>
-                <p className="section-subtitle">Sử dụng email và mật khẩu đã đăng ký.</p>
-              </div>
-              <span className="status-chip is-success">An toàn</span>
-            </div>
-            <div className="clinical-panel-body">
-              <div className="highlight-band info mb-5">
-                <div className="highlight-band-icon"><i className="fas fa-circle-info"></i></div>
-                <div>
-                  <h3>Tài khoản demo</h3>
-                  <p>Chọn nhanh một vai trò để đi thẳng vào luồng kiểm thử.</p>
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                {demoAccounts.map((account) => (
-                  <button
-                    key={account.email}
-                    type="button"
-                    onClick={() => applyDemoAccount(account)}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-surface-line bg-white px-4 py-3 text-left shadow-soft transition hover:border-brand-200 hover:bg-brand-50"
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-sm font-bold text-ink-900">{account.role}</span>
-                      <span className="block truncate text-xs text-ink-500">{account.email}</span>
-                    </span>
-                    <i className="fas fa-arrow-right text-brand-600"></i>
-                  </button>
-                ))}
-              </div>
-
-              <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-                <div>
-                  <label className="ui-label">Email</label>
-                  <input
-                    className="ui-field"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))}
-                    placeholder="you@example.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="ui-label">Mật khẩu</label>
-                  <input
-                    className="ui-field"
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={(event) => setFormData((prev) => ({ ...prev, password: event.target.value }))}
-                    placeholder="Tối thiểu 6 ký tự"
-                    required
-                  />
-                </div>
-                <button type="submit" className="ui-btn ui-btn-primary w-full" disabled={loading}>
-                  {loading ? <><span className="ui-spinner ui-spinner-sm"></span>Đang đăng nhập...</> : <><i className="fas fa-right-to-bracket me-2"></i>Đăng nhập</>}
-                </button>
-              </form>
-
-              <p className="mt-6 text-sm text-ink-600">
-                Chưa có tài khoản?{" "}
-                <Link to="/register" className="font-semibold text-brand-700 hover:text-brand-800">
-                  Tạo tài khoản mới
-                </Link>
-              </p>
-            </div>
-          </div>
-        </section>
+      {/* Animated ECG SVG Background */}
+      <div className="ecg-line-container opacity-30">
+        <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 1000 200">
+          <path
+            className="ecg-path"
+            d="M0,100 L200,100 L220,100 L240,60 L260,140 L280,20 L300,180 L320,100 L340,100 L1000,100"
+            fill="none"
+            stroke="#e11d48"
+            strokeWidth="4"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        </svg>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-md"
+      >
+        <div className="rounded-3xl border border-surface-line bg-white/80 p-8 shadow-2xl backdrop-blur-2xl sm:p-10">
+          <div className="mb-8 text-center">
+            <h1 className="font-display text-3xl font-bold tracking-tight text-ink-900">
+              Truy cập tài khoản
+            </h1>
+            <p className="mt-2 text-sm text-ink-500">
+              Chào mừng bạn quay lại với IronPulse.
+            </p>
+          </div>
+
+          {/* Demo Accounts */}
+          <div className="mb-8">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
+              <User size={14} /> Chọn tài khoản Demo
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {demoAccounts.map((account) => (
+                <button
+                  key={account.role}
+                  type="button"
+                  onClick={() => applyDemoAccount(account)}
+                  className="rounded-xl border border-surface-line bg-white py-2 text-xs font-medium text-ink-600 transition-all hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+                >
+                  {account.role}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-ink-700">Email</label>
+              <div className="relative">
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))}
+                  className="w-full rounded-xl border border-surface-line bg-white px-4 py-3 text-sm text-ink-900 placeholder-ink-400 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500"
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-ink-700">Mật khẩu</label>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(event) => setFormData((prev) => ({ ...prev, password: event.target.value }))}
+                  className="w-full rounded-xl border border-surface-line bg-white px-4 py-3 text-sm text-ink-900 placeholder-ink-400 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-600/20 transition-all hover:bg-brand-500 hover:shadow-brand-600/40 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {loading ? (
+                <span className="ui-spinner ui-spinner-sm !border-white/30 !border-t-white"></span>
+              ) : (
+                <>
+                  Đăng nhập
+                  <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-8 flex items-center justify-center gap-2 border-t border-surface-line pt-6 text-sm text-ink-500">
+            <ShieldCheck size={16} className="text-emerald-500" />
+            <span>Kết nối an toàn & mã hóa đầu cuối</span>
+          </div>
+
+          <p className="mt-6 text-center text-sm text-ink-600">
+            Chưa có tài khoản?{" "}
+            <Link to="/register" className="font-semibold text-brand-600 hover:text-brand-700">
+              Đăng ký ngay
+            </Link>
+          </p>
+        </div>
+      </motion.div>
     </div>
   )
 }
