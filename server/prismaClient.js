@@ -9,7 +9,8 @@ const ensureDatabaseUrl = () => {
   const user = process.env.DB_USER
   const pass = process.env.DB_PASS
   const name = process.env.DB_NAME
-  const port = process.env.DB_PORT || "3306"
+  const dialect = (process.env.DB_DIALECT || "mysql").toLowerCase()
+  const port = process.env.DB_PORT || (dialect === "postgres" || dialect === "postgresql" ? "5432" : "3306")
 
   if (!host || !user || !name) {
     return
@@ -17,7 +18,14 @@ const ensureDatabaseUrl = () => {
 
   const encodedUser = encodeURIComponent(user)
   const encodedPass = pass ? `:${encodeURIComponent(pass)}` : ""
-  process.env.DATABASE_URL = `mysql://${encodedUser}${encodedPass}@${host}:${port}/${name}`
+  const protocol = dialect === "postgres" || dialect === "postgresql" ? "postgresql" : "mysql"
+  let url = `${protocol}://${encodedUser}${encodedPass}@${host}:${port}/${name}`
+  // optional: support schema via DB_SCHEMA env var
+  if (process.env.DB_SCHEMA) {
+    const sep = url.includes("?") ? "&" : "?"
+    url = `${url}${sep}schema=${encodeURIComponent(process.env.DB_SCHEMA)}`
+  }
+  process.env.DATABASE_URL = url
 }
 
 ensureDatabaseUrl()
