@@ -1,7 +1,8 @@
-import React from "react"
+import React, { useEffect } from "react"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Activity, ShieldAlert, HeartPulse, Stethoscope, Lock, ArrowRight, ActivitySquare, CheckCircle2 } from "lucide-react"
+import { API_URL, WORKER_URL } from "../config/env"
 import "../styles/landing.css"
 
 // Import assets
@@ -25,7 +26,24 @@ const itemVariants = {
   },
 }
 
+const wakeServer = (url) => {
+  if (!url) {
+    return Promise.resolve()
+  }
+
+  return fetch(url, {
+    method: "GET",
+    mode: "no-cors",
+    cache: "no-store",
+    credentials: "omit",
+  }).catch(() => null)
+}
+
 const LandingPage = () => {
+  useEffect(() => {
+    void Promise.allSettled([wakeServer(WORKER_URL), wakeServer(API_URL)])
+  }, [])
+
   return (
     <div className="min-h-screen bg-surface font-sans text-ink-900 selection:bg-brand-500 selection:text-white">
       {/* Navigation */}
@@ -121,10 +139,10 @@ const LandingPage = () => {
                 className="relative"
               >
                 <div className="absolute -inset-10 bg-brand-500/10 blur-[100px] rounded-full"></div>
-                <img 
-                  src={deviceImg} 
-                  alt="Ironman Holter Device" 
-                  className="relative z-10 w-full max-w-[500px] rounded-3xl overflow-hidden drop-shadow-[0_35px_35px_rgba(225,29,72,0.15)]" 
+                <img
+                  src={deviceImg}
+                  alt="Ironman Holter Device"
+                  className="relative z-10 w-full max-w-[500px] rounded-3xl overflow-hidden drop-shadow-[0_35px_35px_rgba(225,29,72,0.15)]"
                 />
               </motion.div>
             </motion.div>
@@ -213,12 +231,12 @@ const LandingPage = () => {
               className="relative order-2 lg:order-1"
             >
               <div className="absolute -inset-10 bg-brand-500/5 blur-[80px] rounded-full"></div>
-              <img 
-                src={shirtImg} 
-                alt="Smart Shirt Technology" 
-                className="relative z-10 w-full rounded-3xl shadow-2xl" 
+              <img
+                src={shirtImg}
+                alt="Smart Shirt Technology"
+                className="relative z-10 w-full rounded-3xl shadow-2xl"
               />
-              
+
               {/* Animated pulses over the image points if we wanted to be fancy, 
                   but since the labels are already in the image, we can just highlight the core concept */}
             </motion.div>
@@ -234,13 +252,13 @@ const LandingPage = () => {
                 Cuộc cách mạng Wearable
               </div>
               <h2 className="mb-6 font-display text-4xl font-bold text-ink-900 sm:text-5xl">
-                Không chỉ là thiết bị,<br/>
+                Không chỉ là thiết bị,<br />
                 <span className="text-brand-600">Đó là một hệ sinh thái.</span>
               </h2>
               <p className="mb-8 text-lg text-ink-600 leading-relaxed">
                 Tích hợp trực tiếp vào trang phục hàng ngày, giải pháp Smart Shirt của chúng tôi theo dõi toàn diện các chỉ số sinh tồn mà không gây cảm giác khó chịu hay vướng víu.
               </p>
-              
+
               <div className="grid gap-4 sm:grid-cols-2">
                 {[
                   "Điện tâm đồ (ECG)",
@@ -256,7 +274,7 @@ const LandingPage = () => {
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-10">
                 <p className="italic text-ink-500 border-l-4 border-brand-200 pl-4">
                   "Giải pháp tối ưu cho việc theo dõi sức khỏe người cao tuổi và bệnh nhân mãn tính tại nhà."
@@ -296,7 +314,7 @@ const LandingPage = () => {
                 ))}
               </ul>
             </motion.div>
-            
+
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -308,25 +326,25 @@ const LandingPage = () => {
               <div className="relative rounded-2xl border border-surface-line bg-white p-2 shadow-2xl">
                 {/* Mockup of dashboard */}
                 <div className="overflow-hidden rounded-xl bg-surface-soft">
-                   <div className="flex items-center gap-2 bg-white px-4 py-3 border-b border-surface-line">
-                     <div className="h-3 w-3 rounded-full bg-red-400"></div>
-                     <div className="h-3 w-3 rounded-full bg-amber-400"></div>
-                     <div className="h-3 w-3 rounded-full bg-emerald-400"></div>
-                   </div>
-                   <div className="p-6">
-                      <div className="mb-4 h-8 w-1/3 rounded-lg bg-surface-line"></div>
-                      <div className="mb-4 h-32 w-full rounded-xl bg-surface-line/50 relative overflow-hidden">
-                         <div className="absolute top-1/2 w-full h-0.5 bg-brand-500/50"></div>
-                         <svg className="absolute inset-0 w-full h-full text-brand-500" viewBox="0 0 100 100" preserveAspectRatio="none">
-                           <path d="M0,50 Q10,50 15,30 T30,70 T40,50 T100,50" fill="none" stroke="currentColor" strokeWidth="2" />
-                         </svg>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="h-20 rounded-xl bg-surface-line/50"></div>
-                        <div className="h-20 rounded-xl bg-surface-line/50"></div>
-                        <div className="h-20 rounded-xl bg-surface-line/50"></div>
-                      </div>
-                   </div>
+                  <div className="flex items-center gap-2 bg-white px-4 py-3 border-b border-surface-line">
+                    <div className="h-3 w-3 rounded-full bg-red-400"></div>
+                    <div className="h-3 w-3 rounded-full bg-amber-400"></div>
+                    <div className="h-3 w-3 rounded-full bg-emerald-400"></div>
+                  </div>
+                  <div className="p-6">
+                    <div className="mb-4 h-8 w-1/3 rounded-lg bg-surface-line"></div>
+                    <div className="mb-4 h-32 w-full rounded-xl bg-surface-line/50 relative overflow-hidden">
+                      <div className="absolute top-1/2 w-full h-0.5 bg-brand-500/50"></div>
+                      <svg className="absolute inset-0 w-full h-full text-brand-500" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <path d="M0,50 Q10,50 15,30 T30,70 T40,50 T100,50" fill="none" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="h-20 rounded-xl bg-surface-line/50"></div>
+                      <div className="h-20 rounded-xl bg-surface-line/50"></div>
+                      <div className="h-20 rounded-xl bg-surface-line/50"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
