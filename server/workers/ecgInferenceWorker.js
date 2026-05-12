@@ -207,8 +207,8 @@ const worker = new Worker(
             throw error
         }
     },
-    { 
-        connection, 
+    {
+        connection,
         concurrency: parseInt(process.env.AI_CONCURRENCY || "5", 10) // chạy 5 job cùng lúc để tăng throughput, có thể điều chỉnh tùy theo tài nguyên hệ thống và khối lượng công việc dự kiến
     }
 )
@@ -285,3 +285,7 @@ worker.on("error", (error) => {
         reason: error?.message || "UNKNOWN",
     }))
 })
+
+module.exports = {
+    ecgInferenceWorker: worker,
+}
