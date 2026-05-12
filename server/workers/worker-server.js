@@ -11,7 +11,22 @@ const { ecgInferenceWorker } = require("./ecgInferenceWorker")
 const { directMessageNotificationWorker } = require("./directMessageNotificationWorker")
 // 2 worker tự chạy background ngay khi import(không cần khởi tạo thêm)
 const app = express()
-const PORT = process.env.PORT + 1 || 3001 + 1 // Worker server chạy trên port sau port của web server chính
+// Parse PORT from environment, validate range, fallback to 5001
+let PORT = 5001
+if (process.env.PORT) {
+  const parsedPort = parseInt(process.env.PORT, 10)
+  if (parsedPort > 0 && parsedPort < 65536) {
+    PORT = parsedPort
+  }
+  console.log(JSON.stringify({
+    event: "WORKER_SERVER_PORT_CONFIG",
+    timestamp: new Date().toISOString(),
+    port_env_raw: process.env.PORT || "undefined",
+    port_final: PORT,
+    port_valid: PORT > 0 && PORT < 65536,
+  }))
+
+}
 
 // Health check endpoint để Render có thể monitor
 app.get("/health", (req, res) => {
