@@ -7,6 +7,8 @@ const helmet = require("helmet")
 const http = require("http")
 const socketIo = require("socket.io")
 const cookieParser = require("cookie-parser") // để parse cookie
+const { ecgInferenceWorker } = require("./ecgInferenceWorker")
+const { directMessageNotificationWorker } = require("./directMessageNotificationWorker")
 
 const prisma = require("../prismaClient")
 const socketService = require("../services/socketService")
